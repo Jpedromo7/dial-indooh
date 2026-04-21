@@ -3,6 +3,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { TvPlaylistItem } from "../../types/signage";
 
+const VIDEO_FALLBACK_DURATION_SECONDS = 30;
+const DECODER_RELEASE_DELAY_MS = 180;
+
 interface VideoPlayerProps {
   item: TvPlaylistItem;
   onEnded: () => void;
@@ -12,6 +15,7 @@ interface VideoPlayerProps {
 
 export function VideoPlayer({ item, onEnded, onError, shouldLoop = false }: VideoPlayerProps) {
   const hasFinishedRef = useRef(false);
+  const videoRef = useRef<Video>(null);
   const sourceUri = item.media.localUri ?? item.media.fileUrl;
 
   const finishOnce = useCallback(() => {
@@ -20,7 +24,7 @@ export function VideoPlayer({ item, onEnded, onError, shouldLoop = false }: Vide
     }
 
     hasFinishedRef.current = true;
-    onEnded();
+    void releaseDecoderThen(onEnded);
   }, [onEnded, shouldLoop]);
 
   const errorOnce = useCallback(() => {
@@ -29,7 +33,7 @@ export function VideoPlayer({ item, onEnded, onError, shouldLoop = false }: Vide
     }
 
     hasFinishedRef.current = true;
-    onError();
+    void releaseDecoderThen(onError);
   }, [onError]);
 
   useEffect(() => {
@@ -37,24 +41,32 @@ export function VideoPlayer({ item, onEnded, onError, shouldLoop = false }: Vide
   }, [item.id, sourceUri]);
 
   useEffect(() => {
-    if (shouldLoop || !item.media.durationSeconds) {
+    if (shouldLoop) {
       return undefined;
     }
 
-    const timeout = setTimeout(finishOnce, (item.media.durationSeconds + 3) * 1000);
+    const durationSeconds = item.media.durationSeconds ?? VIDEO_FALLBACK_DURATION_SECONDS;
+    const timeout = setTimeout(finishOnce, durationSeconds * 1000);
     return () => clearTimeout(timeout);
   }, [finishOnce, item.media.durationSeconds, shouldLoop]);
+
+  async function releaseDecoderThen(callback: () => void) {
+    try {
+      await videoRef.current?.pauseAsync();
+      await videoRef.current?.unloadAsync();
+    } catch {
+      // Some Android TV firmware rejects unload during decoder transitions.
+    }
+
+    setTimeout(callback, DECODER_RELEASE_DELAY_MS);
+  }
 
   return (
     <View style={styles.container}>
       <Video
-        isLooping={shouldLoop}
+        ref={videoRef}
+        isLooping
         onError={errorOnce}
-        onPlaybackStatusUpdate={(status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            finishOnce();
-          }
-        }}
         progressUpdateIntervalMillis={500}
         resizeMode={ResizeMode.CONTAIN}
         shouldPlay
