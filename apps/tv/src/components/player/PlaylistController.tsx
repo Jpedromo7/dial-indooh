@@ -7,7 +7,7 @@ import { ImageDisplay } from "./ImageDisplay";
 import { VideoPlayer } from "./VideoPlayer";
 
 const VIDEO_FALLBACK_DURATION_SECONDS = 30;
-const VIDEO_ADVANCE_EARLY_MS = 900;
+const VIDEO_ADVANCE_EARLY_MS = 2500;
 const PLAYBACK_TRANSITION_MS = 500;
 
 interface PlaylistControllerProps {
@@ -126,6 +126,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
       <VideoPlayer
         item={currentItem}
         key={`${currentItem.id}-${cycle}`}
+        onAdvanceCue={advance}
         onError={() => handlePlaybackError(currentItem, "Video error")}
       />
     );
