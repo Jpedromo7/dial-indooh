@@ -44,7 +44,7 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
     });
 
     if (shouldReloadApp) {
-      await Updates.reloadAsync();
+      await reloadAppWithLatestUpdate();
     }
   } catch (error) {
     await acknowledgeScreenCommand(session.screenId, session.deviceKey, {
@@ -53,4 +53,14 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       errorMessage: error instanceof Error ? error.message : "Command failed"
     }).catch(() => undefined);
   }
+}
+
+async function reloadAppWithLatestUpdate() {
+  const update = await Updates.checkForUpdateAsync().catch(() => null);
+
+  if (update?.isAvailable) {
+    await Updates.fetchUpdateAsync();
+  }
+
+  await Updates.reloadAsync();
 }
