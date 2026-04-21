@@ -82,8 +82,7 @@ async function ensurePublicBucket(client: ReturnType<typeof createSupabaseAdminC
   }
 
   const { error } = await client.storage.createBucket(bucket, {
-    public: true,
-    fileSizeLimit: MAX_UPLOAD_SIZE_BYTES
+    public: true
   });
 
   if (error && !error.message.toLowerCase().includes("already exists")) {
