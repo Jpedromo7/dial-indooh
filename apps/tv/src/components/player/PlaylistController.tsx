@@ -13,11 +13,18 @@ interface PlaylistControllerProps {
 }
 
 export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackError }: PlaylistControllerProps) {
-  const items = useMemo(() => [...(playlist?.items ?? [])].sort((left, right) => left.order - right.order), [playlist]);
+  const [failedItemIds, setFailedItemIds] = useState<Set<string>>(() => new Set());
+  const rawItems = useMemo(() => [...(playlist?.items ?? [])].sort((left, right) => left.order - right.order), [playlist]);
+  const items = useMemo(
+    () => rawItems.filter((item) => !failedItemIds.has(item.id)),
+    [failedItemIds, rawItems]
+  );
   const [index, setIndex] = useState(0);
+  const [cycle, setCycle] = useState(0);
   const currentItem = items[index] ?? null;
 
   const advance = useCallback(() => {
+    setCycle((currentCycle) => currentCycle + 1);
     setIndex((currentIndex) => {
       if (items.length === 0) {
         return 0;
@@ -29,7 +36,19 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
 
   useEffect(() => {
     setIndex(0);
-  }, [playlist?.id, items.length]);
+    setCycle(0);
+    setFailedItemIds(new Set());
+  }, [playlist?.id, rawItems.length]);
+
+  useEffect(() => {
+    setIndex((currentIndex) => {
+      if (items.length === 0) {
+        return 0;
+      }
+
+      return Math.min(currentIndex, items.length - 1);
+    });
+  }, [items.length]);
 
   useEffect(() => {
     onCurrentItemChange(currentItem);
@@ -44,7 +63,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
     const timeout = setTimeout(advance, durationMs);
 
     return () => clearTimeout(timeout);
-  }, [advance, currentItem?.id, currentItem?.displayDurationSeconds]);
+  }, [advance, currentItem?.id, currentItem?.displayDurationSeconds, cycle]);
 
   if (!currentItem) {
     return (
@@ -55,13 +74,28 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
   }
 
   if (currentItem.media.type === "video") {
-    return <VideoPlayer item={currentItem} onEnded={advance} onError={() => handlePlaybackError(currentItem, "Video error")} />;
+    return (
+      <VideoPlayer
+        item={currentItem}
+        key={`${currentItem.id}-${cycle}`}
+        onEnded={advance}
+        onError={() => handlePlaybackError(currentItem, "Video error")}
+        shouldLoop={items.length === 1}
+      />
+    );
   }
 
-  return <ImageDisplay item={currentItem} onError={() => handlePlaybackError(currentItem, "Image error")} />;
+  return (
+    <ImageDisplay
+      item={currentItem}
+      key={`${currentItem.id}-${cycle}`}
+      onError={() => handlePlaybackError(currentItem, "Image error")}
+    />
+  );
 
   async function handlePlaybackError(item: TvPlaylistItem, message: string) {
     await clearCorruptedMedia(item.media.localUri);
+    setFailedItemIds((currentFailedItemIds) => new Set(currentFailedItemIds).add(item.id));
     onPlaybackError(item, message);
     advance();
   }
