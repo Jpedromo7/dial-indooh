@@ -246,6 +246,7 @@ export default function MediaPage() {
                   <tr>
                     <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">MIME</th>
                     <th className="px-4 py-3">Size</th>
                     <th className="px-4 py-3">Duration</th>
@@ -258,6 +259,11 @@ export default function MediaPage() {
                     <tr className="hover:bg-white/[0.03]" key={item.id}>
                       <td className="max-w-xs truncate px-4 py-3 font-medium">{item.title}</td>
                       <td className="px-4 py-3 capitalize">{item.type}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold capitalize">
+                          {item.status}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{item.mimeType}</td>
                       <td className="px-4 py-3">{formatBytes(item.sizeBytes)}</td>
                       <td className="px-4 py-3">{formatDuration(item.durationSeconds)}</td>

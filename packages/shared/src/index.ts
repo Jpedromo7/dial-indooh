@@ -1,6 +1,14 @@
 export type MediaType = "image" | "video";
 
+export type MediaStatus = "pending" | "processing" | "ready" | "failed";
+
 export type ScreenStatus = "online" | "offline";
+
+export type ScreenEventLevel = "info" | "warn" | "error";
+
+export type ScreenCommandType = "refresh_playlist" | "clear_cache" | "restart_player" | "reload_app";
+
+export type ScreenCommandStatus = "pending" | "delivered" | "acknowledged" | "failed";
 
 export type UserRole = "admin";
 
@@ -12,6 +20,9 @@ export interface MediaDto {
   mimeType: string;
   sizeBytes: number;
   durationSeconds: number | null;
+  status: MediaStatus;
+  processingError: string | null;
+  readyAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +40,8 @@ export interface PlaylistDto {
   name: string;
   description: string | null;
   isActive: boolean;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
   items: PlaylistItemDto[];
   createdAt: string;
   updatedAt: string;
@@ -60,6 +73,31 @@ export interface ScreenHeartbeatDto {
   currentMedia?: MediaDto | null;
 }
 
+export interface ScreenEventDto {
+  id: string;
+  screenId: string;
+  level: ScreenEventLevel;
+  type: string;
+  message: string;
+  mediaId: string | null;
+  media?: MediaDto | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface ScreenCommandDto {
+  id: string;
+  screenId: string;
+  type: ScreenCommandType;
+  payload: Record<string, unknown> | null;
+  status: ScreenCommandStatus;
+  requestedById: string | null;
+  requestedAt: string;
+  deliveredAt: string | null;
+  acknowledgedAt: string | null;
+  errorMessage: string | null;
+}
+
 export interface ScreenAssignmentDto {
   id: string;
   screenId: string;
@@ -72,6 +110,8 @@ export interface ScreenAssignmentDto {
 export interface ScreenDetailDto extends ScreenDto {
   activeAssignment: ScreenAssignmentDto | null;
   lastHeartbeat: ScreenHeartbeatDto | null;
+  recentEvents: ScreenEventDto[];
+  recentCommands: ScreenCommandDto[];
 }
 
 export interface ActivationRequest {

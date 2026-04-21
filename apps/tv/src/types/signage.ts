@@ -1,4 +1,4 @@
-import type { MediaType, ScreenStatus } from "@dialindooh/shared";
+import type { MediaStatus, MediaType, ScreenCommandStatus, ScreenCommandType, ScreenEventLevel, ScreenStatus } from "@dialindooh/shared";
 
 export interface DeviceSession {
   screenId: string;
@@ -14,6 +14,9 @@ export interface TvMedia {
   mimeType: string;
   sizeBytes: number;
   durationSeconds: number | null;
+  status: MediaStatus;
+  processingError: string | null;
+  readyAt: string | null;
   localUri?: string;
 }
 
@@ -30,8 +33,27 @@ export interface TvPlaylist {
   name: string;
   description: string | null;
   isActive: boolean;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
   items: TvPlaylistItem[];
   updatedAt?: string;
+}
+
+export interface ScreenCommand {
+  id: string;
+  screenId: string;
+  type: ScreenCommandType;
+  payload: Record<string, unknown> | null;
+  status: ScreenCommandStatus;
+  requestedAt: string;
+}
+
+export interface ScreenEventInput {
+  level: ScreenEventLevel;
+  type: string;
+  message: string;
+  mediaId?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface CachedManifest {

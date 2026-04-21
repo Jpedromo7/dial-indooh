@@ -2,10 +2,19 @@ import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
-import { serializePlaylist, serializeScreen, serializeScreenDetail } from "@/server/utils/serializers";
 import {
+  serializePlaylist,
+  serializeScreen,
+  serializeScreenCommand,
+  serializeScreenDetail,
+  serializeScreenEvent
+} from "@/server/utils/serializers";
+import {
+  screenCommandAckSchema,
+  screenCommandCreateSchema,
   screenActivationSchema,
   screenCreateSchema,
+  screenEventSchema,
   screenHeartbeatSchema,
   screenUpdateSchema
 } from "@/server/validation/schemas";
@@ -24,6 +33,18 @@ const screenInclude = {
 
 const playlistInclude = {
   items: {
+    orderBy: { order: "asc" as const },
+    include: { media: true }
+  }
+};
+
+const devicePlaylistInclude = {
+  items: {
+    where: {
+      media: {
+        status: "ready" as const
+      }
+    },
     orderBy: { order: "asc" as const },
     include: { media: true }
   }
@@ -59,6 +80,17 @@ export const screenService = {
           include: {
             currentMedia: true
           }
+        },
+        events: {
+          orderBy: { createdAt: "desc" },
+          take: 12,
+          include: {
+            media: true
+          }
+        },
+        commands: {
+          orderBy: { requestedAt: "desc" },
+          take: 8
         }
       }
     });
@@ -185,17 +217,24 @@ export const screenService = {
 
   async getDevicePlaylist(screenId: string, deviceKey: string | null) {
     await assertDeviceAccess(screenId, deviceKey);
+    const now = new Date();
 
     const assignment = await prisma.screenAssignment.findFirst({
       where: {
         screenId,
         isActive: true,
-        playlist: { isActive: true }
+        playlist: {
+          isActive: true,
+          AND: [
+            { OR: [{ scheduledStartAt: null }, { scheduledStartAt: { lte: now } }] },
+            { OR: [{ scheduledEndAt: null }, { scheduledEndAt: { gte: now } }] }
+          ]
+        }
       },
       orderBy: { assignedAt: "desc" },
       include: {
         playlist: {
-          include: playlistInclude
+          include: devicePlaylistInclude
         }
       }
     });
@@ -203,6 +242,126 @@ export const screenService = {
     return {
       playlist: assignment ? serializePlaylist(assignment.playlist) : null
     };
+  },
+
+  async listEvents(screenId: string) {
+    const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
+
+    if (!screen) {
+      throw new ApiError(404, "screen_not_found", "Screen was not found.");
+    }
+
+    const events = await prisma.screenEvent.findMany({
+      where: { screenId },
+      include: { media: true },
+      orderBy: { createdAt: "desc" },
+      take: 80
+    });
+
+    return events.map(serializeScreenEvent);
+  },
+
+  async recordEvent(screenId: string, deviceKey: string | null, input: unknown) {
+    const data = screenEventSchema.parse(input);
+    await assertDeviceAccess(screenId, deviceKey);
+
+    if (data.mediaId) {
+      const media = await prisma.media.findUnique({ where: { id: data.mediaId } });
+
+      if (!media) {
+        throw new ApiError(404, "media_not_found", "Media item was not found.");
+      }
+    }
+
+    const event = await prisma.screenEvent.create({
+      data: {
+        screenId,
+        level: data.level,
+        type: data.type,
+        message: data.message,
+        mediaId: data.mediaId ?? null,
+        metadata: toJson(data.metadata)
+      },
+      include: { media: true }
+    });
+
+    return serializeScreenEvent(event);
+  },
+
+  async createCommand(screenId: string, requestedById: string, input: unknown) {
+    const data = screenCommandCreateSchema.parse(input);
+    const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
+
+    if (!screen) {
+      throw new ApiError(404, "screen_not_found", "Screen was not found.");
+    }
+
+    const command = await prisma.screenCommand.create({
+      data: {
+        screenId,
+        requestedById,
+        type: data.type,
+        payload: toJson(data.payload)
+      }
+    });
+
+    return serializeScreenCommand(command);
+  },
+
+  async pollCommands(screenId: string, deviceKey: string | null) {
+    await assertDeviceAccess(screenId, deviceKey);
+
+    const commands = await prisma.$transaction(async (tx) => {
+      const pendingCommands = await tx.screenCommand.findMany({
+        where: { screenId, status: "pending" },
+        orderBy: { requestedAt: "asc" },
+        take: 10
+      });
+
+      if (pendingCommands.length > 0) {
+        await tx.screenCommand.updateMany({
+          where: { id: { in: pendingCommands.map((command) => command.id) } },
+          data: {
+            status: "delivered",
+            deliveredAt: new Date()
+          }
+        });
+      }
+
+      return tx.screenCommand.findMany({
+        where: { id: { in: pendingCommands.map((command) => command.id) } },
+        orderBy: { requestedAt: "asc" }
+      });
+    });
+
+    return commands.map(serializeScreenCommand);
+  },
+
+  async acknowledgeCommand(screenId: string, deviceKey: string | null, input: unknown) {
+    const data = screenCommandAckSchema.parse(input);
+    await assertDeviceAccess(screenId, deviceKey);
+
+    const command = await prisma.screenCommand.findFirst({
+      where: {
+        id: data.commandId,
+        screenId
+      }
+    });
+
+    if (!command) {
+      throw new ApiError(404, "screen_command_not_found", "Screen command was not found.");
+    }
+
+    const updatedCommand = await prisma.screenCommand.update({
+      where: { id: command.id },
+      data: {
+        status: data.status,
+        acknowledgedAt: new Date(),
+        errorMessage: data.errorMessage ?? null
+      }
+    });
+
+    return serializeScreenCommand(updatedCommand);
   },
 
   async recordHeartbeat(screenId: string, deviceKey: string | null, input: unknown) {
@@ -244,6 +403,14 @@ export const screenService = {
     return heartbeat;
   }
 };
+
+function toJson(value: Record<string, unknown> | null | undefined) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+}
 
 async function assertDeviceAccess(screenId: string, deviceKey: string | null) {
   if (!deviceKey) {

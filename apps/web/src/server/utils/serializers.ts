@@ -1,4 +1,13 @@
-import type { Media, Playlist, PlaylistItem, Screen, ScreenAssignment, ScreenHeartbeat } from "@prisma/client";
+import type {
+  Media,
+  Playlist,
+  PlaylistItem,
+  Screen,
+  ScreenAssignment,
+  ScreenCommand,
+  ScreenEvent,
+  ScreenHeartbeat
+} from "@prisma/client";
 
 type PlaylistItemWithMedia = PlaylistItem & {
   media: Media;
@@ -16,7 +25,11 @@ type ScreenWithRelations = Screen & {
 type ScreenDetail = Screen & {
   assignments: Array<ScreenAssignment & { playlist: PlaylistWithItems }>;
   heartbeats: Array<ScreenHeartbeat & { currentMedia: Media | null }>;
+  events: Array<ScreenEvent & { media: Media | null }>;
+  commands: ScreenCommand[];
 };
+
+const ONLINE_HEARTBEAT_WINDOW_MS = 5 * 60 * 1000;
 
 export function serializeMedia(media: Media) {
   return {
@@ -42,6 +55,7 @@ export function serializePlaylist(playlist: PlaylistWithItems) {
 export function serializeScreen(screen: ScreenWithRelations) {
   const activeAssignment = screen.assignments?.find((assignment) => assignment.isActive);
   const latestHeartbeat = screen.heartbeats?.[0];
+  const lastHeartbeatAt = latestHeartbeat?.sentAt ?? screen.lastSeenAt;
 
   return {
     id: screen.id,
@@ -49,13 +63,13 @@ export function serializeScreen(screen: ScreenWithRelations) {
     slug: screen.slug,
     activationCode: screen.activationCode,
     location: screen.location,
-    status: screen.status,
+    status: getEffectiveScreenStatus(screen.status, lastHeartbeatAt),
     lastSeenAt: screen.lastSeenAt,
     createdAt: screen.createdAt,
     updatedAt: screen.updatedAt,
     deviceKeyRegistered: Boolean(screen.deviceKey),
     activePlaylistId: activeAssignment?.playlistId ?? null,
-    lastHeartbeatAt: latestHeartbeat?.sentAt ?? screen.lastSeenAt
+    lastHeartbeatAt
   };
 }
 
@@ -64,6 +78,17 @@ export function serializeHeartbeat(heartbeat: ScreenHeartbeat & { currentMedia?:
     ...heartbeat,
     currentMedia: heartbeat.currentMedia ? serializeMedia(heartbeat.currentMedia) : null
   };
+}
+
+export function serializeScreenEvent(event: ScreenEvent & { media?: Media | null }) {
+  return {
+    ...event,
+    media: event.media ? serializeMedia(event.media) : null
+  };
+}
+
+export function serializeScreenCommand(command: ScreenCommand) {
+  return command;
 }
 
 export function serializeScreenDetail(screen: ScreenDetail) {
@@ -78,6 +103,17 @@ export function serializeScreenDetail(screen: ScreenDetail) {
           playlist: serializePlaylist(activeAssignment.playlist)
         }
       : null,
-    lastHeartbeat: latestHeartbeat ? serializeHeartbeat(latestHeartbeat) : null
+    lastHeartbeat: latestHeartbeat ? serializeHeartbeat(latestHeartbeat) : null,
+    recentEvents: screen.events.map(serializeScreenEvent),
+    recentCommands: screen.commands.map(serializeScreenCommand)
   };
+}
+
+function getEffectiveScreenStatus(status: Screen["status"], lastHeartbeatAt: Date | null | undefined) {
+  if (status === "offline" || !lastHeartbeatAt) {
+    return "offline";
+  }
+
+  const ageMs = Date.now() - new Date(lastHeartbeatAt).getTime();
+  return ageMs <= ONLINE_HEARTBEAT_WINDOW_MS ? "online" : "offline";
 }

@@ -21,6 +21,8 @@ export default function PlaylistsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [scheduledStartAt, setScheduledStartAt] = useState("");
+  const [scheduledEndAt, setScheduledEndAt] = useState("");
   const playlists = query.data ?? [];
 
   async function createPlaylist(event: FormEvent<HTMLFormElement>) {
@@ -28,10 +30,18 @@ export default function PlaylistsPage() {
     setIsCreating(true);
 
     try {
-      await apiClient.createPlaylist({ name, description: description || null, isActive: true });
+      await apiClient.createPlaylist({
+        name,
+        description: description || null,
+        isActive: true,
+        scheduledStartAt: toIsoDateTime(scheduledStartAt),
+        scheduledEndAt: toIsoDateTime(scheduledEndAt)
+      });
       toast({ title: "Playlist created", description: name, variant: "success" });
       setName("");
       setDescription("");
+      setScheduledStartAt("");
+      setScheduledEndAt("");
       await query.refresh();
     } catch (error) {
       toast({ title: "Create failed", description: getApiErrorMessage(error), variant: "error" });
@@ -73,6 +83,26 @@ export default function PlaylistsPage() {
                 placeholder="Description"
                 value={description}
               />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-xs text-muted-foreground">
+                  Início
+                  <input
+                    className="h-10 rounded-md border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                    onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
+                    type="datetime-local"
+                    value={scheduledStartAt}
+                  />
+                </label>
+                <label className="grid gap-1 text-xs text-muted-foreground">
+                  Fim
+                  <input
+                    className="h-10 rounded-md border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                    onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
+                    type="datetime-local"
+                    value={scheduledEndAt}
+                  />
+                </label>
+              </div>
               <Button className="w-full" disabled={isCreating} type="submit">
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 {isCreating ? "Creating..." : "Create playlist"}
@@ -100,7 +130,9 @@ export default function PlaylistsPage() {
                         {isEditing ? (
                           <EditPlaylistForm
                             defaultDescription={playlist.description ?? ""}
+                            defaultEndAt={toLocalDateTimeInput(playlist.scheduledEndAt)}
                             defaultName={playlist.name}
+                            defaultStartAt={toLocalDateTimeInput(playlist.scheduledStartAt)}
                             onCancel={() => setEditingId(null)}
                             onSave={(input) => updatePlaylist(playlist.id, input)}
                           />
@@ -116,6 +148,18 @@ export default function PlaylistsPage() {
                             <p className="mt-3 text-xs text-muted-foreground">
                               {playlist.items.length} items · Updated {formatDate(playlist.updatedAt)}
                             </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Janela: {formatDate(playlist.scheduledStartAt)} até {formatDate(playlist.scheduledEndAt)}
+                            </p>
+                            {playlist.items.length > 0 ? (
+                              <ol className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                {playlist.items.slice(0, 6).map((item) => (
+                                  <li className="rounded-full border px-2.5 py-1" key={item.id}>
+                                    {item.order}. {item.media.title}
+                                  </li>
+                                ))}
+                              </ol>
+                            ) : null}
                           </>
                         )}
                       </div>
@@ -151,23 +195,34 @@ export default function PlaylistsPage() {
 function EditPlaylistForm({
   defaultName,
   defaultDescription,
+  defaultStartAt,
+  defaultEndAt,
   onCancel,
   onSave
 }: {
   defaultName: string;
   defaultDescription: string;
+  defaultStartAt: string;
+  defaultEndAt: string;
   onCancel: () => void;
-  onSave: (input: { name: string; description: string | null }) => void;
+  onSave: (input: { name: string; description: string | null; scheduledStartAt: string | null; scheduledEndAt: string | null }) => void;
 }) {
   const [name, setName] = useState(defaultName);
   const [description, setDescription] = useState(defaultDescription);
+  const [scheduledStartAt, setScheduledStartAt] = useState(defaultStartAt);
+  const [scheduledEndAt, setScheduledEndAt] = useState(defaultEndAt);
 
   return (
     <form
       className="grid gap-3"
       onSubmit={(event) => {
         event.preventDefault();
-        onSave({ name, description: description || null });
+        onSave({
+          name,
+          description: description || null,
+          scheduledStartAt: toIsoDateTime(scheduledStartAt),
+          scheduledEndAt: toIsoDateTime(scheduledEndAt)
+        });
       }}
     >
       <input
@@ -180,6 +235,20 @@ function EditPlaylistForm({
         onChange={(event) => setDescription(event.currentTarget.value)}
         value={description}
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input
+          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
+          type="datetime-local"
+          value={scheduledStartAt}
+        />
+        <input
+          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
+          type="datetime-local"
+          value={scheduledEndAt}
+        />
+      </div>
       <div className="flex gap-2">
         <Button type="submit">Save</Button>
         <Button onClick={onCancel} type="button" variant="ghost">
@@ -188,4 +257,18 @@ function EditPlaylistForm({
       </div>
     </form>
   );
+}
+
+function toIsoDateTime(value: string) {
+  return value ? new Date(value).toISOString() : null;
+}
+
+function toLocalDateTimeInput(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
 }

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const id = z.string().min(1, "Required id is missing.");
 const optionalText = z.string().trim().min(1).max(500).nullable().optional();
+const optionalDateTime = z.string().datetime().nullable().optional();
+const metadata = z.record(z.unknown()).nullable().optional();
 const slug = z
   .string()
   .trim()
@@ -45,14 +47,18 @@ export const mediaUploadUrlSchema = z.object({
 export const playlistCreateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: optionalText,
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  scheduledStartAt: optionalDateTime,
+  scheduledEndAt: optionalDateTime
 });
 
 export const playlistUpdateSchema = z
   .object({
     name: z.string().trim().min(1).max(160).optional(),
     description: optionalText,
-    isActive: z.boolean().optional()
+    isActive: z.boolean().optional(),
+    scheduledStartAt: optionalDateTime,
+    scheduledEndAt: optionalDateTime
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field must be provided."
@@ -112,4 +118,23 @@ export const screenHeartbeatSchema = z.object({
   ipAddress: z.string().trim().min(3).max(80).optional(),
   currentMediaId: id.nullable().optional(),
   sentAt: z.string().datetime().optional()
+});
+
+export const screenEventSchema = z.object({
+  level: z.enum(["info", "warn", "error"]).default("info"),
+  type: z.string().trim().min(1).max(80),
+  message: z.string().trim().min(1).max(500),
+  mediaId: id.nullable().optional(),
+  metadata
+});
+
+export const screenCommandCreateSchema = z.object({
+  type: z.enum(["refresh_playlist", "clear_cache", "restart_player", "reload_app"]),
+  payload: metadata
+});
+
+export const screenCommandAckSchema = z.object({
+  commandId: id,
+  status: z.enum(["acknowledged", "failed"]).default("acknowledged"),
+  errorMessage: z.string().trim().min(1).max(500).nullable().optional()
 });

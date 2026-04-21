@@ -1,5 +1,5 @@
 import { API_BASE_URL, NETWORK_RETRY_ATTEMPTS } from "../config/appConfig";
-import type { ActivationResponse, HeartbeatInput, TvPlaylist } from "../types/signage";
+import type { ActivationResponse, HeartbeatInput, ScreenCommand, ScreenEventInput, TvPlaylist } from "../types/signage";
 import { sleep } from "../utils/sleep";
 
 interface ApiResponse<T> {
@@ -39,6 +39,32 @@ export async function fetchDevicePlaylist(screenId: string, deviceKey: string) {
 
 export async function sendHeartbeat(screenId: string, deviceKey: string, input: HeartbeatInput) {
   return request(`/screens/${screenId}/heartbeat`, {
+    method: "POST",
+    headers: withDeviceKey(deviceKey),
+    body: input
+  });
+}
+
+export async function sendScreenEvent(screenId: string, deviceKey: string, input: ScreenEventInput) {
+  return request(`/screens/${screenId}/events`, {
+    method: "POST",
+    headers: withDeviceKey(deviceKey),
+    body: input
+  });
+}
+
+export async function fetchScreenCommands(screenId: string, deviceKey: string) {
+  return request<ScreenCommand[]>(`/screens/${screenId}/commands`, {
+    headers: withDeviceKey(deviceKey)
+  });
+}
+
+export async function acknowledgeScreenCommand(
+  screenId: string,
+  deviceKey: string,
+  input: { commandId: string; status?: "acknowledged" | "failed"; errorMessage?: string | null }
+) {
+  return request(`/screens/${screenId}/commands/ack`, {
     method: "POST",
     headers: withDeviceKey(deviceKey),
     body: input

@@ -33,7 +33,9 @@ export const playlistService = {
       data: {
         name: data.name,
         description: data.description ?? null,
-        isActive: data.isActive ?? true
+        isActive: data.isActive ?? true,
+        scheduledStartAt: data.scheduledStartAt ? new Date(data.scheduledStartAt) : null,
+        scheduledEndAt: data.scheduledEndAt ? new Date(data.scheduledEndAt) : null
       },
       include: playlistInclude
     });
@@ -60,7 +62,15 @@ export const playlistService = {
     try {
       const playlist = await prisma.playlist.update({
         where: { id },
-        data,
+        data: {
+          name: data.name,
+          description: data.description,
+          isActive: data.isActive,
+          scheduledStartAt:
+            data.scheduledStartAt === undefined ? undefined : data.scheduledStartAt ? new Date(data.scheduledStartAt) : null,
+          scheduledEndAt:
+            data.scheduledEndAt === undefined ? undefined : data.scheduledEndAt ? new Date(data.scheduledEndAt) : null
+        },
         include: playlistInclude
       });
 
@@ -259,9 +269,13 @@ export const playlistService = {
 };
 
 function assertPlaylistItemRules(
-  media: { type: "image" | "video"; durationSeconds: number | null },
+  media: { type: "image" | "video"; status?: string; durationSeconds: number | null },
   displayDurationSeconds?: number | null
 ) {
+  if (media.status && media.status !== "ready") {
+    throw new ApiError(422, "media_not_ready", "Only ready media can be added to playlists.");
+  }
+
   if (media.type === "image" && !displayDurationSeconds) {
     throw new ApiError(
       422,

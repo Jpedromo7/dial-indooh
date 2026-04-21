@@ -46,6 +46,11 @@ export async function clearCorruptedMedia(localUri: string | undefined) {
   await FileSystem.deleteAsync(localUri, { idempotent: true }).catch(() => undefined);
 }
 
+export async function clearMediaCache() {
+  await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true }).catch(() => undefined);
+  await ensureCacheDirectory();
+}
+
 async function ensureCacheDirectory() {
   const info = await FileSystem.getInfoAsync(CACHE_DIR);
 

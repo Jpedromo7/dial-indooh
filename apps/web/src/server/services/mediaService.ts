@@ -25,7 +25,9 @@ export const mediaService = {
         fileUrl: data.fileUrl,
         mimeType: data.mimeType,
         sizeBytes: BigInt(data.sizeBytes),
-        durationSeconds: data.type === "video" ? data.durationSeconds : null
+        durationSeconds: data.type === "video" ? data.durationSeconds : null,
+        status: "ready",
+        readyAt: new Date()
       }
     });
 

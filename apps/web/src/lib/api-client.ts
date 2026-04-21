@@ -1,6 +1,14 @@
 "use client";
 
-import type { MediaDto, PlaylistDto, ScreenDetailDto, ScreenDto } from "@dialindooh/shared";
+import type {
+  MediaDto,
+  PlaylistDto,
+  ScreenCommandDto,
+  ScreenCommandType,
+  ScreenDetailDto,
+  ScreenDto,
+  ScreenEventDto
+} from "@dialindooh/shared";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
@@ -80,6 +88,8 @@ export interface PlaylistCreateInput {
   name: string;
   description?: string | null;
   isActive?: boolean;
+  scheduledStartAt?: string | null;
+  scheduledEndAt?: string | null;
 }
 
 export interface ScreenCreateInput {
@@ -145,7 +155,24 @@ export const apiClient = {
   updateScreen: (id: string, input: Partial<ScreenCreateInput> & { playlistId?: string | null; status?: string }) =>
     DEMO_MODE
       ? demoApi.updateScreen(id, input)
-      : request<ScreenDto>(`/api/screens/${id}`, { method: "PATCH", body: input })
+      : request<ScreenDto>(`/api/screens/${id}`, { method: "PATCH", body: input }),
+  listScreenEvents: (id: string) =>
+    DEMO_MODE ? Promise.resolve([]) : request<ScreenEventDto[]>(`/api/screens/${id}/events`),
+  createScreenCommand: (id: string, type: ScreenCommandType) =>
+    DEMO_MODE
+      ? Promise.resolve({
+          id: createId("command"),
+          screenId: id,
+          type,
+          payload: null,
+          status: "pending",
+          requestedById: "demo-admin",
+          requestedAt: new Date().toISOString(),
+          deliveredAt: null,
+          acknowledgedAt: null,
+          errorMessage: null
+        } satisfies ScreenCommandDto)
+      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type } })
 };
 
 export function getApiErrorMessage(error: unknown) {
@@ -202,6 +229,9 @@ const demoApi = {
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
       durationSeconds: input.durationSeconds ?? null,
+      status: "ready",
+      processingError: null,
+      readyAt: now,
       createdAt: now,
       updatedAt: now
     };
@@ -228,6 +258,8 @@ const demoApi = {
       name: input.name,
       description: input.description ?? null,
       isActive: input.isActive ?? true,
+      scheduledStartAt: input.scheduledStartAt ?? null,
+      scheduledEndAt: input.scheduledEndAt ?? null,
       items: [],
       createdAt: now,
       updatedAt: now
@@ -350,7 +382,9 @@ const demoApi = {
             currentMedia: playlist?.items[0]?.media ?? null,
             sentAt: screen.lastSeenAt
           }
-        : null
+        : null,
+      recentEvents: [],
+      recentCommands: []
     };
   },
   updateScreen: async (id: string, input: Partial<ScreenCreateInput> & { playlistId?: string | null; status?: string }) => {
@@ -395,6 +429,9 @@ function createInitialDemoStore(): DemoStore {
     mimeType: "image/jpeg",
     sizeBytes: 420000,
     durationSeconds: null,
+    status: "ready",
+    processingError: null,
+    readyAt: now,
     createdAt: now,
     updatedAt: now
   };
@@ -406,6 +443,9 @@ function createInitialDemoStore(): DemoStore {
     mimeType: "video/mp4",
     sizeBytes: 8400000,
     durationSeconds: 30,
+    status: "ready",
+    processingError: null,
+    readyAt: now,
     createdAt: now,
     updatedAt: now
   };
@@ -417,6 +457,9 @@ function createInitialDemoStore(): DemoStore {
     mimeType: "image/jpeg",
     sizeBytes: 610000,
     durationSeconds: null,
+    status: "ready",
+    processingError: null,
+    readyAt: now,
     createdAt: now,
     updatedAt: now
   };
@@ -430,6 +473,8 @@ function createInitialDemoStore(): DemoStore {
     name: "Demo Lobby Playlist",
     description: "Sample playlist for the demo screen.",
     isActive: true,
+    scheduledStartAt: null,
+    scheduledEndAt: null,
     createdAt: now,
     updatedAt: now,
     items: [

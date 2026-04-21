@@ -22,12 +22,40 @@ enum ScreenStatus {
   offline
 }
 
+enum MediaStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum ScreenEventLevel {
+  info
+  warn
+  error
+}
+
+enum ScreenCommandType {
+  refresh_playlist
+  clear_cache
+  restart_player
+  reload_app
+}
+
+enum ScreenCommandStatus {
+  pending
+  delivered
+  acknowledged
+  failed
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
   passwordHash String
   role         UserRole @default(admin)
+  commands     ScreenCommand[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -40,12 +68,17 @@ model Media {
   mimeType        String
   sizeBytes       BigInt
   durationSeconds Int?
+  status          MediaStatus       @default(ready)
+  processingError String?
+  readyAt         DateTime?
   playlistItems   PlaylistItem[]
   heartbeats      ScreenHeartbeat[] @relation("HeartbeatCurrentMedia")
+  events          ScreenEvent[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   @@index([type])
+  @@index([status])
 }
 
 model Playlist {
@@ -53,6 +86,8 @@ model Playlist {
   name        String
   description String?
   isActive    Boolean            @default(true)
+  scheduledStartAt DateTime?
+  scheduledEndAt   DateTime?
   items       PlaylistItem[]
   assignments ScreenAssignment[]
   createdAt   DateTime           @default(now())
@@ -86,6 +121,8 @@ model Screen {
   lastSeenAt     DateTime?
   assignments    ScreenAssignment[]
   heartbeats     ScreenHeartbeat[]
+  events         ScreenEvent[]
+  commands       ScreenCommand[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -118,4 +155,39 @@ model ScreenHeartbeat {
 
   @@index([screenId, sentAt])
   @@index([currentMediaId])
+}
+
+model ScreenEvent {
+  id        String           @id @default(cuid())
+  screenId  String
+  screen    Screen           @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  level     ScreenEventLevel @default(info)
+  type      String
+  message   String
+  mediaId   String?
+  media     Media?           @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([screenId, createdAt])
+  @@index([level])
+  @@index([mediaId])
+}
+
+model ScreenCommand {
+  id             String              @id @default(cuid())
+  screenId       String
+  screen         Screen              @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  type           ScreenCommandType
+  payload        Json?
+  status         ScreenCommandStatus @default(pending)
+  requestedById  String?
+  requestedBy    User?               @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedAt    DateTime            @default(now())
+  deliveredAt    DateTime?
+  acknowledgedAt DateTime?
+  errorMessage   String?
+
+  @@index([screenId, status, requestedAt])
+  @@index([requestedById])
 }

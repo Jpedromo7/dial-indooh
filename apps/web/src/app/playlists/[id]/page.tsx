@@ -32,7 +32,8 @@ export default function PlaylistDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const playlist = playlistQuery.data;
   const media = mediaQuery.data ?? [];
-  const selectedMedia = useMemo(() => media.find((item) => item.id === selectedMediaId), [media, selectedMediaId]);
+  const readyMedia = useMemo(() => media.filter((item) => item.status === "ready"), [media]);
+  const selectedMedia = useMemo(() => readyMedia.find((item) => item.id === selectedMediaId), [readyMedia, selectedMediaId]);
 
   useEffect(() => {
     setItems(playlist?.items ?? []);
@@ -197,12 +198,15 @@ export default function PlaylistDetailsPage() {
                     value={selectedMediaId}
                   >
                     <option value="">Choose media</option>
-                    {media.map((item) => (
+                    {readyMedia.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.title} ({item.type})
                       </option>
                     ))}
                   </select>
+                  {readyMedia.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No ready media available for playlists.</p>
+                  ) : null}
                   {selectedMedia?.type === "image" ? (
                     <label className="block space-y-2 text-sm font-medium">
                       <span>Display seconds</span>

@@ -1,10 +1,10 @@
-import { ResizeMode, Video } from "expo-av";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import type { TvPlaylistItem } from "../../types/signage";
 
-const VIDEO_ADVANCE_EARLY_MS = 2500;
-const VIDEO_PROGRESS_INTERVAL_MS = 500;
+const VIDEO_ADVANCE_EARLY_MS = 250;
+const VIDEO_PROGRESS_INTERVAL_SECONDS = 0.5;
 
 interface VideoPlayerProps {
   item: TvPlaylistItem;
@@ -15,34 +15,73 @@ interface VideoPlayerProps {
 export function VideoPlayer({ item, onAdvanceCue, onError }: VideoPlayerProps) {
   const hasAdvancedRef = useRef(false);
   const sourceUri = item.media.localUri ?? item.media.fileUrl;
-  const durationMs = item.media.durationSeconds ? item.media.durationSeconds * 1000 : null;
-  const advanceAtMs = durationMs ? Math.max(1000, durationMs - VIDEO_ADVANCE_EARLY_MS) : null;
+  const durationSeconds = item.media.durationSeconds ?? null;
+  const advanceAtSeconds = durationSeconds ? Math.max(1, durationSeconds - VIDEO_ADVANCE_EARLY_MS / 1000) : null;
+  const player = useVideoPlayer(
+    {
+      uri: sourceUri,
+      metadata: {
+        title: item.media.title
+      }
+    },
+    (createdPlayer) => {
+      createdPlayer.loop = true;
+      createdPlayer.keepScreenOnWhilePlaying = true;
+      createdPlayer.timeUpdateEventInterval = VIDEO_PROGRESS_INTERVAL_SECONDS;
+      createdPlayer.play();
+    }
+  );
 
   useEffect(() => {
     hasAdvancedRef.current = false;
   }, [item.id, sourceUri]);
 
+  useEffect(() => {
+    player.play();
+  }, [player]);
+
+  useEffect(() => {
+    const timeSubscription = player.addListener("timeUpdate", (payload) => {
+      if (!advanceAtSeconds || hasAdvancedRef.current) {
+        return;
+      }
+
+      if (payload.currentTime >= advanceAtSeconds) {
+        hasAdvancedRef.current = true;
+        onAdvanceCue();
+      }
+    });
+    const endSubscription = player.addListener("playToEnd", () => {
+      if (hasAdvancedRef.current) {
+        return;
+      }
+
+      hasAdvancedRef.current = true;
+      onAdvanceCue();
+    });
+    const statusSubscription = player.addListener("statusChange", (payload) => {
+      if (payload.status === "error" && !hasAdvancedRef.current) {
+        hasAdvancedRef.current = true;
+        onError();
+      }
+    });
+
+    return () => {
+      timeSubscription.remove();
+      endSubscription.remove();
+      statusSubscription.remove();
+    };
+  }, [advanceAtSeconds, onAdvanceCue, onError, player]);
+
   return (
     <View style={styles.container}>
-      <Video
-        isLooping
-        onError={onError}
-        onPlaybackStatusUpdate={(status) => {
-          if (!status.isLoaded || !advanceAtMs || hasAdvancedRef.current) {
-            return;
-          }
-
-          if (status.positionMillis >= advanceAtMs) {
-            hasAdvancedRef.current = true;
-            onAdvanceCue();
-          }
-        }}
-        progressUpdateIntervalMillis={VIDEO_PROGRESS_INTERVAL_MS}
-        resizeMode={ResizeMode.CONTAIN}
-        shouldPlay
-        source={{ uri: sourceUri }}
+      <VideoView
+        contentFit="contain"
+        fullscreenOptions={{ enable: false }}
+        nativeControls={false}
+        player={player}
         style={styles.video}
-        useNativeControls={false}
+        surfaceType="surfaceView"
       />
     </View>
   );

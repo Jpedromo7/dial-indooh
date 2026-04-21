@@ -2,12 +2,20 @@ module.exports = {
   expo: {
     name: "Dial Indooh TV",
     slug: "dial-indooh-tv",
-    version: "0.1.3",
+    version: "0.1.5",
     orientation: "landscape",
     userInterfaceStyle: "dark",
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+    updates: {
+      url: "https://u.expo.dev/e8208178-4e9d-47c7-9de4-bb05472b81a4",
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 0
+    },
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 4,
+      versionCode: 6,
       softwareKeyboardLayoutMode: "pan",
       permissions: ["INTERNET", "WAKE_LOCK", "ACCESS_NETWORK_STATE"],
       intentFilters: [

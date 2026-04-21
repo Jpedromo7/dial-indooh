@@ -90,7 +90,9 @@ For Android TV boxes, set `apps/tv/.env` from `apps/tv/.env.example`, then run:
 npm run android -w @dialindooh/tv
 ```
 
-The TV app stores activation locally, fetches `/api/screens/:id/playlist` with the `deviceKey`, caches media in the device filesystem, loops playlist items, falls back to the last cached playlist when offline, and posts heartbeats periodically.
+The TV app stores activation locally, fetches `/api/screens/:id/playlist` with the `deviceKey`, caches media in the device filesystem, loops playlist items, falls back to the last cached playlist when offline, posts heartbeats periodically, records playback events, and polls remote commands.
+
+The Expo TV app is also prepared for EAS Updates with the configured project URL. Use APK builds for native/runtime changes and EAS updates for compatible JavaScript fixes.
 
 ## Backend API
 
@@ -111,27 +113,43 @@ Admin routes require either the `dial_indooh_admin` cookie created by login or a
 - `GET /api/screens`
 - `POST /api/screens`
 - `PATCH /api/screens/:id`
+- `GET /api/screens/:id`
+- `GET /api/screens/:id/events`
+- `POST /api/screens/:id/commands`
 
 Device routes use `x-device-key: <deviceKey>` or `Authorization: Bearer <deviceKey>` after activation.
 
 - `POST /api/screens/activate`
 - `GET /api/screens/:id/playlist`
 - `POST /api/screens/:id/heartbeat`
+- `POST /api/screens/:id/events`
+- `GET /api/screens/:id/commands`
+- `POST /api/screens/:id/commands/ack`
 
 ## Admin UI Notes
 
 - The admin UI uses the secure `dial_indooh_admin` HTTP-only cookie created by `/api/auth/login`.
 - Media upload uses Supabase Storage signed upload URLs. The browser uploads files directly to the public media bucket, then the API stores the resulting public URL in PostgreSQL.
-- The UI adds two practical backend operations beyond the initial API list: `GET /api/screens/:id` for screen detail metadata and `PATCH /api/playlists/:id/items/:itemId` for image display duration edits.
+- Video duration is detected in the browser before saving media, so playlist video timing is automatic.
+- Playlist windows can be scheduled with start/end times. The TV only receives assigned playlists whose schedule is currently active.
+- The screen detail drawer shows recent TV events and recent commands. Commands available now: refresh playlist, clear cache, restart player, and reload app.
+- Screen status is derived from recent heartbeat activity, so a box becomes offline automatically if it stops reporting.
+- The UI adds practical backend operations beyond the initial API list: `GET /api/screens/:id`, screen event/command APIs, and `PATCH /api/playlists/:id/items/:itemId` for image display duration edits.
 
 ## Current Foundation
 
-- Prisma models for users, media, playlists, playlist items, screens, assignments, and heartbeats.
+- Prisma models for users, media, playlists, playlist items, screens, assignments, heartbeats, TV events, and remote commands.
 - Prisma-backed service layer with validation and business rules.
-- Route handlers for admin, media, playlist, screen, activation, playlist sync, and heartbeat APIs.
-- Shared DTOs for media, playlists, screens, activation, heartbeat, and API responses.
+- Route handlers for admin, media, playlist, screen, activation, playlist sync, heartbeat, event, and command APIs.
+- Shared DTOs for media, playlists, screens, activation, heartbeat, events, commands, and API responses.
 - Admin dashboard UI for login, dashboard analytics, media, playlists, screens, and settings.
-- Expo app shell with loading, activation, and player placeholder screens.
+- Expo Android TV app with loading, activation, cache-first playlist sync, fullscreen looping playback, offline mode, heartbeats, event reporting, remote command polling, and EAS Update preparation.
+
+## Production Notes
+
+- For the most reliable playback on low-cost TV boxes, upload H.264 MP4 videos with AAC audio and landscape 16:9 framing when possible.
+- Heavy video transcoding should run in a worker service or media pipeline outside Vercel. The database already has media status fields (`pending`, `processing`, `ready`, `failed`) so that pipeline can be added without changing the player contract.
+- Use the screen detail drawer to inspect the current playlist, heartbeat, app version, IP address, current media, playback errors, and remote command history.
 
 ## Next Steps
 

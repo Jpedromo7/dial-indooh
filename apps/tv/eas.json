@@ -4,6 +4,7 @@
   },
   "build": {
     "preview": {
+      "channel": "stable",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://dial-indooh.vercel.app/api",
         "EXPO_PUBLIC_DEVICE_CHANNEL": "stable",
@@ -15,6 +16,7 @@
       }
     },
     "production": {
+      "channel": "stable",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://dial-indooh.vercel.app/api",
         "EXPO_PUBLIC_DEVICE_CHANNEL": "stable",

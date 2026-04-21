@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import type { ScreenDetailDto, ScreenDto } from "@dialindooh/shared";
-import { MonitorUp, Tv } from "lucide-react";
+import type { ScreenCommandType, ScreenDetailDto, ScreenDto } from "@dialindooh/shared";
+import { MonitorUp, RotateCcw, Trash2, Tv, Wifi } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ErrorBanner } from "@/components/admin/error-banner";
@@ -100,6 +100,20 @@ export default function ScreensPage() {
     }
   }
 
+  async function sendCommand(type: ScreenCommandType) {
+    if (!selectedScreen) {
+      return;
+    }
+
+    try {
+      await apiClient.createScreenCommand(selectedScreen.id, type);
+      toast({ title: "Command queued", description: commandLabels[type], variant: "success" });
+      setDetail(await apiClient.getScreen(selectedScreen.id));
+    } catch (error) {
+      toast({ title: "Command failed", description: getApiErrorMessage(error), variant: "error" });
+    }
+  }
+
   return (
     <AppShell>
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
@@ -187,6 +201,9 @@ export default function ScreensPage() {
                   <DetailLine label="IP address" value={detail.lastHeartbeat?.ipAddress ?? "Unknown"} />
                   <DetailLine label="Current media" value={detail.lastHeartbeat?.currentMedia?.title ?? "None"} />
                 </div>
+                <RemoteCommands onCommand={sendCommand} />
+                <RecentCommands detail={detail} />
+                <RecentEvents detail={detail} />
                 <EditScreenForm detail={detail} key={detail.id} onSave={updateScreen} />
               </div>
             ) : null}
@@ -194,6 +211,87 @@ export default function ScreensPage() {
         </div>
       ) : null}
     </AppShell>
+  );
+}
+
+const commandLabels: Record<ScreenCommandType, string> = {
+  refresh_playlist: "Atualizar playlist",
+  clear_cache: "Limpar cache",
+  restart_player: "Reiniciar player",
+  reload_app: "Recarregar app"
+};
+
+function RemoteCommands({ onCommand }: { onCommand: (type: ScreenCommandType) => void }) {
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <h3 className="font-semibold">Comandos remotos</h3>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <Button onClick={() => onCommand("refresh_playlist")} type="button" variant="secondary">
+          <Wifi className="h-4 w-4" aria-hidden="true" />
+          Atualizar agora
+        </Button>
+        <Button onClick={() => onCommand("clear_cache")} type="button" variant="secondary">
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+          Limpar cache
+        </Button>
+        <Button onClick={() => onCommand("restart_player")} type="button" variant="secondary">
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Reiniciar player
+        </Button>
+        <Button onClick={() => onCommand("reload_app")} type="button" variant="secondary">
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Recarregar app
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function RecentCommands({ detail }: { detail: ScreenDetailDto }) {
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <h3 className="font-semibold">Últimos comandos</h3>
+      <div className="mt-3 grid gap-2">
+        {detail.recentCommands.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum comando enviado.</p>
+        ) : (
+          detail.recentCommands.map((command) => (
+            <div className="rounded-md border bg-card/50 p-3 text-sm" key={command.id}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">{commandLabels[command.type]}</span>
+                <span className="rounded-full border px-2 py-0.5 text-xs">{command.status}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDate(command.requestedAt)}</p>
+              {command.errorMessage ? <p className="mt-1 text-xs text-destructive">{command.errorMessage}</p> : null}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RecentEvents({ detail }: { detail: ScreenDetailDto }) {
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <h3 className="font-semibold">Eventos da TV</h3>
+      <div className="mt-3 grid gap-2">
+        {detail.recentEvents.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum evento recebido.</p>
+        ) : (
+          detail.recentEvents.map((event) => (
+            <div className="rounded-md border bg-card/50 p-3 text-sm" key={event.id}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium">{event.type}</span>
+                <span className="rounded-full border px-2 py-0.5 text-xs">{event.level}</span>
+              </div>
+              <p className="mt-1 text-muted-foreground">{event.message}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{formatDate(event.createdAt)}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

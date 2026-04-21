@@ -7,7 +7,7 @@ import { ImageDisplay } from "./ImageDisplay";
 import { VideoPlayer } from "./VideoPlayer";
 
 const VIDEO_FALLBACK_DURATION_SECONDS = 30;
-const VIDEO_ADVANCE_EARLY_MS = 2500;
+const VIDEO_ADVANCE_EARLY_MS = 250;
 const PLAYBACK_TRANSITION_MS = 500;
 
 interface PlaylistControllerProps {
