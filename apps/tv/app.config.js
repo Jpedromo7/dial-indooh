@@ -21,7 +21,7 @@ module.exports = {
     },
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 6,
+      versionCode: 7,
       adaptiveIcon: {
         foregroundImage: "./assets/dial-indooh-logo.png",
         backgroundColor: "#000000"
