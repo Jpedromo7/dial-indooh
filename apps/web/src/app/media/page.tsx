@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { MediaDto } from "@dialindooh/shared";
 import { FileVideo, ImagePlus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -25,6 +25,9 @@ export default function MediaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
+  const [durationDetectionStatus, setDurationDetectionStatus] = useState<"idle" | "detecting" | "detected" | "failed">(
+    "idle"
+  );
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<MediaDto | null>(null);
@@ -39,6 +42,35 @@ export default function MediaPage() {
       }),
     [media, search, type]
   );
+
+  useEffect(() => {
+    setDurationSeconds("");
+
+    if (!file?.type.startsWith("video/")) {
+      setDurationDetectionStatus("idle");
+      return undefined;
+    }
+
+    let isActive = true;
+    setDurationDetectionStatus("detecting");
+
+    readVideoDurationSeconds(file).then((duration) => {
+      if (!isActive) {
+        return;
+      }
+
+      if (duration) {
+        setDurationSeconds(String(duration));
+        setDurationDetectionStatus("detected");
+      } else {
+        setDurationDetectionStatus("failed");
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [file]);
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,11 +90,17 @@ export default function MediaPage() {
     setProgress(8);
 
     try {
-      const resolvedDurationSeconds =
-        mediaType === "video" ? await resolveVideoDurationSeconds(file, durationSeconds) : null;
+      const resolvedDurationSeconds = mediaType === "video" ? Number(durationSeconds) : null;
 
-      if (mediaType === "video" && !resolvedDurationSeconds) {
-        throw new Error("Enter the video duration in seconds.");
+      if (mediaType === "video" && durationDetectionStatus === "detecting") {
+        throw new Error("Wait until the video duration is detected.");
+      }
+
+      if (
+        mediaType === "video" &&
+        (resolvedDurationSeconds === null || !Number.isFinite(resolvedDurationSeconds) || resolvedDurationSeconds <= 0)
+      ) {
+        throw new Error("The video duration could not be detected. Enter the duration in seconds.");
       }
 
       setProgress(18);
@@ -136,12 +174,22 @@ export default function MediaPage() {
                 <label className="block space-y-2 text-sm font-medium">
                   <span>Video duration seconds</span>
                   <input
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring read-only:text-muted-foreground"
+                    disabled={durationDetectionStatus === "detecting"}
                     min={1}
                     onChange={(event) => setDurationSeconds(event.currentTarget.value)}
+                    placeholder={durationDetectionStatus === "detecting" ? "Detecting..." : "Seconds"}
+                    readOnly={durationDetectionStatus === "detected"}
                     type="number"
                     value={durationSeconds}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {durationDetectionStatus === "detecting"
+                      ? "Reading video metadata automatically..."
+                      : durationDetectionStatus === "detected"
+                        ? `Detected automatically: ${durationSeconds} seconds.`
+                        : "If detection fails, enter the duration manually."}
+                  </p>
                 </label>
               ) : null}
               {isUploading ? (
@@ -149,7 +197,11 @@ export default function MediaPage() {
                   <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
                 </div>
               ) : null}
-              <Button className="w-full" disabled={isUploading} type="submit">
+              <Button
+                className="w-full"
+                disabled={isUploading || durationDetectionStatus === "detecting"}
+                type="submit"
+              >
                 <ImagePlus className="h-4 w-4" aria-hidden="true" />
                 {isUploading ? "Uploading..." : "Create media"}
               </Button>
@@ -234,16 +286,6 @@ export default function MediaPage() {
       />
     </AppShell>
   );
-}
-
-async function resolveVideoDurationSeconds(file: File, manualValue: string) {
-  const manualDuration = Number(manualValue);
-
-  if (Number.isFinite(manualDuration) && manualDuration > 0) {
-    return Math.ceil(manualDuration);
-  }
-
-  return readVideoDurationSeconds(file);
 }
 
 function readVideoDurationSeconds(file: File) {

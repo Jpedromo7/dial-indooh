@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { apiClient, getApiErrorMessage } from "@/lib/api-client";
+import { formatDuration } from "@/lib/format";
 
 export default function PlaylistDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -213,6 +214,12 @@ export default function PlaylistDetailsPage() {
                         value={displayDurationSeconds}
                       />
                     </label>
+                  ) : null}
+                  {selectedMedia?.type === "video" ? (
+                    <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                      Video duration: {formatDuration(selectedMedia.durationSeconds)}. The TV player will play the full
+                      video, then continue the loop.
+                    </div>
                   ) : null}
                   <Button className="w-full" disabled={isSaving || mediaQuery.isLoading} type="submit">
                     <Plus className="h-4 w-4" aria-hidden="true" />

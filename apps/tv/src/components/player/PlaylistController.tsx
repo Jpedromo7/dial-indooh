@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { IMAGE_FALLBACK_DURATION_SECONDS } from "../../config/appConfig";
 import { clearCorruptedMedia } from "../../services/mediaCache";
@@ -17,6 +17,16 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
   const [index, setIndex] = useState(0);
   const currentItem = items[index] ?? null;
 
+  const advance = useCallback(() => {
+    setIndex((currentIndex) => {
+      if (items.length === 0) {
+        return 0;
+      }
+
+      return (currentIndex + 1) % items.length;
+    });
+  }, [items.length]);
+
   useEffect(() => {
     setIndex(0);
   }, [playlist?.id, items.length]);
@@ -34,7 +44,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
     const timeout = setTimeout(advance, durationMs);
 
     return () => clearTimeout(timeout);
-  }, [currentItem?.id, currentItem?.displayDurationSeconds]);
+  }, [advance, currentItem?.id, currentItem?.displayDurationSeconds]);
 
   if (!currentItem) {
     return (
@@ -49,16 +59,6 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
   }
 
   return <ImageDisplay item={currentItem} onError={() => handlePlaybackError(currentItem, "Image error")} />;
-
-  function advance() {
-    setIndex((currentIndex) => {
-      if (items.length === 0) {
-        return 0;
-      }
-
-      return (currentIndex + 1) % items.length;
-    });
-  }
 
   async function handlePlaybackError(item: TvPlaylistItem, message: string) {
     await clearCorruptedMedia(item.media.localUri);
