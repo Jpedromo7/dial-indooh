@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
 import { serializeMedia } from "@/server/utils/serializers";
-import { mediaCreateSchema } from "@/server/validation/schemas";
+import { mediaCreateSchema, mediaUpdateSchema } from "@/server/validation/schemas";
 
 export const mediaService = {
   async listMedia() {
@@ -33,6 +33,25 @@ export const mediaService = {
     });
 
     return serializeMedia(media);
+  },
+
+  async updateMedia(id: string, input: unknown) {
+    const data = mediaUpdateSchema.parse(input);
+
+    try {
+      const media = await prisma.media.update({
+        where: { id },
+        data
+      });
+
+      return serializeMedia(media);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new ApiError(404, "media_not_found", "Media item was not found.");
+      }
+
+      throw error;
+    }
   },
 
   async deleteMedia(id: string) {

@@ -32,6 +32,7 @@ export default function MediaPage() {
   );
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [updatingMediaId, setUpdatingMediaId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MediaDto | null>(null);
 
   const media = query.data ?? [];
@@ -165,6 +166,28 @@ export default function MediaPage() {
     }
   }
 
+  async function updateMediaOrientation(item: MediaDto, nextOrientation: MediaOrientation) {
+    if (item.orientation === nextOrientation) {
+      return;
+    }
+
+    setUpdatingMediaId(item.id);
+
+    try {
+      await apiClient.updateMedia(item.id, { orientation: nextOrientation });
+      toast({
+        title: "Orientação atualizada",
+        description: `${item.title}: ${orientationLabels[nextOrientation]}`,
+        variant: "success"
+      });
+      await query.refresh();
+    } catch (error) {
+      toast({ title: "Falha ao atualizar", description: getApiErrorMessage(error), variant: "error" });
+    } finally {
+      setUpdatingMediaId(null);
+    }
+  }
+
   return (
     <AppShell>
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
@@ -273,7 +296,7 @@ export default function MediaPage() {
             <EmptyState icon={FileVideo} title="No media found" description="Upload your first image or video asset." />
           ) : (
             <div className="overflow-x-auto rounded-lg border bg-card/70">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-[860px] text-left text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3">Title</th>
@@ -297,7 +320,19 @@ export default function MediaPage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{orientationLabels[item.orientation]}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          className="h-9 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                          disabled={updatingMediaId === item.id}
+                          onChange={(event) => updateMediaOrientation(item, event.currentTarget.value as MediaOrientation)}
+                          value={item.orientation}
+                        >
+                          <option value="auto">Automática</option>
+                          <option value="landscape">Horizontal</option>
+                          <option value="portrait">Vertical</option>
+                          <option value="square">Quadrada</option>
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{item.mimeType}</td>
                       <td className="px-4 py-3">{formatBytes(item.sizeBytes)}</td>
                       <td className="px-4 py-3">{formatDuration(item.durationSeconds)}</td>

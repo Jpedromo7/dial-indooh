@@ -39,6 +39,15 @@ export const mediaCreateSchema = z.object({
   orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional()
 });
 
+export const mediaUpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(160).optional(),
+    orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional()
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided."
+  });
+
 export const mediaUploadUrlSchema = z.object({
   fileName: z.string().trim().min(1).max(240),
   mimeType: z.string().trim().min(1).max(120),
