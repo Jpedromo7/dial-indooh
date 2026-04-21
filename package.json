@@ -23,6 +23,10 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
+  "overrides": {
+    "react": "19.2.0",
+    "react-native": "0.83.4"
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.0.0",
@@ -34,6 +38,8 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "prisma": "^6.0.0",
+    "react": "19.2.0",
+    "react-native": "0.83.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.0"
   }

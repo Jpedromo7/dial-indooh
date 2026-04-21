@@ -22,11 +22,20 @@
     "expo-navigation-bar": "latest",
     "expo-network": "latest",
     "expo-status-bar": "latest",
-    "react": "latest",
-    "react-native": "latest"
+    "react": "19.2.0",
+    "react-native": "0.83.4"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "typescript": "^5.7.0"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "expo-av"
+        ]
+      }
+    }
   }
 }
