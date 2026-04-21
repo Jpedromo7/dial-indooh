@@ -19,7 +19,10 @@ module.exports = {
     extra: {
       apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:3000/api",
       playlistRefreshMinutes: Number(process.env.EXPO_PUBLIC_PLAYLIST_REFRESH_MINUTES ?? 5),
-      heartbeatMinutes: Number(process.env.EXPO_PUBLIC_HEARTBEAT_MINUTES ?? 2)
+      heartbeatMinutes: Number(process.env.EXPO_PUBLIC_HEARTBEAT_MINUTES ?? 2),
+      eas: {
+        projectId: "e8208178-4e9d-47c7-9de4-bb05472b81a4"
+      }
     }
   }
 };
