@@ -20,7 +20,7 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
     try {
       const syncedPlaylist = await syncPlaylist(session);
       setPlaylist(syncedPlaylist);
-      setStatusMessage(hasPlayableItems(syncedPlaylist) ? "" : "No playlist assigned");
+      setStatusMessage(getPlaylistStatusMessage(syncedPlaylist));
     } catch (error) {
       const offlinePlaylist = await loadOfflinePlaylist();
       setPlaylist(offlinePlaylist);
@@ -61,6 +61,14 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
       ) : null}
     </View>
   );
+}
+
+function getPlaylistStatusMessage(playlist: TvPlaylist | null) {
+  if (hasPlayableItems(playlist)) {
+    return "";
+  }
+
+  return playlist ? "No playable media" : "No playlist assigned";
 }
 
 const styles = StyleSheet.create({

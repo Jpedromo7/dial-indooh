@@ -1,5 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
-import type { TvPlaylist } from "../types/signage";
+import type { TvPlaylist, TvPlaylistItem } from "../types/signage";
 
 const CACHE_DIR = `${FileSystem.documentDirectory ?? ""}media-cache/`;
 
@@ -11,20 +11,24 @@ export async function ensureMediaCache(playlist: TvPlaylist | null) {
   }
 
   const usedPaths = new Set<string>();
-  const cachedItems = await Promise.all(
-    playlist.items.map(async (item) => {
-      const localUri = await ensureCachedMedia(item.media.id, item.media.fileUrl);
+  const cachedItems: TvPlaylistItem[] = [];
+
+  for (const item of playlist.items) {
+    try {
+      const localUri = await ensureCachedMedia(item.media.id, item.media.fileUrl, item.media.mimeType);
       usedPaths.add(localUri);
 
-      return {
+      cachedItems.push({
         ...item,
         media: {
           ...item.media,
           localUri
         }
-      };
-    })
-  );
+      });
+    } catch (error) {
+      console.warn(`Skipping media ${item.media.id}:`, error);
+    }
+  }
 
   await removeUnusedFiles(usedPaths);
 
@@ -50,8 +54,8 @@ async function ensureCacheDirectory() {
   }
 }
 
-async function ensureCachedMedia(mediaId: string, remoteUrl: string) {
-  const extension = getExtension(remoteUrl);
+async function ensureCachedMedia(mediaId: string, remoteUrl: string, mimeType: string) {
+  const extension = getExtension(remoteUrl, mimeType);
   const localUri = `${CACHE_DIR}${sanitizeFileName(mediaId)}${extension}`;
   const info = await FileSystem.getInfoAsync(localUri);
 
@@ -90,10 +94,23 @@ async function removeUnusedFiles(usedPaths: Set<string>) {
   );
 }
 
-function getExtension(value: string) {
+function getExtension(value: string, mimeType: string) {
   const cleanUrl = value.split("?")[0] ?? value;
   const match = cleanUrl.match(/\.[a-zA-Z0-9]+$/);
-  return match?.[0] ?? ".media";
+
+  if (match?.[0]) {
+    return match[0];
+  }
+
+  if (mimeType === "image/jpeg") return ".jpg";
+  if (mimeType === "image/png") return ".png";
+  if (mimeType === "image/webp") return ".webp";
+  if (mimeType === "image/gif") return ".gif";
+  if (mimeType === "video/mp4") return ".mp4";
+  if (mimeType === "video/webm") return ".webm";
+  if (mimeType === "video/quicktime") return ".mov";
+
+  return ".media";
 }
 
 function sanitizeFileName(value: string) {
