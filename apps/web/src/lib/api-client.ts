@@ -62,6 +62,20 @@ export interface MediaCreateInput {
   durationSeconds?: number | null;
 }
 
+export interface MediaUploadUrlInput {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface MediaUploadUrlResponse {
+  bucket: string;
+  path: string;
+  token: string;
+  signedUrl: string;
+  publicUrl: string;
+}
+
 export interface PlaylistCreateInput {
   name: string;
   description?: string | null;
@@ -87,6 +101,10 @@ export const apiClient = {
   },
 
   listMedia: () => (DEMO_MODE ? demoApi.listMedia() : request<MediaDto[]>("/api/media")),
+  createMediaUploadUrl: (input: MediaUploadUrlInput) =>
+    DEMO_MODE
+      ? demoApi.createMediaUploadUrl(input)
+      : request<MediaUploadUrlResponse>("/api/media/upload-url", { method: "POST", body: input }),
   createMedia: (input: MediaCreateInput) =>
     DEMO_MODE ? demoApi.createMedia(input) : request<MediaDto>("/api/media", { method: "POST", body: input }),
   deleteMedia: (id: string) =>
@@ -166,6 +184,13 @@ function demoLogin(email: string, password: string): Promise<LoginResponse> {
 
 const demoApi = {
   listMedia: async () => getDemoStore().media,
+  createMediaUploadUrl: async (input: MediaUploadUrlInput) => ({
+    bucket: "demo",
+    path: `uploads/${encodeURIComponent(input.fileName)}`,
+    token: "demo-token",
+    signedUrl: "",
+    publicUrl: URL.createObjectURL(new File([], input.fileName, { type: input.mimeType }))
+  }),
   createMedia: async (input: MediaCreateInput) => {
     const store = getDemoStore();
     const now = new Date().toISOString();

@@ -51,7 +51,10 @@ DATABASE_URL="postgresql://postgres.hqclhdruysrerqeoomrr:[YOUR-PASSWORD]@aws-1-u
 DIRECT_URL="postgresql://postgres.hqclhdruysrerqeoomrr:[YOUR-PASSWORD]@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
 NEXT_PUBLIC_SUPABASE_URL="https://hqclhdruysrerqeoomrr.supabase.co"
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-supabase-publishable-key"
+SUPABASE_SERVICE_ROLE_KEY="your-server-only-service-role-key"
 NEXT_PUBLIC_DEMO_MODE="false"
+MEDIA_STORAGE_BUCKET="dial-indooh-media"
+MEDIA_STORAGE_PUBLIC_URL="https://hqclhdruysrerqeoomrr.supabase.co/storage/v1/object/public/dial-indooh-media"
 ```
 
 4. Generate Prisma client and sync the database:
@@ -95,6 +98,7 @@ Admin routes require either the `dial_indooh_admin` cookie created by login or a
 
 - `POST /api/auth/login`
 - `GET /api/media`
+- `POST /api/media/upload-url`
 - `POST /api/media`
 - `DELETE /api/media/:id`
 - `GET /api/playlists`
@@ -117,7 +121,7 @@ Device routes use `x-device-key: <deviceKey>` or `Authorization: Bearer <deviceK
 ## Admin UI Notes
 
 - The admin UI uses the secure `dial_indooh_admin` HTTP-only cookie created by `/api/auth/login`.
-- Media upload is currently an integration-ready placeholder: the UI simulates progress and records media metadata with a generated CDN URL. Replace `uploadMediaPlaceholder` with real object storage upload when storage is configured.
+- Media upload uses Supabase Storage signed upload URLs. The browser uploads files directly to the public media bucket, then the API stores the resulting public URL in PostgreSQL.
 - The UI adds two practical backend operations beyond the initial API list: `GET /api/screens/:id` for screen detail metadata and `PATCH /api/playlists/:id/items/:itemId` for image display duration edits.
 
 ## Current Foundation

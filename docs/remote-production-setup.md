@@ -22,9 +22,10 @@ AUTH_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_URL="https://dial-indooh.vercel.app"
 NEXT_PUBLIC_SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="YOUR_SUPABASE_PUBLISHABLE_KEY"
+SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVER_ONLY_SERVICE_ROLE_KEY"
 NEXT_PUBLIC_DEMO_MODE="false"
 MEDIA_STORAGE_BUCKET="dial-indooh-media"
-MEDIA_STORAGE_PUBLIC_URL="https://YOUR_PUBLIC_MEDIA_BASE_URL"
+MEDIA_STORAGE_PUBLIC_URL="https://YOUR_PROJECT.supabase.co/storage/v1/object/public/dial-indooh-media"
 ```
 
 For this Supabase project, the working IPv4 Session Pooler host found locally was:
@@ -32,6 +33,8 @@ For this Supabase project, the working IPv4 Session Pooler host found locally wa
 ```txt
 aws-1-us-east-2.pooler.supabase.com
 ```
+
+The `SUPABASE_SERVICE_ROLE_KEY` is available in Supabase under Project Settings -> API. It is required only for the Next.js server route that creates signed upload URLs.
 
 ## 2. Sync database
 
@@ -78,4 +81,4 @@ After activation, the TV app stores its `deviceKey` locally. From then on:
 
 ## Important
 
-The current media upload UI stores metadata and expects public media URLs. For full production uploads, connect the upload flow to Supabase Storage or another CDN-backed storage provider so the TV app can download real files from public URLs.
+Media uploads use Supabase Storage. Keep `SUPABASE_SERVICE_ROLE_KEY` only on the server or Vercel environment; never expose it in the Expo app or browser code. The upload API creates a signed upload URL, the admin browser uploads the file directly to Supabase, and the TV app downloads the final public media URL.

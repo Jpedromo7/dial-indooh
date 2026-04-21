@@ -36,6 +36,12 @@ export const mediaCreateSchema = z.object({
   durationSeconds: z.number().int().positive().nullable().optional()
 });
 
+export const mediaUploadUrlSchema = z.object({
+  fileName: z.string().trim().min(1).max(240),
+  mimeType: z.string().trim().min(1).max(120),
+  sizeBytes: z.number().int().positive()
+});
+
 export const playlistCreateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   description: optionalText,

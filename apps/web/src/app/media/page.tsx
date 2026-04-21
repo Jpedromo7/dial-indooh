@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { apiClient, getApiErrorMessage } from "@/lib/api-client";
 import { formatBytes, formatDate, formatDuration } from "@/lib/format";
+import { uploadFileToSupabaseStorage } from "@/lib/storage-client";
 
 export default function MediaPage() {
   const { toast } = useToast();
@@ -47,21 +48,44 @@ export default function MediaPage() {
       return;
     }
 
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      toast({ title: "Unsupported file", description: "Upload an image or video file.", variant: "error" });
+      return;
+    }
+
     const mediaType = file.type.startsWith("video/") ? "video" : "image";
     setIsUploading(true);
-    setProgress(15);
+    setProgress(8);
 
     try {
-      const uploaded = await uploadMediaPlaceholder(file, setProgress);
+      const resolvedDurationSeconds =
+        mediaType === "video" ? await resolveVideoDurationSeconds(file, durationSeconds) : null;
+
+      if (mediaType === "video" && !resolvedDurationSeconds) {
+        throw new Error("Enter the video duration in seconds.");
+      }
+
+      setProgress(18);
+      const uploadTarget = await apiClient.createMediaUploadUrl({
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size
+      });
+
+      setProgress(42);
+      await uploadFileToSupabaseStorage(file, uploadTarget);
+      setProgress(82);
+
       await apiClient.createMedia({
         title: title.trim() || file.name,
         type: mediaType,
-        fileUrl: uploaded.fileUrl,
-        mimeType: file.type || (mediaType === "video" ? "video/mp4" : "image/jpeg"),
+        fileUrl: uploadTarget.publicUrl,
+        mimeType: file.type,
         sizeBytes: file.size,
-        durationSeconds: mediaType === "video" ? Number(durationSeconds || 1) : null
+        durationSeconds: resolvedDurationSeconds
       });
-      toast({ title: "Media added", description: "The file metadata is now available for playlists.", variant: "success" });
+      setProgress(100);
+      toast({ title: "Media uploaded", description: "The file is ready to be used in playlists.", variant: "success" });
       setFile(null);
       setTitle("");
       setDurationSeconds("");
@@ -130,7 +154,7 @@ export default function MediaPage() {
                 {isUploading ? "Uploading..." : "Create media"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Upload storage is integration-ready: this placeholder records metadata using a generated public URL.
+                Files are uploaded to Supabase Storage and published for Android TV playback.
               </p>
             </form>
           </CardContent>
@@ -212,15 +236,30 @@ export default function MediaPage() {
   );
 }
 
-async function uploadMediaPlaceholder(file: File, onProgress: (progress: number) => void) {
-  for (const value of [35, 58, 78, 92]) {
-    await new Promise((resolve) => window.setTimeout(resolve, 140));
-    onProgress(value);
+async function resolveVideoDurationSeconds(file: File, manualValue: string) {
+  const manualDuration = Number(manualValue);
+
+  if (Number.isFinite(manualDuration) && manualDuration > 0) {
+    return Math.ceil(manualDuration);
   }
 
-  onProgress(100);
+  return readVideoDurationSeconds(file);
+}
 
-  return {
-    fileUrl: `https://cdn.example.com/uploads/${encodeURIComponent(file.name)}`
-  };
+function readVideoDurationSeconds(file: File) {
+  return new Promise<number | null>((resolve) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(Number.isFinite(video.duration) && video.duration > 0 ? Math.ceil(video.duration) : null);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(null);
+    };
+    video.src = objectUrl;
+  });
 }
