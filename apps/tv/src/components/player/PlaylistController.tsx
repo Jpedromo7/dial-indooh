@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { IMAGE_FALLBACK_DURATION_SECONDS } from "../../config/appConfig";
 import { clearCorruptedMedia } from "../../services/mediaCache";
 import type { TvPlaylist, TvPlaylistItem } from "../../types/signage";
 import { ImageDisplay } from "./ImageDisplay";
 import { VideoPlayer } from "./VideoPlayer";
+
+const VIDEO_FALLBACK_DURATION_SECONDS = 30;
+const VIDEO_ADVANCE_EARLY_MS = 900;
+const PLAYBACK_TRANSITION_MS = 500;
 
 interface PlaylistControllerProps {
   playlist: TvPlaylist | null;
@@ -14,6 +18,9 @@ interface PlaylistControllerProps {
 
 export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackError }: PlaylistControllerProps) {
   const [failedItemIds, setFailedItemIds] = useState<Set<string>>(() => new Set());
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const advanceLockRef = useRef(false);
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rawItems = useMemo(() => [...(playlist?.items ?? [])].sort((left, right) => left.order - right.order), [playlist]);
   const items = useMemo(
     () => rawItems.filter((item) => !failedItemIds.has(item.id)),
@@ -24,21 +31,47 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
   const currentItem = items[index] ?? null;
 
   const advance = useCallback(() => {
-    setCycle((currentCycle) => currentCycle + 1);
-    setIndex((currentIndex) => {
-      if (items.length === 0) {
-        return 0;
-      }
+    if (advanceLockRef.current) {
+      return;
+    }
 
-      return (currentIndex + 1) % items.length;
-    });
+    advanceLockRef.current = true;
+    setIsTransitioning(true);
+
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+
+    transitionTimeoutRef.current = setTimeout(() => {
+      setCycle((currentCycle) => currentCycle + 1);
+      setIndex((currentIndex) => {
+        if (items.length === 0) {
+          return 0;
+        }
+
+        return (currentIndex + 1) % items.length;
+      });
+      setIsTransitioning(false);
+      advanceLockRef.current = false;
+      transitionTimeoutRef.current = null;
+    }, PLAYBACK_TRANSITION_MS);
   }, [items.length]);
 
   useEffect(() => {
     setIndex(0);
     setCycle(0);
     setFailedItemIds(new Set());
-  }, [playlist?.id, rawItems.length]);
+    setIsTransitioning(false);
+    advanceLockRef.current = false;
+  }, [playlist?.id, playlist?.updatedAt, rawItems.length]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setIndex((currentIndex) => {
@@ -55,20 +88,35 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
   }, [currentItem, onCurrentItemChange]);
 
   useEffect(() => {
-    if (!currentItem || currentItem.media.type !== "image") {
+    if (!currentItem || isTransitioning) {
       return undefined;
     }
 
-    const durationMs = (currentItem.displayDurationSeconds ?? IMAGE_FALLBACK_DURATION_SECONDS) * 1000;
+    const durationSeconds =
+      currentItem.media.type === "image"
+        ? currentItem.displayDurationSeconds ?? IMAGE_FALLBACK_DURATION_SECONDS
+        : currentItem.media.durationSeconds ?? VIDEO_FALLBACK_DURATION_SECONDS;
+    const durationMs =
+      currentItem.media.type === "video"
+        ? Math.max(1000, durationSeconds * 1000 - VIDEO_ADVANCE_EARLY_MS)
+        : durationSeconds * 1000;
     const timeout = setTimeout(advance, durationMs);
 
     return () => clearTimeout(timeout);
-  }, [advance, currentItem?.id, currentItem?.displayDurationSeconds, cycle]);
+  }, [
+    advance,
+    currentItem?.id,
+    currentItem?.displayDurationSeconds,
+    currentItem?.media.durationSeconds,
+    currentItem?.media.type,
+    cycle,
+    isTransitioning
+  ]);
 
-  if (!currentItem) {
+  if (!currentItem || isTransitioning) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>Waiting for playlist</Text>
+        {!currentItem ? <Text style={styles.emptyText}>Waiting for playlist</Text> : null}
       </View>
     );
   }
@@ -78,9 +126,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
       <VideoPlayer
         item={currentItem}
         key={`${currentItem.id}-${cycle}`}
-        onEnded={advance}
         onError={() => handlePlaybackError(currentItem, "Video error")}
-        shouldLoop={items.length === 1}
       />
     );
   }
