@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { BrandLogo } from "../components/BrandLogo";
 
 interface LoadingScreenProps {
   message?: string;
@@ -7,9 +8,7 @@ interface LoadingScreenProps {
 export function LoadingScreen({ message = "Preparing player" }: LoadingScreenProps) {
   return (
     <View style={styles.screen}>
-      <View style={styles.logo}>
-        <Text style={styles.logoText}>D</Text>
-      </View>
+      <BrandLogo size={92} />
       <ActivityIndicator color="#22c7aa" size="large" />
       <Text style={styles.caption}>{message}</Text>
     </View>
@@ -23,19 +22,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 18,
     justifyContent: "center"
-  },
-  logo: {
-    alignItems: "center",
-    backgroundColor: "#22c7aa",
-    borderRadius: 8,
-    height: 72,
-    justifyContent: "center",
-    width: 72
-  },
-  logoText: {
-    color: "#001411",
-    fontSize: 38,
-    fontWeight: "900"
   },
   caption: {
     color: "#7d8798",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { BrandLogo } from "../components/BrandLogo";
 import { activateScreen } from "../services/apiClient";
 import { saveDeviceSession } from "../storage/deviceStorage";
 import type { DeviceSession } from "../types/signage";
@@ -43,9 +44,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
   return (
     <View style={styles.screen}>
       <View style={styles.panel}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>D</Text>
-        </View>
+        <BrandLogo size={76} />
         <Text style={styles.title}>Activate this screen</Text>
         <Text style={styles.copy}>Enter the activation code created in the admin panel.</Text>
         <TextInput
@@ -97,19 +96,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 56,
     paddingVertical: 42,
     width: "100%"
-  },
-  logo: {
-    alignItems: "center",
-    backgroundColor: "#22c7aa",
-    borderRadius: 8,
-    height: 64,
-    justifyContent: "center",
-    width: 64
-  },
-  logoText: {
-    color: "#001411",
-    fontSize: 34,
-    fontWeight: "900"
   },
   title: {
     color: "#f8fafc",

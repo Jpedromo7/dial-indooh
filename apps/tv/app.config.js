@@ -3,6 +3,7 @@ module.exports = {
     name: "Dial Indooh TV",
     slug: "dial-indooh-tv",
     version: "0.1.5",
+    icon: "./assets/dial-indooh-logo.png",
     orientation: "landscape",
     userInterfaceStyle: "dark",
     runtimeVersion: {
@@ -13,9 +14,18 @@ module.exports = {
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0
     },
+    splash: {
+      image: "./assets/dial-indooh-logo.png",
+      resizeMode: "contain",
+      backgroundColor: "#000000"
+    },
     android: {
       package: "com.dialindooh.tv",
       versionCode: 6,
+      adaptiveIcon: {
+        foregroundImage: "./assets/dial-indooh-logo.png",
+        backgroundColor: "#000000"
+      },
       softwareKeyboardLayoutMode: "pan",
       permissions: ["INTERNET", "WAKE_LOCK", "ACCESS_NETWORK_STATE"],
       intentFilters: [

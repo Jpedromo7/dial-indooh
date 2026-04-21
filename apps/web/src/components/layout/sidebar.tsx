@@ -3,10 +3,10 @@ import {
   LayoutDashboard,
   Library,
   ListVideo,
-  MonitorPlay,
   Settings,
   Tv
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -22,13 +22,7 @@ export function Sidebar() {
     <aside className="border-b bg-foreground text-background lg:min-h-screen lg:border-b-0 lg:border-r">
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 px-6 py-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <MonitorPlay className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold leading-none">Dial Indooh</p>
-            <p className="mt-1 text-xs text-background/60">Signage control</p>
-          </div>
+          <BrandLogo subtitleClassName="text-background/60" textClassName="text-background" variant="sm" />
         </div>
         <nav className="grid gap-1 px-3 pb-4 lg:pb-0">
           {navigation.map((item) => (

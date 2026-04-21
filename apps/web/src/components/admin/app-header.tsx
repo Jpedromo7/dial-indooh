@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 
 const titles: Record<string, { title: string; description: string }> = {
@@ -40,10 +41,13 @@ export function AppHeader() {
     <header className="sticky top-0 z-20 border-b border-white/10 bg-background/75 px-5 py-4 backdrop-blur-xl lg:px-8">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-xs uppercase text-muted-foreground lg:hidden">
-            <Menu className="h-4 w-4" aria-hidden="true" />
-            Admin
-          </div>
+          <BrandLogo
+            className="mb-2 lg:hidden"
+            imageClassName="h-6 w-6 rounded-sm"
+            showText
+            subtitleClassName="hidden"
+            textClassName="text-xs uppercase text-muted-foreground"
+          />
           <h1 className="truncate text-xl font-semibold tracking-normal lg:text-2xl">{page.title}</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{page.description}</p>
         </div>

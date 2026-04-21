@@ -4,7 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Dial Indooh",
-  description: "Indoor media management for Android TV signage boxes"
+  description: "Indoor media management for Android TV signage boxes",
+  icons: {
+    apple: "/brand/dial-indooh-logo.png",
+    icon: "/brand/dial-indooh-logo.png"
+  }
 };
 
 export default function RootLayout({

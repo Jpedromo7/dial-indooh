@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MonitorPlay } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/feedback/toast";
@@ -36,9 +36,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-6 py-10">
       <Card className="w-full max-w-md border-white/10 bg-card/80 shadow-2xl shadow-black/30 backdrop-blur">
         <CardHeader className="space-y-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-            <MonitorPlay className="h-6 w-6" aria-hidden="true" />
-          </div>
+          <BrandLogo imageClassName="shadow-lg shadow-primary/20" variant="lg" />
           <div>
             <CardTitle className="text-2xl">Admin login</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">Manage media, playlists, and connected screens.</p>
