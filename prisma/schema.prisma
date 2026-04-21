@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  admin
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum ScreenStatus {
+  online
+  offline
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(admin)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Media {
+  id              String            @id @default(cuid())
+  title           String
+  type            MediaType
+  fileUrl         String
+  mimeType        String
+  sizeBytes       BigInt
+  durationSeconds Int?
+  playlistItems   PlaylistItem[]
+  heartbeats      ScreenHeartbeat[] @relation("HeartbeatCurrentMedia")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([type])
+}
+
+model Playlist {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean            @default(true)
+  items       PlaylistItem[]
+  assignments ScreenAssignment[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([isActive])
+}
+
+model PlaylistItem {
+  id                     String   @id @default(cuid())
+  playlistId             String
+  playlist               Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  mediaId                String
+  media                  Media    @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  order                  Int
+  displayDurationSeconds Int?
+  createdAt              DateTime @default(now())
+
+  @@unique([playlistId, order])
+  @@index([mediaId])
+}
+
+model Screen {
+  id             String             @id @default(cuid())
+  name           String
+  slug           String             @unique
+  activationCode String             @unique
+  deviceKey      String?            @unique
+  location       String?
+  status         ScreenStatus       @default(offline)
+  lastSeenAt     DateTime?
+  assignments    ScreenAssignment[]
+  heartbeats     ScreenHeartbeat[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status])
+}
+
+model ScreenAssignment {
+  id           String   @id @default(cuid())
+  screenId     String
+  screen       Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  playlistId   String
+  playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Restrict)
+  isActive     Boolean  @default(true)
+  assignedAt   DateTime @default(now())
+
+  @@index([screenId, isActive])
+  @@index([playlistId])
+}
+
+model ScreenHeartbeat {
+  id             String                @id @default(cuid())
+  screenId       String
+  screen         Screen                @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  status         ScreenStatus
+  appVersion     String?
+  ipAddress      String?
+  currentMediaId String?
+  currentMedia   Media?                @relation("HeartbeatCurrentMedia", fields: [currentMediaId], references: [id], onDelete: SetNull)
+  sentAt         DateTime
+
+  @@index([screenId, sentAt])
+  @@index([currentMediaId])
+}

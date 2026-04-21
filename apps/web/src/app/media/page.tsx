@@ -1,0 +1,226 @@
+"use client";
+
+import { FormEvent, useMemo, useState } from "react";
+import type { MediaDto } from "@dialindooh/shared";
+import { FileVideo, ImagePlus, Search, Trash2 } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { EmptyState } from "@/components/admin/empty-state";
+import { ErrorBanner } from "@/components/admin/error-banner";
+import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
+import { UploadDropzone } from "@/components/admin/upload-dropzone";
+import { useToast } from "@/components/feedback/toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useApiQuery } from "@/hooks/use-api-query";
+import { apiClient, getApiErrorMessage } from "@/lib/api-client";
+import { formatBytes, formatDate, formatDuration } from "@/lib/format";
+
+export default function MediaPage() {
+  const { toast } = useToast();
+  const query = useApiQuery(apiClient.listMedia, []);
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState<"all" | "image" | "video">("all");
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [durationSeconds, setDurationSeconds] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MediaDto | null>(null);
+
+  const media = query.data ?? [];
+  const filteredMedia = useMemo(
+    () =>
+      media.filter((item) => {
+        const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
+        const matchesType = type === "all" || item.type === type;
+        return matchesSearch && matchesType;
+      }),
+    [media, search, type]
+  );
+
+  async function handleUpload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!file) {
+      toast({ title: "Choose a file", description: "Select an image or video before uploading.", variant: "error" });
+      return;
+    }
+
+    const mediaType = file.type.startsWith("video/") ? "video" : "image";
+    setIsUploading(true);
+    setProgress(15);
+
+    try {
+      const uploaded = await uploadMediaPlaceholder(file, setProgress);
+      await apiClient.createMedia({
+        title: title.trim() || file.name,
+        type: mediaType,
+        fileUrl: uploaded.fileUrl,
+        mimeType: file.type || (mediaType === "video" ? "video/mp4" : "image/jpeg"),
+        sizeBytes: file.size,
+        durationSeconds: mediaType === "video" ? Number(durationSeconds || 1) : null
+      });
+      toast({ title: "Media added", description: "The file metadata is now available for playlists.", variant: "success" });
+      setFile(null);
+      setTitle("");
+      setDurationSeconds("");
+      setProgress(0);
+      await query.refresh();
+    } catch (error) {
+      toast({ title: "Upload failed", description: getApiErrorMessage(error), variant: "error" });
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteMedia(deleteTarget.id);
+      toast({ title: "Media deleted", description: deleteTarget.title, variant: "success" });
+      setDeleteTarget(null);
+      await query.refresh();
+    } catch (error) {
+      toast({ title: "Delete failed", description: getApiErrorMessage(error), variant: "error" });
+    }
+  }
+
+  return (
+    <AppShell>
+      <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
+        <Card className="h-fit bg-card/70">
+          <CardHeader>
+            <CardTitle>Add media</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleUpload}>
+              <UploadDropzone file={file} onFileChange={setFile} />
+              <label className="block space-y-2 text-sm font-medium">
+                <span>Title</span>
+                <input
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(event) => setTitle(event.currentTarget.value)}
+                  placeholder={file?.name ?? "Campaign hero"}
+                  value={title}
+                />
+              </label>
+              {file?.type.startsWith("video/") ? (
+                <label className="block space-y-2 text-sm font-medium">
+                  <span>Video duration seconds</span>
+                  <input
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    min={1}
+                    onChange={(event) => setDurationSeconds(event.currentTarget.value)}
+                    type="number"
+                    value={durationSeconds}
+                  />
+                </label>
+              ) : null}
+              {isUploading ? (
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                </div>
+              ) : null}
+              <Button className="w-full" disabled={isUploading} type="submit">
+                <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                {isUploading ? "Uploading..." : "Create media"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Upload storage is integration-ready: this placeholder records metadata using a generated public URL.
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          {query.error ? <ErrorBanner message={query.error} /> : null}
+          <div className="flex flex-col gap-3 rounded-lg border bg-card/70 p-4 md:flex-row">
+            <label className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <input
+                className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                onChange={(event) => setSearch(event.currentTarget.value)}
+                placeholder="Search media"
+                value={search}
+              />
+            </label>
+            <select
+              className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              onChange={(event) => setType(event.currentTarget.value as "all" | "image" | "video")}
+              value={type}
+            >
+              <option value="all">All types</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+            </select>
+          </div>
+
+          {query.isLoading ? (
+            <LoadingSkeleton className="h-96" />
+          ) : filteredMedia.length === 0 ? (
+            <EmptyState icon={FileVideo} title="No media found" description="Upload your first image or video asset." />
+          ) : (
+            <div className="overflow-x-auto rounded-lg border bg-card/70">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Title</th>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">MIME</th>
+                    <th className="px-4 py-3">Size</th>
+                    <th className="px-4 py-3">Duration</th>
+                    <th className="px-4 py-3">Created</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredMedia.map((item) => (
+                    <tr className="hover:bg-white/[0.03]" key={item.id}>
+                      <td className="max-w-xs truncate px-4 py-3 font-medium">{item.title}</td>
+                      <td className="px-4 py-3 capitalize">{item.type}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.mimeType}</td>
+                      <td className="px-4 py-3">{formatBytes(item.sizeBytes)}</td>
+                      <td className="px-4 py-3">{formatDuration(item.durationSeconds)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(item.createdAt)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Button onClick={() => setDeleteTarget(item)} size="icon" type="button" variant="ghost">
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Delete media?"
+        description="This cannot be undone. Media currently used in playlists cannot be deleted."
+        confirmLabel="Delete"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
+    </AppShell>
+  );
+}
+
+async function uploadMediaPlaceholder(file: File, onProgress: (progress: number) => void) {
+  for (const value of [35, 58, 78, 92]) {
+    await new Promise((resolve) => window.setTimeout(resolve, 140));
+    onProgress(value);
+  }
+
+  onProgress(100);
+
+  return {
+    fileUrl: `https://cdn.example.com/uploads/${encodeURIComponent(file.name)}`
+  };
+}

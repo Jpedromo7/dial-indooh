@@ -1,0 +1,50 @@
+import Link from "next/link";
+import {
+  LayoutDashboard,
+  Library,
+  ListVideo,
+  MonitorPlay,
+  Settings,
+  Tv
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const navigation = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/media", label: "Media", icon: Library },
+  { href: "/playlists", label: "Playlists", icon: ListVideo },
+  { href: "/screens", label: "Screens", icon: Tv },
+  { href: "/settings", label: "Settings", icon: Settings }
+];
+
+export function Sidebar() {
+  return (
+    <aside className="border-b bg-foreground text-background lg:min-h-screen lg:border-b-0 lg:border-r">
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-3 px-6 py-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <MonitorPlay className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold leading-none">Dial Indooh</p>
+            <p className="mt-1 text-xs text-background/60">Signage control</p>
+          </div>
+        </div>
+        <nav className="grid gap-1 px-3 pb-4 lg:pb-0">
+          {navigation.map((item) => (
+            <Link
+              className={cn(
+                "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-background/75 transition hover:bg-background/10 hover:text-background"
+              )}
+              href={item.href}
+              key={item.href}
+            >
+              <item.icon className="h-4 w-4" aria-hidden="true" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </aside>
+  );
+}

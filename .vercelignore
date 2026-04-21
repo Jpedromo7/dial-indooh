@@ -1,0 +1,8 @@
+.env
+.env.*
+apps/web/.env.local
+apps/tv/.env
+next-dev.log
+next-dev.err.log
+node_modules
+apps/web/.next
