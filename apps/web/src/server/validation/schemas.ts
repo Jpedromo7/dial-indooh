@@ -4,6 +4,7 @@ const id = z.string().min(1, "Required id is missing.");
 const optionalText = z.string().trim().min(1).max(500).nullable().optional();
 const optionalDateTime = z.string().datetime().nullable().optional();
 const metadata = z.record(z.unknown()).nullable().optional();
+const screenOrientation = z.enum(["landscape", "portrait"]);
 const slug = z
   .string()
   .trim()
@@ -98,7 +99,8 @@ export const playlistItemsReorderSchema = z.object({
 export const screenCreateSchema = z.object({
   name: z.string().trim().min(1).max(160),
   slug: slug.optional(),
-  location: optionalText
+  location: optionalText,
+  orientation: screenOrientation.optional()
 });
 
 export const screenUpdateSchema = z
@@ -106,6 +108,7 @@ export const screenUpdateSchema = z
     name: z.string().trim().min(1).max(160).optional(),
     slug: slug.optional(),
     location: optionalText,
+    orientation: screenOrientation.optional(),
     status: z.enum(["online", "offline"]).optional(),
     playlistId: id.nullable().optional()
   })

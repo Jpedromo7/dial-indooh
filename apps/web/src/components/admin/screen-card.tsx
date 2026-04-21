@@ -37,6 +37,10 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign }: ScreenCard
           <CalendarClock className="h-4 w-4" aria-hidden="true" />
           Last seen {formatDate(screen.lastSeenAt)}
         </span>
+        <span className="flex items-center gap-2">
+          <MonitorPlay className="h-4 w-4" aria-hidden="true" />
+          {screen.orientation === "portrait" ? "Tela vertical" : "Tela horizontal"}
+        </span>
       </div>
       <div className="mt-4 rounded-md bg-muted/40 p-3">
         <p className="text-xs uppercase text-muted-foreground">Activation code</p>

@@ -6,6 +6,8 @@ export type MediaOrientation = "auto" | "landscape" | "portrait" | "square";
 
 export type ScreenStatus = "online" | "offline";
 
+export type ScreenOrientation = "landscape" | "portrait";
+
 export type ScreenEventLevel = "info" | "warn" | "error";
 
 export type ScreenCommandType = "refresh_playlist" | "clear_cache" | "restart_player" | "reload_app";
@@ -55,6 +57,7 @@ export interface ScreenDto {
   name: string;
   slug: string;
   location: string | null;
+  orientation: ScreenOrientation;
   activationCode: string;
   deviceKeyRegistered: boolean;
   status: ScreenStatus;

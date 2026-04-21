@@ -1,5 +1,5 @@
 import { API_BASE_URL, NETWORK_RETRY_ATTEMPTS } from "../config/appConfig";
-import type { ActivationResponse, HeartbeatInput, ScreenCommand, ScreenEventInput, TvPlaylist } from "../types/signage";
+import type { ActivationResponse, DevicePlaylistResponse, HeartbeatInput, ScreenCommand, ScreenEventInput } from "../types/signage";
 import { sleep } from "../utils/sleep";
 
 interface ApiResponse<T> {
@@ -30,11 +30,9 @@ export async function activateScreen(activationCode: string) {
 }
 
 export async function fetchDevicePlaylist(screenId: string, deviceKey: string) {
-  const response = await request<{ playlist: TvPlaylist | null }>(`/screens/${screenId}/playlist`, {
+  return request<DevicePlaylistResponse>(`/screens/${screenId}/playlist`, {
     headers: withDeviceKey(deviceKey)
   });
-
-  return response.playlist;
 }
 
 export async function sendHeartbeat(screenId: string, deviceKey: string, input: HeartbeatInput) {

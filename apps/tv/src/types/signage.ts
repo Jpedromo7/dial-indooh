@@ -5,6 +5,7 @@ import type {
   ScreenCommandStatus,
   ScreenCommandType,
   ScreenEventLevel,
+  ScreenOrientation,
   ScreenStatus
 } from "@dialindooh/shared";
 
@@ -48,6 +49,11 @@ export interface TvPlaylist {
   updatedAt?: string;
 }
 
+export interface DevicePlaylistResponse {
+  playlist: TvPlaylist | null;
+  screenOrientation?: ScreenOrientation;
+}
+
 export interface ScreenCommand {
   id: string;
   screenId: string;
@@ -67,6 +73,7 @@ export interface ScreenEventInput {
 
 export interface CachedManifest {
   playlist: TvPlaylist | null;
+  screenOrientation: ScreenOrientation;
   cachedAt: string;
 }
 

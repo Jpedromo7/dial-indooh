@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import type { ScreenCommandType, ScreenDetailDto, ScreenDto } from "@dialindooh/shared";
+import type { ScreenCommandType, ScreenDetailDto, ScreenDto, ScreenOrientation } from "@dialindooh/shared";
 import { MonitorUp, RotateCcw, Trash2, Tv, Wifi } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -23,6 +23,7 @@ export default function ScreensPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [location, setLocation] = useState("");
+  const [orientation, setOrientation] = useState<ScreenOrientation>("landscape");
   const [isCreating, setIsCreating] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<ScreenDto | null>(null);
   const [detail, setDetail] = useState<ScreenDetailDto | null>(null);
@@ -62,11 +63,12 @@ export default function ScreensPage() {
     setIsCreating(true);
 
     try {
-      await apiClient.createScreen({ name, slug: slug || undefined, location: location || null });
+      await apiClient.createScreen({ name, slug: slug || undefined, location: location || null, orientation });
       toast({ title: "Screen created", description: name, variant: "success" });
       setName("");
       setSlug("");
       setLocation("");
+      setOrientation("landscape");
       await screensQuery.refresh();
     } catch (error) {
       toast({ title: "Create failed", description: getApiErrorMessage(error), variant: "error" });
@@ -85,7 +87,7 @@ export default function ScreensPage() {
     }
   }
 
-  async function updateScreen(input: { name?: string; slug?: string; location?: string | null }) {
+  async function updateScreen(input: { name?: string; slug?: string; location?: string | null; orientation?: ScreenOrientation }) {
     if (!selectedScreen) {
       return;
     }
@@ -142,6 +144,14 @@ export default function ScreensPage() {
                 placeholder="Location"
                 value={location}
               />
+              <select
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                onChange={(event) => setOrientation(event.currentTarget.value as ScreenOrientation)}
+                value={orientation}
+              >
+                <option value="landscape">Tela horizontal</option>
+                <option value="portrait">Tela vertical</option>
+              </select>
               <Button className="w-full" disabled={isCreating} type="submit">
                 <MonitorUp className="h-4 w-4" aria-hidden="true" />
                 {isCreating ? "Creating..." : "Create screen"}
@@ -194,6 +204,7 @@ export default function ScreensPage() {
                     <StatusBadge status={detail.status} />
                   </div>
                   <DetailLine label="Assigned playlist" value={detail.activeAssignment?.playlist.name ?? "None"} />
+                  <DetailLine label="Orientation" value={screenOrientationLabels[detail.orientation]} />
                   <DetailLine label="Activation code" value={detail.activationCode} mono />
                   <DetailLine label="Last seen" value={formatDate(detail.lastSeenAt)} />
                   <DetailLine label="Last heartbeat" value={formatDate(detail.lastHeartbeat?.sentAt)} />
@@ -219,6 +230,11 @@ const commandLabels: Record<ScreenCommandType, string> = {
   clear_cache: "Limpar cache",
   restart_player: "Reiniciar player",
   reload_app: "Recarregar app"
+};
+
+const screenOrientationLabels: Record<ScreenOrientation, string> = {
+  landscape: "Horizontal",
+  portrait: "Vertical"
 };
 
 function RemoteCommands({ onCommand }: { onCommand: (type: ScreenCommandType) => void }) {
@@ -309,18 +325,19 @@ function EditScreenForm({
   onSave
 }: {
   detail: ScreenDetailDto;
-  onSave: (input: { name: string; slug: string; location: string | null }) => void;
+  onSave: (input: { name: string; slug: string; location: string | null; orientation: ScreenOrientation }) => void;
 }) {
   const [name, setName] = useState(detail.name);
   const [slug, setSlug] = useState(detail.slug);
   const [location, setLocation] = useState(detail.location ?? "");
+  const [orientation, setOrientation] = useState<ScreenOrientation>(detail.orientation);
 
   return (
     <form
       className="space-y-4 rounded-lg border bg-background/40 p-4"
       onSubmit={(event) => {
         event.preventDefault();
-        onSave({ name, slug, location: location || null });
+        onSave({ name, slug, location: location || null, orientation });
       }}
     >
       <h3 className="font-semibold">Edit screen</h3>
@@ -339,6 +356,14 @@ function EditScreenForm({
         onChange={(event) => setLocation(event.currentTarget.value)}
         value={location}
       />
+      <select
+        className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+        onChange={(event) => setOrientation(event.currentTarget.value as ScreenOrientation)}
+        value={orientation}
+      >
+        <option value="landscape">Tela horizontal</option>
+        <option value="portrait">Tela vertical</option>
+      </select>
       <Button type="submit">Save screen</Button>
     </form>
   );

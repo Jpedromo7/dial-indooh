@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import type { ScreenOrientation } from "@dialindooh/shared";
 import { COMMAND_POLL_MS, HEARTBEAT_MS, PLAYLIST_REFRESH_MS } from "../config/appConfig";
 import { PlaylistController } from "../components/player/PlaylistController";
 import { postHeartbeat } from "../services/heartbeat";
-import { hasPlayableItems, loadOfflinePlaylist, syncPlaylist } from "../services/playlistSync";
+import { hasPlayableItems, loadOfflinePlayback, syncPlaylist } from "../services/playlistSync";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
 import { reportScreenEvent } from "../services/screenEvents";
 import type { DeviceSession, TvPlaylist, TvPlaylistItem } from "../types/signage";
@@ -15,24 +16,28 @@ interface PlayerScreenProps {
 
 export function PlayerScreen({ session }: PlayerScreenProps) {
   const [playlist, setPlaylist] = useState<TvPlaylist | null>(null);
+  const [screenOrientation, setScreenOrientation] = useState<ScreenOrientation>("landscape");
   const [statusMessage, setStatusMessage] = useState("Loading playlist");
   const [playerKey, setPlayerKey] = useState(0);
+  const windowDimensions = useWindowDimensions();
   const currentItemRef = useRef<TvPlaylistItem | null>(null);
 
   const refreshPlaylist = useCallback(async () => {
     try {
-      const syncedPlaylist = await syncPlaylist(session);
-      setPlaylist(syncedPlaylist);
-      setStatusMessage(getPlaylistStatusMessage(syncedPlaylist));
+      const syncedPlayback = await syncPlaylist(session);
+      setPlaylist(syncedPlayback.playlist);
+      setScreenOrientation(syncedPlayback.screenOrientation);
+      setStatusMessage(getPlaylistStatusMessage(syncedPlayback.playlist));
       await reportScreenEvent(session, {
         level: "info",
         type: "playlist_synced",
-        message: `Playlist synced with ${syncedPlaylist?.items.length ?? 0} playable items.`
+        message: `Playlist synced with ${syncedPlayback.playlist?.items.length ?? 0} playable items.`
       });
     } catch (error) {
-      const offlinePlaylist = await loadOfflinePlaylist();
-      setPlaylist(offlinePlaylist);
-      setStatusMessage(hasPlayableItems(offlinePlaylist) ? "" : `Offline mode: ${getErrorMessage(error)}`);
+      const offlinePlayback = await loadOfflinePlayback();
+      setPlaylist(offlinePlayback.playlist);
+      setScreenOrientation(offlinePlayback.screenOrientation);
+      setStatusMessage(hasPlayableItems(offlinePlayback.playlist) ? "" : `Offline mode: ${getErrorMessage(error)}`);
       await reportScreenEvent(session, {
         level: "warn",
         type: "playlist_sync_failed",
@@ -77,22 +82,24 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <PlaylistController
-        key={playerKey}
-        onCurrentItemChange={(item) => {
-          currentItemRef.current = item;
-        }}
-        onPlaybackError={(item, message) => {
-          setStatusMessage(message);
-          void reportScreenEvent(session, {
-            level: "error",
-            type: "playback_error",
-            message,
-            mediaId: item.mediaId
-          });
-        }}
-        playlist={playlist}
-      />
+      <View style={[styles.playbackFrame, getPlaybackFrameStyle(screenOrientation, windowDimensions)]}>
+        <PlaylistController
+          key={playerKey}
+          onCurrentItemChange={(item) => {
+            currentItemRef.current = item;
+          }}
+          onPlaybackError={(item, message) => {
+            setStatusMessage(message);
+            void reportScreenEvent(session, {
+              level: "error",
+              type: "playback_error",
+              message,
+              mediaId: item.mediaId
+            });
+          }}
+          playlist={playlist}
+        />
+      </View>
       {showStatus ? (
         <View style={styles.statusOverlay}>
           <Text style={styles.statusText}>{statusMessage}</Text>
@@ -100,6 +107,24 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
       ) : null}
     </View>
   );
+}
+
+function getPlaybackFrameStyle(
+  orientation: ScreenOrientation,
+  windowDimensions: {
+    width: number;
+    height: number;
+  }
+) {
+  if (orientation === "portrait") {
+    return {
+      height: windowDimensions.width,
+      transform: [{ rotate: "90deg" }],
+      width: windowDimensions.height
+    };
+  }
+
+  return styles.landscapeFrame;
 }
 
 function getPlaylistStatusMessage(playlist: TvPlaylist | null) {
@@ -112,8 +137,18 @@ function getPlaylistStatusMessage(playlist: TvPlaylist | null) {
 
 const styles = StyleSheet.create({
   screen: {
+    alignItems: "center",
     backgroundColor: "#000000",
-    flex: 1
+    flex: 1,
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  landscapeFrame: {
+    height: "100%",
+    width: "100%"
+  },
+  playbackFrame: {
+    backgroundColor: "#000000"
   },
   statusOverlay: {
     bottom: 22,

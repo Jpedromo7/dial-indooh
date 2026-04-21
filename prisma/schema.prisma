@@ -22,6 +22,11 @@ enum ScreenStatus {
   offline
 }
 
+enum ScreenOrientation {
+  landscape
+  portrait
+}
+
 enum MediaStatus {
   pending
   processing
@@ -126,6 +131,7 @@ model Screen {
   activationCode String             @unique
   deviceKey      String?            @unique
   location       String?
+  orientation    ScreenOrientation  @default(landscape)
   status         ScreenStatus       @default(offline)
   lastSeenAt     DateTime?
   assignments    ScreenAssignment[]
@@ -136,6 +142,7 @@ model Screen {
   updatedAt      DateTime           @updatedAt
 
   @@index([status])
+  @@index([orientation])
 }
 
 model ScreenAssignment {

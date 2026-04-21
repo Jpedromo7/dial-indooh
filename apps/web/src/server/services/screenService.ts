@@ -113,7 +113,8 @@ export const screenService = {
           name: data.name,
           slug,
           activationCode,
-          location: data.location ?? null
+          location: data.location ?? null,
+          orientation: data.orientation ?? "landscape"
         },
         include: screenInclude
       });
@@ -216,7 +217,7 @@ export const screenService = {
   },
 
   async getDevicePlaylist(screenId: string, deviceKey: string | null) {
-    await assertDeviceAccess(screenId, deviceKey);
+    const screen = await assertDeviceAccess(screenId, deviceKey);
     const now = new Date();
 
     const assignment = await prisma.screenAssignment.findFirst({
@@ -240,6 +241,7 @@ export const screenService = {
     });
 
     return {
+      screenOrientation: screen.orientation,
       playlist: assignment ? serializePlaylist(assignment.playlist) : null
     };
   },
@@ -419,7 +421,7 @@ async function assertDeviceAccess(screenId: string, deviceKey: string | null) {
 
   const screen = await prisma.screen.findUnique({
     where: { id: screenId },
-    select: { id: true, deviceKey: true }
+    select: { id: true, deviceKey: true, orientation: true }
   });
 
   if (!screen) {

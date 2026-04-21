@@ -8,7 +8,8 @@ import type {
   ScreenCommandType,
   ScreenDetailDto,
   ScreenDto,
-  ScreenEventDto
+  ScreenEventDto,
+  ScreenOrientation
 } from "@dialindooh/shared";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -98,6 +99,7 @@ export interface ScreenCreateInput {
   name: string;
   slug?: string;
   location?: string | null;
+  orientation?: ScreenOrientation;
 }
 
 export const apiClient = {
@@ -365,6 +367,7 @@ const demoApi = {
       name: input.name,
       slug: input.slug || slugify(input.name),
       location: input.location ?? null,
+      orientation: input.orientation ?? "landscape",
       activationCode: createActivationCode(),
       deviceKeyRegistered: false,
       status: "offline",
@@ -418,6 +421,7 @@ const demoApi = {
       name: input.name ?? screen.name,
       slug: input.slug ?? screen.slug,
       location: input.location === undefined ? screen.location : input.location,
+      orientation: input.orientation ?? screen.orientation,
       activePlaylistId: input.playlistId === undefined ? screen.activePlaylistId : input.playlistId,
       status: input.status === "online" || input.status === "offline" ? input.status : screen.status,
       updatedAt: new Date().toISOString()
@@ -519,6 +523,7 @@ function createInitialDemoStore(): DemoStore {
         name: "Demo Lobby Screen",
         slug: "demo-lobby",
         location: "Lobby",
+        orientation: "landscape",
         activationCode: "DEMO01",
         deviceKeyRegistered: false,
         status: "online",

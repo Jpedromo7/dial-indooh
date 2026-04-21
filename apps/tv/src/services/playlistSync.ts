@@ -4,19 +4,28 @@ import { getCachedManifest, saveCachedManifest } from "../storage/deviceStorage"
 import type { DeviceSession, TvPlaylist } from "../types/signage";
 
 export async function syncPlaylist(session: DeviceSession) {
-  const remotePlaylist = await fetchDevicePlaylist(session.screenId, session.deviceKey);
-  const cachedPlaylist = await ensureMediaCache(remotePlaylist);
+  const response = await fetchDevicePlaylist(session.screenId, session.deviceKey);
+  const cachedPlaylist = await ensureMediaCache(response.playlist);
+  const screenOrientation = response.screenOrientation ?? "landscape";
+
   await saveCachedManifest({
     playlist: cachedPlaylist,
+    screenOrientation,
     cachedAt: new Date().toISOString()
   });
 
-  return cachedPlaylist;
+  return {
+    playlist: cachedPlaylist,
+    screenOrientation
+  };
 }
 
-export async function loadOfflinePlaylist() {
+export async function loadOfflinePlayback() {
   const manifest = await getCachedManifest();
-  return manifest?.playlist ?? null;
+  return {
+    playlist: manifest?.playlist ?? null,
+    screenOrientation: manifest?.screenOrientation ?? "landscape"
+  };
 }
 
 export function hasPlayableItems(playlist: TvPlaylist | null) {

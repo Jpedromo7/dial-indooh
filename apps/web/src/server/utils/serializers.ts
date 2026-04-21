@@ -63,6 +63,7 @@ export function serializeScreen(screen: ScreenWithRelations) {
     slug: screen.slug,
     activationCode: screen.activationCode,
     location: screen.location,
+    orientation: screen.orientation,
     status: getEffectiveScreenStatus(screen.status, lastHeartbeatAt),
     lastSeenAt: screen.lastSeenAt,
     createdAt: screen.createdAt,
