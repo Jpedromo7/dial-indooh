@@ -27,6 +27,7 @@ export const mediaService = {
         sizeBytes: BigInt(data.sizeBytes),
         durationSeconds: data.type === "video" ? data.durationSeconds : null,
         status: "ready",
+        orientation: data.orientation ?? "auto",
         readyAt: new Date()
       }
     });

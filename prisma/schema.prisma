@@ -29,6 +29,13 @@ enum MediaStatus {
   failed
 }
 
+enum MediaOrientation {
+  auto
+  landscape
+  portrait
+  square
+}
+
 enum ScreenEventLevel {
   info
   warn
@@ -69,6 +76,7 @@ model Media {
   sizeBytes       BigInt
   durationSeconds Int?
   status          MediaStatus       @default(ready)
+  orientation     MediaOrientation  @default(auto)
   processingError String?
   readyAt         DateTime?
   playlistItems   PlaylistItem[]
@@ -79,6 +87,7 @@ model Media {
 
   @@index([type])
   @@index([status])
+  @@index([orientation])
 }
 
 model Playlist {

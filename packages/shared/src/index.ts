@@ -2,6 +2,8 @@ export type MediaType = "image" | "video";
 
 export type MediaStatus = "pending" | "processing" | "ready" | "failed";
 
+export type MediaOrientation = "auto" | "landscape" | "portrait" | "square";
+
 export type ScreenStatus = "online" | "offline";
 
 export type ScreenEventLevel = "info" | "warn" | "error";
@@ -21,6 +23,7 @@ export interface MediaDto {
   sizeBytes: number;
   durationSeconds: number | null;
   status: MediaStatus;
+  orientation: MediaOrientation;
   processingError: string | null;
   readyAt: string | null;
   createdAt: string;

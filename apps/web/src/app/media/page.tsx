@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { MediaDto } from "@dialindooh/shared";
+import type { MediaDto, MediaOrientation } from "@dialindooh/shared";
 import { FileVideo, ImagePlus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -25,6 +25,8 @@ export default function MediaPage() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
+  const [orientation, setOrientation] = useState<MediaOrientation>("auto");
+  const [detectedOrientation, setDetectedOrientation] = useState<MediaOrientation | null>(null);
   const [durationDetectionStatus, setDurationDetectionStatus] = useState<"idle" | "detecting" | "detected" | "failed">(
     "idle"
   );
@@ -45,25 +47,34 @@ export default function MediaPage() {
 
   useEffect(() => {
     setDurationSeconds("");
+    setDetectedOrientation(null);
 
     if (!file?.type.startsWith("video/")) {
       setDurationDetectionStatus("idle");
+    } else {
+      setDurationDetectionStatus("detecting");
+    }
+
+    if (!file?.type.startsWith("image/") && !file?.type.startsWith("video/")) {
       return undefined;
     }
 
     let isActive = true;
-    setDurationDetectionStatus("detecting");
 
-    readVideoDurationSeconds(file).then((duration) => {
+    readMediaMetadata(file).then((metadata) => {
       if (!isActive) {
         return;
       }
 
-      if (duration) {
-        setDurationSeconds(String(duration));
-        setDurationDetectionStatus("detected");
-      } else {
-        setDurationDetectionStatus("failed");
+      setDetectedOrientation(metadata.orientation);
+
+      if (file.type.startsWith("video/")) {
+        if (metadata.durationSeconds) {
+          setDurationSeconds(String(metadata.durationSeconds));
+          setDurationDetectionStatus("detected");
+        } else {
+          setDurationDetectionStatus("failed");
+        }
       }
     });
 
@@ -120,13 +131,16 @@ export default function MediaPage() {
         fileUrl: uploadTarget.publicUrl,
         mimeType: file.type,
         sizeBytes: file.size,
-        durationSeconds: resolvedDurationSeconds
+        durationSeconds: resolvedDurationSeconds,
+        orientation: orientation === "auto" ? detectedOrientation ?? "auto" : orientation
       });
       setProgress(100);
       toast({ title: "Media uploaded", description: "The file is ready to be used in playlists.", variant: "success" });
       setFile(null);
       setTitle("");
       setDurationSeconds("");
+      setOrientation("auto");
+      setDetectedOrientation(null);
       setProgress(0);
       await query.refresh();
     } catch (error) {
@@ -192,6 +206,24 @@ export default function MediaPage() {
                   </p>
                 </label>
               ) : null}
+              {file ? (
+                <label className="block space-y-2 text-sm font-medium">
+                  <span>Orientação da mídia</span>
+                  <select
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    onChange={(event) => setOrientation(event.currentTarget.value as MediaOrientation)}
+                    value={orientation}
+                  >
+                    <option value="auto">Automática{detectedOrientation ? ` (${orientationLabels[detectedOrientation]})` : ""}</option>
+                    <option value="landscape">Horizontal</option>
+                    <option value="portrait">Vertical</option>
+                    <option value="square">Quadrada</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Use Vertical para vídeos ou imagens 9:16. A TV exibirá centralizado sem distorcer.
+                  </p>
+                </label>
+              ) : null}
               {isUploading ? (
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
@@ -247,6 +279,7 @@ export default function MediaPage() {
                     <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Orientation</th>
                     <th className="px-4 py-3">MIME</th>
                     <th className="px-4 py-3">Size</th>
                     <th className="px-4 py-3">Duration</th>
@@ -264,6 +297,7 @@ export default function MediaPage() {
                           {item.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3">{orientationLabels[item.orientation]}</td>
                       <td className="px-4 py-3 text-muted-foreground">{item.mimeType}</td>
                       <td className="px-4 py-3">{formatBytes(item.sizeBytes)}</td>
                       <td className="px-4 py-3">{formatDuration(item.durationSeconds)}</td>
@@ -294,20 +328,66 @@ export default function MediaPage() {
   );
 }
 
-function readVideoDurationSeconds(file: File) {
-  return new Promise<number | null>((resolve) => {
+const orientationLabels: Record<MediaOrientation, string> = {
+  auto: "Automática",
+  landscape: "Horizontal",
+  portrait: "Vertical",
+  square: "Quadrada"
+};
+
+function readMediaMetadata(file: File) {
+  return file.type.startsWith("video/") ? readVideoMetadata(file) : readImageMetadata(file);
+}
+
+function readVideoMetadata(file: File) {
+  return new Promise<{ durationSeconds: number | null; orientation: MediaOrientation }>((resolve) => {
     const video = document.createElement("video");
     const objectUrl = URL.createObjectURL(file);
 
     video.preload = "metadata";
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(objectUrl);
-      resolve(Number.isFinite(video.duration) && video.duration > 0 ? Math.ceil(video.duration) : null);
+      resolve({
+        durationSeconds: Number.isFinite(video.duration) && video.duration > 0 ? Math.ceil(video.duration) : null,
+        orientation: getOrientationFromDimensions(video.videoWidth, video.videoHeight)
+      });
     };
     video.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      resolve(null);
+      resolve({ durationSeconds: null, orientation: "auto" });
     };
     video.src = objectUrl;
   });
+}
+
+function readImageMetadata(file: File) {
+  return new Promise<{ durationSeconds: null; orientation: MediaOrientation }>((resolve) => {
+    const image = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({
+        durationSeconds: null,
+        orientation: getOrientationFromDimensions(image.naturalWidth, image.naturalHeight)
+      });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ durationSeconds: null, orientation: "auto" });
+    };
+    image.src = objectUrl;
+  });
+}
+
+function getOrientationFromDimensions(width: number, height: number): MediaOrientation {
+  if (!width || !height) {
+    return "auto";
+  }
+
+  const ratio = width / height;
+
+  if (ratio > 1.1) return "landscape";
+  if (ratio < 0.9) return "portrait";
+  return "square";
 }

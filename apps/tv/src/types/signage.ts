@@ -1,4 +1,12 @@
-import type { MediaStatus, MediaType, ScreenCommandStatus, ScreenCommandType, ScreenEventLevel, ScreenStatus } from "@dialindooh/shared";
+import type {
+  MediaOrientation,
+  MediaStatus,
+  MediaType,
+  ScreenCommandStatus,
+  ScreenCommandType,
+  ScreenEventLevel,
+  ScreenStatus
+} from "@dialindooh/shared";
 
 export interface DeviceSession {
   screenId: string;
@@ -15,6 +23,7 @@ export interface TvMedia {
   sizeBytes: number;
   durationSeconds: number | null;
   status: MediaStatus;
+  orientation: MediaOrientation;
   processingError: string | null;
   readyAt: string | null;
   localUri?: string;

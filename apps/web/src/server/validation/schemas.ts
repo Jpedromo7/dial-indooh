@@ -35,7 +35,8 @@ export const mediaCreateSchema = z.object({
   fileUrl: z.string().trim().url(),
   mimeType: z.string().trim().min(1).max(120),
   sizeBytes: z.number().int().positive(),
-  durationSeconds: z.number().int().positive().nullable().optional()
+  durationSeconds: z.number().int().positive().nullable().optional(),
+  orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional()
 });
 
 export const mediaUploadUrlSchema = z.object({

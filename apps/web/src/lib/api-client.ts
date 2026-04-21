@@ -2,6 +2,7 @@
 
 import type {
   MediaDto,
+  MediaOrientation,
   PlaylistDto,
   ScreenCommandDto,
   ScreenCommandType,
@@ -68,6 +69,7 @@ export interface MediaCreateInput {
   mimeType: string;
   sizeBytes: number;
   durationSeconds?: number | null;
+  orientation?: MediaOrientation;
 }
 
 export interface MediaUploadUrlInput {
@@ -230,6 +232,7 @@ const demoApi = {
       sizeBytes: input.sizeBytes,
       durationSeconds: input.durationSeconds ?? null,
       status: "ready",
+      orientation: input.orientation ?? "auto",
       processingError: null,
       readyAt: now,
       createdAt: now,
@@ -430,6 +433,7 @@ function createInitialDemoStore(): DemoStore {
     sizeBytes: 420000,
     durationSeconds: null,
     status: "ready",
+    orientation: "landscape",
     processingError: null,
     readyAt: now,
     createdAt: now,
@@ -444,6 +448,7 @@ function createInitialDemoStore(): DemoStore {
     sizeBytes: 8400000,
     durationSeconds: 30,
     status: "ready",
+    orientation: "landscape",
     processingError: null,
     readyAt: now,
     createdAt: now,
@@ -458,6 +463,7 @@ function createInitialDemoStore(): DemoStore {
     sizeBytes: 610000,
     durationSeconds: null,
     status: "ready",
+    orientation: "portrait",
     processingError: null,
     readyAt: now,
     createdAt: now,
