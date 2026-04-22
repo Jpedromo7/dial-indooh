@@ -142,7 +142,7 @@ export const screenEventSchema = z.object({
 });
 
 export const screenCommandCreateSchema = z.object({
-  type: z.enum(["refresh_playlist", "clear_cache", "restart_player", "reload_app"]),
+  type: z.enum(["refresh_playlist", "clear_cache", "restart_player", "reload_app", "open_overlay_settings"]),
   payload: metadata
 });
 

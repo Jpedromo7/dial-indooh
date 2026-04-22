@@ -52,6 +52,7 @@ enum ScreenCommandType {
   clear_cache
   restart_player
   reload_app
+  open_overlay_settings
 }
 
 enum ScreenCommandStatus {

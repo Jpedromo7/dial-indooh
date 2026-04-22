@@ -5,6 +5,7 @@ The TV app is prepared for a lightweight kiosk setup:
 - opens as a normal Android TV app
 - can be selected as the default Home app
 - receives boot/package-replaced events and relaunches itself
+- can open Android's **Appear on top / Draw over other apps** permission screen
 - hides the Android navigation bar
 - blocks the Back button inside React Native
 
@@ -12,10 +13,14 @@ The TV app is prepared for a lightweight kiosk setup:
 
 1. Install the latest Dial Indooh TV APK.
 2. Open it once and activate the screen.
-3. Press the remote Home button.
-4. When Android asks which Home app to use, choose **Dial Indooh TV** and select **Always**.
-5. If the device has a vendor setting like **Auto start**, **Boot app**, **Background start**, or **Battery optimization**, allow Dial Indooh TV.
-6. Reboot the TV box and confirm the player opens by itself.
+3. On the activation screen, choose **Allow overlay permission** if the TV box requires "draw over other apps".
+4. In Android settings, enable the permission for **Dial Indooh TV**.
+5. Press the remote Home button.
+6. When Android asks which Home app to use, choose **Dial Indooh TV** and select **Always**.
+7. If the device has a vendor setting like **Auto start**, **Boot app**, **Background start**, or **Battery optimization**, allow Dial Indooh TV.
+8. Reboot the TV box and confirm the player opens by itself.
+
+The admin panel also has a remote command named **Permitir sobrepor**. It opens the same Android setting on an already activated screen.
 
 ## Notes
 

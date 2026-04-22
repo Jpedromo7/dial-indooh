@@ -1,6 +1,7 @@
 import * as Updates from "expo-updates";
 import { acknowledgeScreenCommand, fetchScreenCommands } from "./apiClient";
 import { clearMediaCache } from "./mediaCache";
+import { openOverlayPermissionSettings } from "./systemSettings";
 import type { DeviceSession, ScreenCommand } from "../types/signage";
 
 interface CommandHandlers {
@@ -36,6 +37,10 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
     if (command.type === "reload_app") {
       handlers.restartPlayer();
       shouldReloadApp = true;
+    }
+
+    if (command.type === "open_overlay_settings") {
+      await openOverlayPermissionSettings();
     }
 
     await acknowledgeScreenCommand(session.screenId, session.deviceKey, {

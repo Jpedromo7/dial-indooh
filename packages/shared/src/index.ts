@@ -10,7 +10,7 @@ export type ScreenOrientation = "landscape" | "portrait";
 
 export type ScreenEventLevel = "info" | "warn" | "error";
 
-export type ScreenCommandType = "refresh_playlist" | "clear_cache" | "restart_player" | "reload_app";
+export type ScreenCommandType = "refresh_playlist" | "clear_cache" | "restart_player" | "reload_app" | "open_overlay_settings";
 
 export type ScreenCommandStatus = "pending" | "delivered" | "acknowledged" | "failed";
 

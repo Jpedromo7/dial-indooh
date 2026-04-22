@@ -22,13 +22,13 @@ module.exports = {
     plugins: ["./plugins/withAndroidKioskMode"],
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 8,
+      versionCode: 9,
       adaptiveIcon: {
         foregroundImage: "./assets/dial-indooh-logo.png",
         backgroundColor: "#000000"
       },
       softwareKeyboardLayoutMode: "pan",
-      permissions: ["INTERNET", "WAKE_LOCK", "ACCESS_NETWORK_STATE"],
+      permissions: ["INTERNET", "WAKE_LOCK", "ACCESS_NETWORK_STATE", "SYSTEM_ALERT_WINDOW"],
       intentFilters: [
         {
           action: "MAIN",

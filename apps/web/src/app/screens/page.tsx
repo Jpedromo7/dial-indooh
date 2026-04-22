@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import type { ScreenCommandType, ScreenDetailDto, ScreenDto, ScreenOrientation } from "@dialindooh/shared";
-import { MonitorUp, RotateCcw, Trash2, Tv, Wifi } from "lucide-react";
+import { MonitorUp, RotateCcw, Settings, Trash2, Tv, Wifi } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ErrorBanner } from "@/components/admin/error-banner";
@@ -229,7 +229,8 @@ const commandLabels: Record<ScreenCommandType, string> = {
   refresh_playlist: "Atualizar playlist",
   clear_cache: "Limpar cache",
   restart_player: "Reiniciar player",
-  reload_app: "Recarregar app"
+  reload_app: "Recarregar app",
+  open_overlay_settings: "Abrir permissão de sobreposição"
 };
 
 const screenOrientationLabels: Record<ScreenOrientation, string> = {
@@ -257,6 +258,10 @@ function RemoteCommands({ onCommand }: { onCommand: (type: ScreenCommandType) =>
         <Button onClick={() => onCommand("reload_app")} type="button" variant="secondary">
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Recarregar app
+        </Button>
+        <Button onClick={() => onCommand("open_overlay_settings")} type="button" variant="secondary">
+          <Settings className="h-4 w-4" aria-hidden="true" />
+          Permitir sobrepor
         </Button>
       </div>
     </div>

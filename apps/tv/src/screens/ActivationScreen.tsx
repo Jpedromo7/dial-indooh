@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BrandLogo } from "../components/BrandLogo";
 import { activateScreen } from "../services/apiClient";
+import { openOverlayPermissionSettings } from "../services/systemSettings";
 import { saveDeviceSession } from "../storage/deviceStorage";
 import type { DeviceSession } from "../types/signage";
 import { getErrorMessage } from "../utils/errors";
@@ -15,6 +16,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [buttonFocused, setButtonFocused] = useState(false);
+  const [settingsButtonFocused, setSettingsButtonFocused] = useState(false);
 
   async function handleActivation() {
     if (!activationCode.trim()) {
@@ -38,6 +40,14 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
       setError(getErrorMessage(activationError));
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleOpenOverlaySettings() {
+    try {
+      await openOverlayPermissionSettings();
+    } catch (settingsError) {
+      setError(getErrorMessage(settingsError));
     }
   }
 
@@ -71,6 +81,16 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
           style={[styles.button, buttonFocused && styles.buttonFocused, isLoading && styles.buttonDisabled]}
         >
           <Text style={styles.buttonText}>{isLoading ? "Activating..." : "Activate"}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          focusable
+          onBlur={() => setSettingsButtonFocused(false)}
+          onFocus={() => setSettingsButtonFocused(true)}
+          onPress={handleOpenOverlaySettings}
+          style={[styles.secondaryButton, settingsButtonFocused && styles.secondaryButtonFocused]}
+        >
+          <Text style={styles.secondaryButtonText}>Allow overlay permission</Text>
         </Pressable>
       </View>
     </View>
@@ -146,5 +166,23 @@ const styles = StyleSheet.create({
     color: "#001411",
     fontSize: 20,
     fontWeight: "800"
+  },
+  secondaryButton: {
+    alignItems: "center",
+    borderColor: "#39465f",
+    borderRadius: 6,
+    borderWidth: 1,
+    minWidth: 260,
+    paddingHorizontal: 24,
+    paddingVertical: 14
+  },
+  secondaryButtonFocused: {
+    borderColor: "#22c7aa",
+    borderWidth: 2
+  },
+  secondaryButtonText: {
+    color: "#dbe5f5",
+    fontSize: 17,
+    fontWeight: "700"
   }
 });
