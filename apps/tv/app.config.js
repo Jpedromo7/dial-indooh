@@ -19,9 +19,10 @@ module.exports = {
       resizeMode: "contain",
       backgroundColor: "#000000"
     },
+    plugins: ["./plugins/withAndroidKioskMode"],
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 7,
+      versionCode: 8,
       adaptiveIcon: {
         foregroundImage: "./assets/dial-indooh-logo.png",
         backgroundColor: "#000000"
@@ -32,6 +33,10 @@ module.exports = {
         {
           action: "MAIN",
           category: ["LEANBACK_LAUNCHER", "LAUNCHER"]
+        },
+        {
+          action: "MAIN",
+          category: ["HOME", "DEFAULT"]
         }
       ]
     },

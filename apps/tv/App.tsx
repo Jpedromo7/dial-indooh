@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { AppState, BackHandler, Platform } from "react-native";
 import { activateKeepAwakeAsync } from "expo-keep-awake";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
@@ -17,13 +17,24 @@ export default function App() {
     void activateKeepAwakeAsync();
 
     if (Platform.OS === "android") {
-      void NavigationBar.setVisibilityAsync("hidden");
-      void NavigationBar.setBehaviorAsync("overlay-swipe");
+      void hideAndroidSystemUi();
     }
+
+    const backSubscription = BackHandler.addEventListener("hardwareBackPress", () => true);
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && Platform.OS === "android") {
+        void hideAndroidSystemUi();
+      }
+    });
 
     getDeviceSession()
       .then(setSession)
       .finally(() => setIsBooting(false));
+
+    return () => {
+      appStateSubscription.remove();
+      backSubscription.remove();
+    };
   }, []);
 
   if (isBooting) {
@@ -41,4 +52,9 @@ export default function App() {
       {session ? <PlayerScreen session={session} /> : <ActivationScreen onActivated={setSession} />}
     </>
   );
+}
+
+async function hideAndroidSystemUi() {
+  await NavigationBar.setVisibilityAsync("hidden");
+  await NavigationBar.setBehaviorAsync("overlay-swipe");
 }
