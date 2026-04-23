@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import type { PlaylistDto, PlaylistItemDto } from "@dialindooh/shared";
+import type { MediaOrientation, MediaType, PlaylistDto, PlaylistItemDto } from "@dialindooh/shared";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -200,7 +200,7 @@ export default function PlaylistDetailsPage() {
                     <option value="">Choose media</option>
                     {readyMedia.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.title} ({item.type})
+                        {item.title} - {mediaTypeLabels[item.type]} - {orientationLabels[item.orientation]}
                       </option>
                     ))}
                   </select>
@@ -218,6 +218,13 @@ export default function PlaylistDetailsPage() {
                         value={displayDurationSeconds}
                       />
                     </label>
+                  ) : null}
+                  {selectedMedia ? (
+                    <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+                      <AddMediaDetail label="Tipo" value={mediaTypeLabels[selectedMedia.type]} />
+                      <AddMediaDetail label="Orientação" value={orientationLabels[selectedMedia.orientation]} />
+                      <AddMediaDetail label="Arquivo" value={selectedMedia.mimeType} />
+                    </div>
                   ) : null}
                   {selectedMedia?.type === "video" ? (
                     <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -252,5 +259,26 @@ export default function PlaylistDetailsPage() {
         }}
       />
     </AppShell>
+  );
+}
+
+const mediaTypeLabels: Record<MediaType, string> = {
+  image: "Imagem",
+  video: "Vídeo"
+};
+
+const orientationLabels: Record<MediaOrientation, string> = {
+  auto: "Automática",
+  landscape: "Horizontal",
+  portrait: "Vertical",
+  square: "Quadrada"
+};
+
+function AddMediaDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
   );
 }

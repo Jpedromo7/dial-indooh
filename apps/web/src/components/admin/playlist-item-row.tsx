@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { PlaylistItemDto } from "@dialindooh/shared";
+import type { MediaOrientation, PlaylistItemDto } from "@dialindooh/shared";
 import { GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
@@ -34,7 +34,7 @@ export function PlaylistItemRow({
 
   return (
     <div
-      className="grid gap-4 rounded-lg border bg-card/70 p-4 md:grid-cols-[auto_1fr_10rem_8rem_auto]"
+      className="grid gap-4 rounded-lg border bg-card/70 p-4 md:grid-cols-[auto_1fr_8rem_9rem_8rem_auto]"
       draggable
       onDragOver={(event) => event.preventDefault()}
       onDragStart={() => onDragStart(index)}
@@ -53,6 +53,12 @@ export function PlaylistItemRow({
       <div>
         <p className="text-xs uppercase text-muted-foreground">Type</p>
         <p className="mt-1 text-sm font-medium capitalize">{item.media.type}</p>
+      </div>
+      <div>
+        <p className="text-xs uppercase text-muted-foreground">Orientação</p>
+        <p className="mt-1 w-fit rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+          {orientationLabels[item.media.orientation]}
+        </p>
       </div>
       <div>
         <p className="text-xs uppercase text-muted-foreground">{isImage ? "Display" : "Duration"}</p>
@@ -75,3 +81,10 @@ export function PlaylistItemRow({
     </div>
   );
 }
+
+const orientationLabels: Record<MediaOrientation, string> = {
+  auto: "Automática",
+  landscape: "Horizontal",
+  portrait: "Vertical",
+  square: "Quadrada"
+};
