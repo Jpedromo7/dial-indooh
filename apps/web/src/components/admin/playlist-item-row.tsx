@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { MediaOrientation, PlaylistItemDto } from "@dialindooh/shared";
+import type { MediaOrientation, PlaylistItemDto, ScreenOrientation } from "@dialindooh/shared";
 import { GripVertical, Trash2 } from "lucide-react";
+import { MediaTvPreview } from "@/components/admin/media-tv-preview";
 import { Button } from "@/components/ui/button";
 import { formatDuration } from "@/lib/format";
 
 interface PlaylistItemRowProps {
   item: PlaylistItemDto;
   index: number;
+  screenOrientation: ScreenOrientation;
   isSaving?: boolean;
   onDurationChange: (itemId: string, duration: number) => void;
   onRemove: (itemId: string) => void;
@@ -19,6 +21,7 @@ interface PlaylistItemRowProps {
 export function PlaylistItemRow({
   item,
   index,
+  screenOrientation,
   isSaving = false,
   onDurationChange,
   onRemove,
@@ -34,7 +37,7 @@ export function PlaylistItemRow({
 
   return (
     <div
-      className="grid gap-4 rounded-lg border bg-card/70 p-4 md:grid-cols-[auto_1fr_8rem_9rem_8rem_auto]"
+      className="grid gap-4 rounded-lg border bg-card/70 p-4 md:grid-cols-[auto_auto_1fr_8rem_9rem_8rem_auto]"
       draggable
       onDragOver={(event) => event.preventDefault()}
       onDragStart={() => onDragStart(index)}
@@ -46,6 +49,7 @@ export function PlaylistItemRow({
           {item.order}
         </span>
       </div>
+      <MediaTvPreview media={item.media} screenOrientation={screenOrientation} />
       <div className="min-w-0">
         <p className="truncate font-semibold">{item.media.title}</p>
         <p className="mt-1 text-sm text-muted-foreground">{item.media.mimeType}</p>

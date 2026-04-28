@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import type { MediaOrientation, MediaType, PlaylistDto, PlaylistItemDto } from "@dialindooh/shared";
+import type { MediaOrientation, MediaType, PlaylistDto, PlaylistItemDto, ScreenOrientation } from "@dialindooh/shared";
 import { ArrowLeft, Plus, Save } from "lucide-react";
+import { MediaTvPreview } from "@/components/admin/media-tv-preview";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -29,6 +30,7 @@ export default function PlaylistDetailsPage() {
   const [selectedMediaId, setSelectedMediaId] = useState("");
   const [displayDurationSeconds, setDisplayDurationSeconds] = useState("10");
   const [removeTarget, setRemoveTarget] = useState<PlaylistItemDto | null>(null);
+  const [previewScreenOrientation, setPreviewScreenOrientation] = useState<ScreenOrientation>("landscape");
   const [isSaving, setIsSaving] = useState(false);
   const playlist = playlistQuery.data;
   const media = mediaQuery.data ?? [];
@@ -158,11 +160,42 @@ export default function PlaylistDetailsPage() {
                     <h2 className="text-2xl font-semibold">{playlist.name}</h2>
                     <p className="mt-2 text-sm text-muted-foreground">{playlist.description ?? "No description"}</p>
                   </div>
-                  <Button disabled={isSaving || items.length === 0} onClick={saveReorder} type="button">
-                    <Save className="h-4 w-4" aria-hidden="true" />
-                    {isSaving ? "Saving..." : "Save order"}
-                  </Button>
+                  <div className="flex flex-col items-stretch gap-3 md:items-end">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                        Prévia na TV
+                      </span>
+                      <div className="inline-flex rounded-md border border-white/10 bg-background/60 p-1">
+                        <Button
+                          className="h-8 px-3"
+                          onClick={() => setPreviewScreenOrientation("landscape")}
+                          size="sm"
+                          type="button"
+                          variant={previewScreenOrientation === "landscape" ? "default" : "ghost"}
+                        >
+                          Horizontal
+                        </Button>
+                        <Button
+                          className="h-8 px-3"
+                          onClick={() => setPreviewScreenOrientation("portrait")}
+                          size="sm"
+                          type="button"
+                          variant={previewScreenOrientation === "portrait" ? "default" : "ghost"}
+                        >
+                          Vertical
+                        </Button>
+                      </div>
+                    </div>
+                    <Button disabled={isSaving || items.length === 0} onClick={saveReorder} type="button">
+                      <Save className="h-4 w-4" aria-hidden="true" />
+                      {isSaving ? "Saving..." : "Save order"}
+                    </Button>
+                  </div>
                 </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  A prévia mostra como cada mídia vai se encaixar na TV, com barras laterais ou superior/inferior quando
+                  o formato não combinar com a tela.
+                </p>
               </div>
 
               {items.length === 0 ? (
@@ -179,6 +212,7 @@ export default function PlaylistDetailsPage() {
                       onDrop={moveItem}
                       onDurationChange={updateDuration}
                       onRemove={() => setRemoveTarget(item)}
+                      screenOrientation={previewScreenOrientation}
                     />
                   ))}
                 </div>
@@ -221,6 +255,13 @@ export default function PlaylistDetailsPage() {
                   ) : null}
                   {selectedMedia ? (
                     <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">Prévia</span>
+                        <span className="font-medium">
+                          TV {previewScreenOrientation === "landscape" ? "horizontal" : "vertical"}
+                        </span>
+                      </div>
+                      <MediaTvPreview className="justify-self-center" media={selectedMedia} screenOrientation={previewScreenOrientation} />
                       <AddMediaDetail label="Tipo" value={mediaTypeLabels[selectedMedia.type]} />
                       <AddMediaDetail label="Orientação" value={orientationLabels[selectedMedia.orientation]} />
                       <AddMediaDetail label="Arquivo" value={selectedMedia.mimeType} />
