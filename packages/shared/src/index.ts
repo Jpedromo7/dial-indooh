@@ -4,6 +4,8 @@ export type MediaStatus = "pending" | "processing" | "ready" | "failed";
 
 export type MediaOrientation = "auto" | "landscape" | "portrait" | "square";
 
+export type MediaRotation = 0 | 90 | 180 | 270;
+
 export type ScreenStatus = "online" | "offline";
 
 export type ScreenOrientation = "landscape" | "portrait";
@@ -26,6 +28,7 @@ export interface MediaDto {
   durationSeconds: number | null;
   status: MediaStatus;
   orientation: MediaOrientation;
+  rotationDegrees: MediaRotation;
   processingError: string | null;
   readyAt: string | null;
   createdAt: string;

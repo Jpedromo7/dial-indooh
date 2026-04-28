@@ -1,20 +1,24 @@
 import { VideoView, useVideoPlayer } from "expo-video";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import type { MediaOrientation } from "@dialindooh/shared";
+import type { MediaOrientation, MediaRotation, ScreenOrientation } from "@dialindooh/shared";
 import type { TvPlaylistItem } from "../../types/signage";
+import { getPresentedMediaStyle, inferAutoRotationDegrees } from "./mediaPresentation";
 
 const VIDEO_ADVANCE_EARLY_MS = 250;
 const VIDEO_PROGRESS_INTERVAL_SECONDS = 0.5;
 
 interface VideoPlayerProps {
   item: TvPlaylistItem;
+  screenOrientation: ScreenOrientation;
   onAdvanceCue: () => void;
   onError: () => void;
 }
 
-export function VideoPlayer({ item, onAdvanceCue, onError }: VideoPlayerProps) {
+export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError }: VideoPlayerProps) {
   const hasAdvancedRef = useRef(false);
+  const [stageBounds, setStageBounds] = useState<{ width: number; height: number } | null>(null);
+  const [autoRotationDegrees, setAutoRotationDegrees] = useState<MediaRotation>(0);
   const sourceUri = item.media.localUri ?? item.media.fileUrl;
   const durationSeconds = item.media.durationSeconds ?? null;
   const advanceAtSeconds = durationSeconds ? Math.max(1, durationSeconds - VIDEO_ADVANCE_EARLY_MS / 1000) : null;
@@ -35,6 +39,7 @@ export function VideoPlayer({ item, onAdvanceCue, onError }: VideoPlayerProps) {
 
   useEffect(() => {
     hasAdvancedRef.current = false;
+    setAutoRotationDegrees(0);
   }, [item.id, sourceUri]);
 
   useEffect(() => {
@@ -66,40 +71,77 @@ export function VideoPlayer({ item, onAdvanceCue, onError }: VideoPlayerProps) {
         onError();
       }
     });
+    const sourceLoadSubscription = player.addListener("sourceLoad", (payload) => {
+      const videoTrack = payload.availableVideoTracks.find((track) => track.size.width > 0 && track.size.height > 0);
+      setAutoRotationDegrees(inferAutoRotationDegrees(item.media.orientation, videoTrack?.size));
+    });
+    const trackSubscription = player.addListener("videoTrackChange", (payload) => {
+      setAutoRotationDegrees(inferAutoRotationDegrees(item.media.orientation, payload.videoTrack?.size));
+    });
 
     return () => {
       timeSubscription.remove();
       endSubscription.remove();
       statusSubscription.remove();
+      sourceLoadSubscription.remove();
+      trackSubscription.remove();
     };
-  }, [advanceAtSeconds, onAdvanceCue, onError, player]);
+  }, [advanceAtSeconds, item.media.orientation, onAdvanceCue, onError, player]);
+
+  const rotationDegrees = item.media.rotationDegrees !== 0 ? item.media.rotationDegrees : autoRotationDegrees;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.stage, getStageStyle(item.media.orientation)]}>
+      <View
+        onLayout={(event) => {
+          const { height, width } = event.nativeEvent.layout;
+          setStageBounds((current) =>
+            current && current.width === width && current.height === height ? current : { width, height }
+          );
+        }}
+        style={[styles.stage, getStageStyle(item.media.orientation, screenOrientation)]}
+      >
         <VideoView
           contentFit="contain"
           fullscreenOptions={{ enable: false }}
           nativeControls={false}
           player={player}
-          style={styles.video}
-          surfaceType="surfaceView"
+          style={[styles.video, getPresentedMediaStyle(stageBounds, rotationDegrees)]}
+          surfaceType="textureView"
         />
       </View>
     </View>
   );
 }
 
-function getStageStyle(orientation: MediaOrientation) {
-  if (orientation === "portrait") {
+function getStageStyle(orientation: MediaOrientation, screenOrientation: ScreenOrientation) {
+  const effectiveOrientation = getEffectiveStageOrientation(orientation, screenOrientation);
+
+  if (effectiveOrientation === "portrait") {
     return styles.portraitStage;
   }
 
-  if (orientation === "square") {
+  if (effectiveOrientation === "square") {
     return styles.squareStage;
   }
 
   return styles.fullStage;
+}
+
+function getEffectiveStageOrientation(orientation: MediaOrientation, screenOrientation: ScreenOrientation) {
+  if (screenOrientation !== "portrait") {
+    return orientation;
+  }
+
+  if (orientation === "portrait") {
+    return "landscape";
+  }
+
+  if (orientation === "landscape") {
+    return "portrait";
+  }
+
+  return orientation;
 }
 
 const styles = StyleSheet.create({
@@ -123,10 +165,8 @@ const styles = StyleSheet.create({
   },
   stage: {
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    overflow: "hidden"
   },
-  video: {
-    height: "100%",
-    width: "100%"
-  }
+  video: {}
 });

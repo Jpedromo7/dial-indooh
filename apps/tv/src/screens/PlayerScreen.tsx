@@ -98,6 +98,7 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
             });
           }}
           playlist={playlist}
+          screenOrientation={screenOrientation}
         />
       </View>
       {showStatus ? (

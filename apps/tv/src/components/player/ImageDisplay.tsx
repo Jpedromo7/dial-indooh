@@ -1,37 +1,85 @@
 import { Image, StyleSheet, View } from "react-native";
-import type { MediaOrientation } from "@dialindooh/shared";
+import type { MediaOrientation, MediaRotation, ScreenOrientation } from "@dialindooh/shared";
+import { useEffect, useState } from "react";
 import type { TvPlaylistItem } from "../../types/signage";
+import { getPresentedMediaStyle, inferAutoRotationDegrees } from "./mediaPresentation";
 
 interface ImageDisplayProps {
   item: TvPlaylistItem;
+  screenOrientation: ScreenOrientation;
   onError: () => void;
 }
 
-export function ImageDisplay({ item, onError }: ImageDisplayProps) {
+export function ImageDisplay({ item, screenOrientation, onError }: ImageDisplayProps) {
+  const [stageBounds, setStageBounds] = useState<{ width: number; height: number } | null>(null);
+  const [autoRotationDegrees, setAutoRotationDegrees] = useState<MediaRotation>(0);
+  const sourceUri = item.media.localUri ?? item.media.fileUrl;
+
+  useEffect(() => {
+    setAutoRotationDegrees(0);
+    Image.getSize(
+      sourceUri,
+      (width, height) => {
+        setAutoRotationDegrees(inferAutoRotationDegrees(item.media.orientation, { width, height }));
+      },
+      () => {
+        setAutoRotationDegrees(0);
+      }
+    );
+  }, [item.media.orientation, sourceUri]);
+
+  const rotationDegrees = item.media.rotationDegrees !== 0 ? item.media.rotationDegrees : autoRotationDegrees;
+
   return (
     <View style={styles.container}>
-      <View style={[styles.stage, getStageStyle(item.media.orientation)]}>
+      <View
+        onLayout={(event) => {
+          const { height, width } = event.nativeEvent.layout;
+          setStageBounds((current) =>
+            current && current.width === width && current.height === height ? current : { width, height }
+          );
+        }}
+        style={[styles.stage, getStageStyle(item.media.orientation, screenOrientation)]}
+      >
         <Image
           onError={onError}
           resizeMode="contain"
-          source={{ uri: item.media.localUri ?? item.media.fileUrl }}
-          style={styles.image}
+          source={{ uri: sourceUri }}
+          style={[styles.image, getPresentedMediaStyle(stageBounds, rotationDegrees)]}
         />
       </View>
     </View>
   );
 }
 
-function getStageStyle(orientation: MediaOrientation) {
-  if (orientation === "portrait") {
+function getStageStyle(orientation: MediaOrientation, screenOrientation: ScreenOrientation) {
+  const effectiveOrientation = getEffectiveStageOrientation(orientation, screenOrientation);
+
+  if (effectiveOrientation === "portrait") {
     return styles.portraitStage;
   }
 
-  if (orientation === "square") {
+  if (effectiveOrientation === "square") {
     return styles.squareStage;
   }
 
   return styles.fullStage;
+}
+
+function getEffectiveStageOrientation(orientation: MediaOrientation, screenOrientation: ScreenOrientation) {
+  if (screenOrientation !== "portrait") {
+    return orientation;
+  }
+
+  if (orientation === "portrait") {
+    return "landscape";
+  }
+
+  if (orientation === "landscape") {
+    return "portrait";
+  }
+
+  return orientation;
 }
 
 const styles = StyleSheet.create({
@@ -45,10 +93,7 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%"
   },
-  image: {
-    height: "100%",
-    width: "100%"
-  },
+  image: {},
   portraitStage: {
     aspectRatio: 9 / 16,
     height: "100%"
@@ -59,6 +104,7 @@ const styles = StyleSheet.create({
   },
   stage: {
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    overflow: "hidden"
   }
 });

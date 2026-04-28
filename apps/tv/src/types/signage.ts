@@ -1,5 +1,6 @@
 import type {
   MediaOrientation,
+  MediaRotation,
   MediaStatus,
   MediaType,
   ScreenCommandStatus,
@@ -25,6 +26,7 @@ export interface TvMedia {
   durationSeconds: number | null;
   status: MediaStatus;
   orientation: MediaOrientation;
+  rotationDegrees: MediaRotation;
   processingError: string | null;
   readyAt: string | null;
   localUri?: string;

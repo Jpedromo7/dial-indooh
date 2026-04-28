@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { MediaDto, MediaOrientation } from "@dialindooh/shared";
+import type { MediaDto, MediaOrientation, MediaRotation } from "@dialindooh/shared";
 import { FileVideo, ImagePlus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -26,6 +26,7 @@ export default function MediaPage() {
   const [title, setTitle] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("");
   const [orientation, setOrientation] = useState<MediaOrientation>("auto");
+  const [rotationDegrees, setRotationDegrees] = useState<MediaRotation>(0);
   const [detectedOrientation, setDetectedOrientation] = useState<MediaOrientation | null>(null);
   const [durationDetectionStatus, setDurationDetectionStatus] = useState<"idle" | "detecting" | "detected" | "failed">(
     "idle"
@@ -49,6 +50,7 @@ export default function MediaPage() {
   useEffect(() => {
     setDurationSeconds("");
     setDetectedOrientation(null);
+    setRotationDegrees(0);
 
     if (!file?.type.startsWith("video/")) {
       setDurationDetectionStatus("idle");
@@ -133,7 +135,8 @@ export default function MediaPage() {
         mimeType: file.type,
         sizeBytes: file.size,
         durationSeconds: resolvedDurationSeconds,
-        orientation: orientation === "auto" ? detectedOrientation ?? "auto" : orientation
+        orientation: orientation === "auto" ? detectedOrientation ?? "auto" : orientation,
+        rotationDegrees
       });
       setProgress(100);
       toast({ title: "Media uploaded", description: "The file is ready to be used in playlists.", variant: "success" });
@@ -141,6 +144,7 @@ export default function MediaPage() {
       setTitle("");
       setDurationSeconds("");
       setOrientation("auto");
+      setRotationDegrees(0);
       setDetectedOrientation(null);
       setProgress(0);
       await query.refresh();
@@ -166,18 +170,24 @@ export default function MediaPage() {
     }
   }
 
-  async function updateMediaOrientation(item: MediaDto, nextOrientation: MediaOrientation) {
-    if (item.orientation === nextOrientation) {
+  async function updateMedia(item: MediaDto, patch: { orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) {
+    if (
+      (patch.orientation === undefined || item.orientation === patch.orientation) &&
+      (patch.rotationDegrees === undefined || item.rotationDegrees === patch.rotationDegrees)
+    ) {
       return;
     }
 
     setUpdatingMediaId(item.id);
 
     try {
-      await apiClient.updateMedia(item.id, { orientation: nextOrientation });
+      await apiClient.updateMedia(item.id, patch);
       toast({
-        title: "Orientação atualizada",
-        description: `${item.title}: ${orientationLabels[nextOrientation]}`,
+        title: "Mídia atualizada",
+        description:
+          patch.rotationDegrees !== undefined
+            ? `${item.title}: ${rotationLabels[patch.rotationDegrees]}`
+            : `${item.title}: ${orientationLabels[patch.orientation ?? item.orientation]}`,
         variant: "success"
       });
       await query.refresh();
@@ -186,6 +196,22 @@ export default function MediaPage() {
     } finally {
       setUpdatingMediaId(null);
     }
+  }
+
+  async function updateMediaOrientation(item: MediaDto, nextOrientation: MediaOrientation) {
+    if (item.orientation === nextOrientation) {
+      return;
+    }
+
+    await updateMedia(item, { orientation: nextOrientation });
+  }
+
+  async function updateMediaRotation(item: MediaDto, nextRotation: MediaRotation) {
+    if (item.rotationDegrees === nextRotation) {
+      return;
+    }
+
+    await updateMedia(item, { rotationDegrees: nextRotation });
   }
 
   return (
@@ -230,22 +256,40 @@ export default function MediaPage() {
                 </label>
               ) : null}
               {file ? (
-                <label className="block space-y-2 text-sm font-medium">
-                  <span>Orientação da mídia</span>
-                  <select
-                    className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    onChange={(event) => setOrientation(event.currentTarget.value as MediaOrientation)}
-                    value={orientation}
-                  >
-                    <option value="auto">Automática{detectedOrientation ? ` (${orientationLabels[detectedOrientation]})` : ""}</option>
-                    <option value="landscape">Horizontal</option>
-                    <option value="portrait">Vertical</option>
-                    <option value="square">Quadrada</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Use Vertical para vídeos ou imagens 9:16. A TV exibirá centralizado sem distorcer.
-                  </p>
-                </label>
+                <div className="grid gap-4">
+                  <label className="block space-y-2 text-sm font-medium">
+                    <span>Orientação da mídia</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      onChange={(event) => setOrientation(event.currentTarget.value as MediaOrientation)}
+                      value={orientation}
+                    >
+                      <option value="auto">Automática{detectedOrientation ? ` (${orientationLabels[detectedOrientation]})` : ""}</option>
+                      <option value="landscape">Horizontal</option>
+                      <option value="portrait">Vertical</option>
+                      <option value="square">Quadrada</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Use Vertical para vídeos ou imagens 9:16. A TV exibirá centralizado sem distorcer.
+                    </p>
+                  </label>
+                  <label className="block space-y-2 text-sm font-medium">
+                    <span>Rotação manual</span>
+                    <select
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      onChange={(event) => setRotationDegrees(Number(event.currentTarget.value) as MediaRotation)}
+                      value={rotationDegrees}
+                    >
+                      <option value={0}>Normal</option>
+                      <option value={90}>Girar 90° horário</option>
+                      <option value={180}>Girar 180°</option>
+                      <option value={270}>Girar 90° anti-horário</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Use isso quando o vídeo vier deitado do celular mesmo estando marcado como vertical.
+                    </p>
+                  </label>
+                </div>
               ) : null}
               {isUploading ? (
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -303,6 +347,7 @@ export default function MediaPage() {
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Orientation</th>
+                    <th className="px-4 py-3">Rotation</th>
                     <th className="px-4 py-3">MIME</th>
                     <th className="px-4 py-3">Size</th>
                     <th className="px-4 py-3">Duration</th>
@@ -331,6 +376,19 @@ export default function MediaPage() {
                           <option value="landscape">Horizontal</option>
                           <option value="portrait">Vertical</option>
                           <option value="square">Quadrada</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          className="h-9 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                          disabled={updatingMediaId === item.id}
+                          onChange={(event) => updateMediaRotation(item, Number(event.currentTarget.value) as MediaRotation)}
+                          value={item.rotationDegrees}
+                        >
+                          <option value={0}>Normal</option>
+                          <option value={90}>90° horário</option>
+                          <option value={180}>180°</option>
+                          <option value={270}>90° anti-horário</option>
                         </select>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{item.mimeType}</td>
@@ -368,6 +426,13 @@ const orientationLabels: Record<MediaOrientation, string> = {
   landscape: "Horizontal",
   portrait: "Vertical",
   square: "Quadrada"
+};
+
+const rotationLabels: Record<MediaRotation, string> = {
+  0: "Rotação normal",
+  90: "Rotação 90° horário",
+  180: "Rotação 180°",
+  270: "Rotação 90° anti-horário"
 };
 
 function readMediaMetadata(file: File) {

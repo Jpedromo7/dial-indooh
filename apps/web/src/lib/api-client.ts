@@ -3,6 +3,7 @@
 import type {
   MediaDto,
   MediaOrientation,
+  MediaRotation,
   PlaylistDto,
   ScreenCommandDto,
   ScreenCommandType,
@@ -71,6 +72,7 @@ export interface MediaCreateInput {
   sizeBytes: number;
   durationSeconds?: number | null;
   orientation?: MediaOrientation;
+  rotationDegrees?: MediaRotation;
 }
 
 export interface MediaUploadUrlInput {
@@ -121,7 +123,7 @@ export const apiClient = {
       : request<MediaUploadUrlResponse>("/api/media/upload-url", { method: "POST", body: input }),
   createMedia: (input: MediaCreateInput) =>
     DEMO_MODE ? demoApi.createMedia(input) : request<MediaDto>("/api/media", { method: "POST", body: input }),
-  updateMedia: (id: string, input: { title?: string; orientation?: MediaOrientation }) =>
+  updateMedia: (id: string, input: { title?: string; orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) =>
     DEMO_MODE ? demoApi.updateMedia(id, input) : request<MediaDto>(`/api/media/${id}`, { method: "PATCH", body: input }),
   deleteMedia: (id: string) =>
     DEMO_MODE ? demoApi.deleteMedia(id) : request<{ id: string }>(`/api/media/${id}`, { method: "DELETE" }),
@@ -237,6 +239,7 @@ const demoApi = {
       durationSeconds: input.durationSeconds ?? null,
       status: "ready",
       orientation: input.orientation ?? "auto",
+      rotationDegrees: input.rotationDegrees ?? 0,
       processingError: null,
       readyAt: now,
       createdAt: now,
@@ -256,7 +259,7 @@ const demoApi = {
     saveDemoStore(store);
     return { id };
   },
-  updateMedia: async (id: string, input: { title?: string; orientation?: MediaOrientation }) => {
+  updateMedia: async (id: string, input: { title?: string; orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) => {
     const store = getDemoStore();
     const media = store.media.find((item) => item.id === id);
     if (!media) throw new ApiClientError("Media não encontrada.", 404);
@@ -264,6 +267,7 @@ const demoApi = {
       ...media,
       title: input.title ?? media.title,
       orientation: input.orientation ?? media.orientation,
+      rotationDegrees: input.rotationDegrees ?? media.rotationDegrees,
       updatedAt: new Date().toISOString()
     };
     store.media = store.media.map((item) => (item.id === id ? updated : item));
@@ -458,6 +462,7 @@ function createInitialDemoStore(): DemoStore {
     durationSeconds: null,
     status: "ready",
     orientation: "landscape",
+    rotationDegrees: 0,
     processingError: null,
     readyAt: now,
     createdAt: now,
@@ -473,6 +478,7 @@ function createInitialDemoStore(): DemoStore {
     durationSeconds: 30,
     status: "ready",
     orientation: "landscape",
+    rotationDegrees: 0,
     processingError: null,
     readyAt: now,
     createdAt: now,
@@ -488,6 +494,7 @@ function createInitialDemoStore(): DemoStore {
     durationSeconds: null,
     status: "ready",
     orientation: "portrait",
+    rotationDegrees: 0,
     processingError: null,
     readyAt: now,
     createdAt: now,

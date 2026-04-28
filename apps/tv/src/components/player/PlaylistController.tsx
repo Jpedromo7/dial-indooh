@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import type { ScreenOrientation } from "@dialindooh/shared";
 import { IMAGE_FALLBACK_DURATION_SECONDS } from "../../config/appConfig";
 import { clearCorruptedMedia } from "../../services/mediaCache";
 import type { TvPlaylist, TvPlaylistItem } from "../../types/signage";
@@ -12,11 +13,17 @@ const PLAYBACK_TRANSITION_MS = 500;
 
 interface PlaylistControllerProps {
   playlist: TvPlaylist | null;
+  screenOrientation: ScreenOrientation;
   onCurrentItemChange: (item: TvPlaylistItem | null) => void;
   onPlaybackError: (item: TvPlaylistItem, error: string) => void;
 }
 
-export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackError }: PlaylistControllerProps) {
+export function PlaylistController({
+  playlist,
+  screenOrientation,
+  onCurrentItemChange,
+  onPlaybackError
+}: PlaylistControllerProps) {
   const [failedItemIds, setFailedItemIds] = useState<Set<string>>(() => new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
   const advanceLockRef = useRef(false);
@@ -128,6 +135,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
         key={`${currentItem.id}-${cycle}`}
         onAdvanceCue={advance}
         onError={() => handlePlaybackError(currentItem, "Video error")}
+        screenOrientation={screenOrientation}
       />
     );
   }
@@ -137,6 +145,7 @@ export function PlaylistController({ playlist, onCurrentItemChange, onPlaybackEr
       item={currentItem}
       key={`${currentItem.id}-${cycle}`}
       onError={() => handlePlaybackError(currentItem, "Image error")}
+      screenOrientation={screenOrientation}
     />
   );
 

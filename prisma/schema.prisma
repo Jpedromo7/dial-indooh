@@ -83,6 +83,7 @@ model Media {
   durationSeconds Int?
   status          MediaStatus       @default(ready)
   orientation     MediaOrientation  @default(auto)
+  rotationDegrees Int               @default(0)
   processingError String?
   readyAt         DateTime?
   playlistItems   PlaylistItem[]

@@ -28,6 +28,7 @@ export const mediaService = {
         durationSeconds: data.type === "video" ? data.durationSeconds : null,
         status: "ready",
         orientation: data.orientation ?? "auto",
+        rotationDegrees: data.rotationDegrees ?? 0,
         readyAt: new Date()
       }
     });

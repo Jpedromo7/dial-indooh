@@ -34,7 +34,8 @@ const ONLINE_HEARTBEAT_WINDOW_MS = 5 * 60 * 1000;
 export function serializeMedia(media: Media) {
   return {
     ...media,
-    sizeBytes: Number(media.sizeBytes)
+    sizeBytes: Number(media.sizeBytes),
+    rotationDegrees: normalizeMediaRotation(media.rotationDegrees)
   };
 }
 
@@ -117,4 +118,12 @@ function getEffectiveScreenStatus(status: Screen["status"], lastHeartbeatAt: Dat
 
   const ageMs = Date.now() - new Date(lastHeartbeatAt).getTime();
   return ageMs <= ONLINE_HEARTBEAT_WINDOW_MS ? "online" : "offline";
+}
+
+function normalizeMediaRotation(value: number) {
+  if (value === 90 || value === 180 || value === 270) {
+    return value;
+  }
+
+  return 0;
 }

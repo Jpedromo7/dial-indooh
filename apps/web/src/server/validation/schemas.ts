@@ -5,6 +5,7 @@ const optionalText = z.string().trim().min(1).max(500).nullable().optional();
 const optionalDateTime = z.string().datetime().nullable().optional();
 const metadata = z.record(z.unknown()).nullable().optional();
 const screenOrientation = z.enum(["landscape", "portrait"]);
+const mediaRotation = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]);
 const slug = z
   .string()
   .trim()
@@ -37,13 +38,15 @@ export const mediaCreateSchema = z.object({
   mimeType: z.string().trim().min(1).max(120),
   sizeBytes: z.number().int().positive(),
   durationSeconds: z.number().int().positive().nullable().optional(),
-  orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional()
+  orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional(),
+  rotationDegrees: mediaRotation.optional()
 });
 
 export const mediaUpdateSchema = z
   .object({
     title: z.string().trim().min(1).max(160).optional(),
-    orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional()
+    orientation: z.enum(["auto", "landscape", "portrait", "square"]).optional(),
+    rotationDegrees: mediaRotation.optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field must be provided."
