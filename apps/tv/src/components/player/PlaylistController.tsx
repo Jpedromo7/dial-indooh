@@ -123,7 +123,7 @@ export function PlaylistController({
   if (!currentItem || isTransitioning) {
     return (
       <View style={styles.empty}>
-        {!currentItem ? <Text style={styles.emptyText}>Waiting for playlist</Text> : null}
+        {!currentItem ? <Text style={styles.emptyText}>Aguardando playlist</Text> : null}
       </View>
     );
   }
@@ -134,7 +134,7 @@ export function PlaylistController({
         item={currentItem}
         key={`${currentItem.id}-${cycle}`}
         onAdvanceCue={advance}
-        onError={() => handlePlaybackError(currentItem, "Video error")}
+        onError={() => handlePlaybackError(currentItem, "Erro no vídeo")}
         screenOrientation={screenOrientation}
       />
     );
@@ -144,7 +144,7 @@ export function PlaylistController({
     <ImageDisplay
       item={currentItem}
       key={`${currentItem.id}-${cycle}`}
-      onError={() => handlePlaybackError(currentItem, "Image error")}
+      onError={() => handlePlaybackError(currentItem, "Erro na imagem")}
       screenOrientation={screenOrientation}
     />
   );

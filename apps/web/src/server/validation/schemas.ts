@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const id = z.string().min(1, "Required id is missing.");
+const id = z.string().min(1, "O ID obrigatório está ausente.");
 const optionalText = z.string().trim().min(1).max(500).nullable().optional();
 const optionalDateTime = z.string().datetime().nullable().optional();
 const metadata = z.record(z.unknown()).nullable().optional();
@@ -11,7 +11,7 @@ const slug = z
   .trim()
   .min(2)
   .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens.");
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use letras minúsculas, números e hífens.");
 
 export const idParamsSchema = z.object({
   id
@@ -49,7 +49,7 @@ export const mediaUpdateSchema = z
     rotationDegrees: mediaRotation.optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: "At least one field must be provided."
+    message: "Informe pelo menos um campo."
   });
 
 export const mediaUploadUrlSchema = z.object({
@@ -75,7 +75,7 @@ export const playlistUpdateSchema = z
     scheduledEndAt: optionalDateTime
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: "At least one field must be provided."
+    message: "Informe pelo menos um campo."
   });
 
 export const playlistItemCreateSchema = z.object({
@@ -116,7 +116,7 @@ export const screenUpdateSchema = z
     playlistId: id.nullable().optional()
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: "At least one field must be provided."
+    message: "Informe pelo menos um campo."
   });
 
 export const screenActivationSchema = z.object({

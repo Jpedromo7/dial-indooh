@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       await apiClient.login(email, password);
-      toast({ title: "Signed in", description: "Welcome back to Dial Indooh.", variant: "success" });
+      toast({ title: "Acesso realizado", description: "Bem-vindo de volta ao Dial indoor.", variant: "success" });
       router.replace("/dashboard");
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
@@ -38,8 +38,8 @@ export default function LoginPage() {
         <CardHeader className="space-y-4">
           <BrandLogo imageClassName="shadow-lg shadow-primary/20" variant="lg" />
           <div>
-            <CardTitle className="text-2xl">Admin login</CardTitle>
-            <p className="mt-2 text-sm text-muted-foreground">Manage media, playlists, and connected screens.</p>
+          <CardTitle className="text-2xl">Acesso do administrador</CardTitle>
+            <p className="mt-2 text-sm text-muted-foreground">Gerencie mídias, playlists e telas conectadas.</p>
           </div>
         </CardHeader>
         <CardContent>
@@ -54,7 +54,7 @@ export default function LoginPage() {
               />
             </label>
             <label className="block space-y-2 text-sm font-medium">
-              <span>Password</span>
+              <span>Senha</span>
               <input
                 className="h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 onChange={(event) => setPassword(event.currentTarget.value)}
@@ -64,7 +64,7 @@ export default function LoginPage() {
             </label>
             {error ? <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">{error}</p> : null}
             <Button className="w-full" disabled={isLoading} type="submit">
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
         </CardContent>

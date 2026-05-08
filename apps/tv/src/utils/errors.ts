@@ -3,5 +3,5 @@ export function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Unexpected error";
+  return "Erro inesperado";
 }

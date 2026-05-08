@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 {item.description ? <p className="mt-1 text-sm text-muted-foreground">{item.description}</p> : null}
               </div>
               <button
-                aria-label="Dismiss notification"
+                aria-label="Fechar notificação"
                 className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
                 onClick={() => removeToast(item.id)}
                 type="button"
@@ -77,7 +77,7 @@ export function useToast() {
   const context = useContext(ToastContext);
 
   if (!context) {
-    throw new Error("useToast must be used inside ToastProvider.");
+    throw new Error("useToast deve ser usado dentro de ToastProvider.");
   }
 
   return context;

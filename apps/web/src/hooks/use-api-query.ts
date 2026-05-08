@@ -4,14 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiClientError, getApiErrorMessage } from "@/lib/api-client";
 
+interface RefreshOptions {
+  silent?: boolean;
+}
+
 export function useApiQuery<T>(loader: () => Promise<T>, dependencies: unknown[] = []) {
   const router = useRouter();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
+  const load = useCallback(async (options: RefreshOptions = {}) => {
+    if (!options.silent) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -24,7 +30,9 @@ export function useApiQuery<T>(loader: () => Promise<T>, dependencies: unknown[]
 
       setError(getApiErrorMessage(requestError));
     } finally {
-      setIsLoading(false);
+      if (!options.silent) {
+        setIsLoading(false);
+      }
     }
   }, dependencies);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { MediaDto, MediaOrientation, MediaRotation } from "@dialindooh/shared";
+import type { MediaDto, MediaOrientation, MediaRotation, MediaStatus, MediaType } from "@dialindooh/shared";
 import { FileVideo, ImagePlus, Search, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -35,6 +35,9 @@ export default function MediaPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [updatingMediaId, setUpdatingMediaId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MediaDto | null>(null);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(() => new Set());
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const media = query.data ?? [];
   const filteredMedia = useMemo(
@@ -46,6 +49,9 @@ export default function MediaPage() {
       }),
     [media, search, type]
   );
+  const selectedMedia = useMemo(() => media.filter((item) => selectedMediaIds.has(item.id)), [media, selectedMediaIds]);
+  const allFilteredSelected =
+    filteredMedia.length > 0 && filteredMedia.every((item) => selectedMediaIds.has(item.id));
 
   useEffect(() => {
     setDurationSeconds("");
@@ -86,16 +92,24 @@ export default function MediaPage() {
     };
   }, [file]);
 
+  useEffect(() => {
+    setSelectedMediaIds((current) => {
+      const availableIds = new Set(media.map((item) => item.id));
+      const next = new Set([...current].filter((id) => availableIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [media]);
+
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!file) {
-      toast({ title: "Choose a file", description: "Select an image or video before uploading.", variant: "error" });
+      toast({ title: "Escolha um arquivo", description: "Selecione uma imagem ou vídeo antes de enviar.", variant: "error" });
       return;
     }
 
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      toast({ title: "Unsupported file", description: "Upload an image or video file.", variant: "error" });
+      toast({ title: "Arquivo não suportado", description: "Envie um arquivo de imagem ou vídeo.", variant: "error" });
       return;
     }
 
@@ -107,14 +121,14 @@ export default function MediaPage() {
       const resolvedDurationSeconds = mediaType === "video" ? Number(durationSeconds) : null;
 
       if (mediaType === "video" && durationDetectionStatus === "detecting") {
-        throw new Error("Wait until the video duration is detected.");
+        throw new Error("Aguarde a detecção da duração do vídeo.");
       }
 
       if (
         mediaType === "video" &&
         (resolvedDurationSeconds === null || !Number.isFinite(resolvedDurationSeconds) || resolvedDurationSeconds <= 0)
       ) {
-        throw new Error("The video duration could not be detected. Enter the duration in seconds.");
+        throw new Error("Não foi possível detectar a duração do vídeo. Informe a duração em segundos.");
       }
 
       setProgress(18);
@@ -139,7 +153,7 @@ export default function MediaPage() {
         rotationDegrees
       });
       setProgress(100);
-      toast({ title: "Media uploaded", description: "The file is ready to be used in playlists.", variant: "success" });
+      toast({ title: "Mídia enviada", description: "O arquivo já pode ser usado em playlists.", variant: "success" });
       setFile(null);
       setTitle("");
       setDurationSeconds("");
@@ -149,7 +163,7 @@ export default function MediaPage() {
       setProgress(0);
       await query.refresh();
     } catch (error) {
-      toast({ title: "Upload failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha no envio", description: getApiErrorMessage(error), variant: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -162,11 +176,16 @@ export default function MediaPage() {
 
     try {
       await apiClient.deleteMedia(deleteTarget.id);
-      toast({ title: "Media deleted", description: deleteTarget.title, variant: "success" });
+      toast({ title: "Mídia apagada", description: deleteTarget.title, variant: "success" });
+      setSelectedMediaIds((current) => {
+        const next = new Set(current);
+        next.delete(deleteTarget.id);
+        return next;
+      });
       setDeleteTarget(null);
       await query.refresh();
     } catch (error) {
-      toast({ title: "Delete failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao apagar", description: getApiErrorMessage(error), variant: "error" });
     }
   }
 
@@ -214,44 +233,117 @@ export default function MediaPage() {
     await updateMedia(item, { rotationDegrees: nextRotation });
   }
 
+  function toggleMediaSelection(id: string) {
+    setSelectedMediaIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleFilteredSelection() {
+    setSelectedMediaIds((current) => {
+      const next = new Set(current);
+
+      if (allFilteredSelected) {
+        filteredMedia.forEach((item) => next.delete(item.id));
+      } else {
+        filteredMedia.forEach((item) => next.add(item.id));
+      }
+
+      return next;
+    });
+  }
+
+  async function confirmBulkDelete() {
+    const targets = selectedMedia;
+
+    if (targets.length === 0) {
+      setIsBulkDeleteOpen(false);
+      return;
+    }
+
+    setIsBulkDeleting(true);
+
+    try {
+      const results = await Promise.allSettled(targets.map((item) => apiClient.deleteMedia(item.id)));
+      const failedIds = new Set<string>();
+      const failedMessages: string[] = [];
+
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          const failedItem = targets[index];
+          if (failedItem) {
+            failedIds.add(failedItem.id);
+          }
+          failedMessages.push(getApiErrorMessage(result.reason));
+        }
+      });
+
+      const deletedCount = targets.length - failedIds.size;
+
+      setSelectedMediaIds(failedIds);
+      setIsBulkDeleteOpen(false);
+      await query.refresh();
+
+      if (failedIds.size > 0) {
+        toast({
+          title: deletedCount > 0 ? "Algumas mídias foram apagadas" : "Não foi possível apagar",
+          description: failedMessages[0] ?? "Verifique se as mídias estão em uso em playlists.",
+          variant: deletedCount > 0 ? "success" : "error"
+        });
+      } else {
+        toast({ title: "Mídias apagadas", description: `${deletedCount} item(ns) removido(s).`, variant: "success" });
+      }
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }
+
   return (
     <AppShell>
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <Card className="h-fit bg-card/70">
           <CardHeader>
-            <CardTitle>Add media</CardTitle>
+            <CardTitle>Adicionar mídia</CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleUpload}>
               <UploadDropzone file={file} onFileChange={setFile} />
               <label className="block space-y-2 text-sm font-medium">
-                <span>Title</span>
+                <span>Título</span>
                 <input
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                   onChange={(event) => setTitle(event.currentTarget.value)}
-                  placeholder={file?.name ?? "Campaign hero"}
+                  placeholder={file?.name ?? "Campanha principal"}
                   value={title}
                 />
               </label>
               {file?.type.startsWith("video/") ? (
                 <label className="block space-y-2 text-sm font-medium">
-                  <span>Video duration seconds</span>
+                  <span>Duração do vídeo em segundos</span>
                   <input
                     className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring read-only:text-muted-foreground"
                     disabled={durationDetectionStatus === "detecting"}
                     min={1}
                     onChange={(event) => setDurationSeconds(event.currentTarget.value)}
-                    placeholder={durationDetectionStatus === "detecting" ? "Detecting..." : "Seconds"}
+                    placeholder={durationDetectionStatus === "detecting" ? "Detectando..." : "Segundos"}
                     readOnly={durationDetectionStatus === "detected"}
                     type="number"
                     value={durationSeconds}
                   />
                   <p className="text-xs text-muted-foreground">
                     {durationDetectionStatus === "detecting"
-                      ? "Reading video metadata automatically..."
+                      ? "Lendo os metadados do vídeo automaticamente..."
                       : durationDetectionStatus === "detected"
-                        ? `Detected automatically: ${durationSeconds} seconds.`
-                        : "If detection fails, enter the duration manually."}
+                        ? `Detectado automaticamente: ${durationSeconds} segundos.`
+                        : "Se a detecção falhar, informe a duração manualmente."}
                   </p>
                 </label>
               ) : null}
@@ -302,10 +394,10 @@ export default function MediaPage() {
                 type="submit"
               >
                 <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                {isUploading ? "Uploading..." : "Create media"}
+                {isUploading ? "Enviando..." : "Criar mídia"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Files are uploaded to Supabase Storage and published for Android TV playback.
+                Os arquivos são enviados ao Supabase Storage e publicados para reprodução nas TVs Android.
               </p>
             </form>
           </CardContent>
@@ -319,7 +411,7 @@ export default function MediaPage() {
               <input
                 className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 onChange={(event) => setSearch(event.currentTarget.value)}
-                placeholder="Search media"
+                placeholder="Buscar mídia"
                 value={search}
               />
             </label>
@@ -328,41 +420,65 @@ export default function MediaPage() {
               onChange={(event) => setType(event.currentTarget.value as "all" | "image" | "video")}
               value={type}
             >
-              <option value="all">All types</option>
-              <option value="image">Images</option>
-              <option value="video">Videos</option>
+              <option value="all">Todos os tipos</option>
+              <option value="image">Imagens</option>
+              <option value="video">Vídeos</option>
             </select>
+            {selectedMedia.length > 0 ? (
+              <Button onClick={() => setIsBulkDeleteOpen(true)} type="button" variant="destructive">
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                Apagar {selectedMedia.length}
+              </Button>
+            ) : null}
           </div>
 
           {query.isLoading ? (
             <LoadingSkeleton className="h-96" />
           ) : filteredMedia.length === 0 ? (
-            <EmptyState icon={FileVideo} title="No media found" description="Upload your first image or video asset." />
+            <EmptyState icon={FileVideo} title="Nenhuma mídia encontrada" description="Envie sua primeira imagem ou vídeo." />
           ) : (
             <div className="overflow-x-auto rounded-lg border bg-card/70">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[920px] text-left text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Title</th>
-                    <th className="px-4 py-3">Type</th>
+                    <th className="w-12 px-4 py-3">
+                      <input
+                        aria-label="Selecionar mídias filtradas"
+                        checked={allFilteredSelected}
+                        className="h-4 w-4 rounded border bg-background"
+                        onChange={toggleFilteredSelection}
+                        type="checkbox"
+                      />
+                    </th>
+                    <th className="px-4 py-3">Título</th>
+                    <th className="px-4 py-3">Tipo</th>
                     <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Orientation</th>
-                    <th className="px-4 py-3">Rotation</th>
+                    <th className="px-4 py-3">Orientação</th>
+                    <th className="px-4 py-3">Rotação</th>
                     <th className="px-4 py-3">MIME</th>
-                    <th className="px-4 py-3">Size</th>
-                    <th className="px-4 py-3">Duration</th>
-                    <th className="px-4 py-3">Created</th>
+                    <th className="px-4 py-3">Tamanho</th>
+                    <th className="px-4 py-3">Duração</th>
+                    <th className="px-4 py-3">Criada em</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredMedia.map((item) => (
                     <tr className="hover:bg-white/[0.03]" key={item.id}>
-                      <td className="max-w-xs truncate px-4 py-3 font-medium">{item.title}</td>
-                      <td className="px-4 py-3 capitalize">{item.type}</td>
                       <td className="px-4 py-3">
-                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold capitalize">
-                          {item.status}
+                        <input
+                          aria-label={`Selecionar ${item.title}`}
+                          checked={selectedMediaIds.has(item.id)}
+                          className="h-4 w-4 rounded border bg-background"
+                          onChange={() => toggleMediaSelection(item.id)}
+                          type="checkbox"
+                        />
+                      </td>
+                      <td className="max-w-xs truncate px-4 py-3 font-medium">{item.title}</td>
+                      <td className="px-4 py-3">{mediaTypeLabels[item.type]}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full border px-2.5 py-1 text-xs font-semibold">
+                          {mediaStatusLabels[item.status]}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -411,11 +527,20 @@ export default function MediaPage() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Delete media?"
-        description="This cannot be undone. Media currently used in playlists cannot be deleted."
-        confirmLabel="Delete"
+        title="Apagar mídia?"
+        description="Essa ação não pode ser desfeita. Mídias em uso em playlists não podem ser apagadas."
+        confirmLabel="Apagar"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={isBulkDeleteOpen}
+        title="Apagar mídias selecionadas?"
+        description={`${selectedMedia.length} item(ns) serão apagados. Mídias usadas em playlists serão mantidas.`}
+        confirmLabel="Apagar selecionadas"
+        isLoading={isBulkDeleting}
+        onCancel={() => setIsBulkDeleteOpen(false)}
+        onConfirm={confirmBulkDelete}
       />
     </AppShell>
   );
@@ -426,6 +551,18 @@ const orientationLabels: Record<MediaOrientation, string> = {
   landscape: "Horizontal",
   portrait: "Vertical",
   square: "Quadrada"
+};
+
+const mediaTypeLabels: Record<MediaType, string> = {
+  image: "Imagem",
+  video: "Vídeo"
+};
+
+const mediaStatusLabels: Record<MediaStatus, string> = {
+  pending: "Pendente",
+  processing: "Processando",
+  ready: "Pronta",
+  failed: "Falhou"
 };
 
 const rotationLabels: Record<MediaRotation, string> = {

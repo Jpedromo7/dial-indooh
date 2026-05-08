@@ -20,7 +20,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
 
   async function handleActivation() {
     if (!activationCode.trim()) {
-      setError("Enter the activation code shown in the admin panel.");
+      setError("Digite o código de ativação exibido no painel.");
       return;
     }
 
@@ -55,8 +55,8 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
     <View style={styles.screen}>
       <View style={styles.panel}>
         <BrandLogo size={76} />
-        <Text style={styles.title}>Activate this screen</Text>
-        <Text style={styles.copy}>Enter the activation code created in the admin panel.</Text>
+        <Text style={styles.title}>Ativar esta tela</Text>
+        <Text style={styles.copy}>Digite o código de ativação criado no painel.</Text>
         <TextInput
           autoCapitalize="characters"
           autoCorrect={false}
@@ -80,7 +80,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
           onPress={handleActivation}
           style={[styles.button, buttonFocused && styles.buttonFocused, isLoading && styles.buttonDisabled]}
         >
-          <Text style={styles.buttonText}>{isLoading ? "Activating..." : "Activate"}</Text>
+          <Text style={styles.buttonText}>{isLoading ? "Ativando..." : "Ativar"}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -90,7 +90,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
           onPress={handleOpenOverlaySettings}
           style={[styles.secondaryButton, settingsButtonFocused && styles.secondaryButtonFocused]}
         >
-          <Text style={styles.secondaryButtonText}>Allow overlay permission</Text>
+          <Text style={styles.secondaryButtonText}>Permitir sobreposição</Text>
         </Pressable>
       </View>
     </View>

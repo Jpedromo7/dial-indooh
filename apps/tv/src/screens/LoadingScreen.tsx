@@ -5,7 +5,7 @@ interface LoadingScreenProps {
   message?: string;
 }
 
-export function LoadingScreen({ message = "Preparing player" }: LoadingScreenProps) {
+export function LoadingScreen({ message = "Preparando reprodutor" }: LoadingScreenProps) {
   return (
     <View style={styles.screen}>
       <BrandLogo size={92} />

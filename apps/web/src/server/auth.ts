@@ -40,7 +40,7 @@ export async function requireAdmin(request: Request) {
   const token = getBearerToken(request) ?? getCookieToken(request);
 
   if (!token) {
-    throw new ApiError(401, "unauthorized", "Admin authentication is required.");
+    throw new ApiError(401, "unauthorized", "Autenticação de administrador obrigatória.");
   }
 
   const payload = verifyAdminToken(token);
@@ -50,7 +50,7 @@ export async function requireAdmin(request: Request) {
   });
 
   if (!user || user.role !== "admin") {
-    throw new ApiError(403, "forbidden", "Admin access is required.");
+    throw new ApiError(403, "forbidden", "Acesso de administrador obrigatório.");
   }
 
   return user;
@@ -66,7 +66,7 @@ function verifyAdminToken(token: string): AdminTokenPayload {
   const [encodedPayload, signature] = token.split(".");
 
   if (!encodedPayload || !signature || !safeEqual(signature, sign(encodedPayload))) {
-    throw new ApiError(401, "invalid_token", "The admin token is invalid.");
+    throw new ApiError(401, "invalid_token", "O token de administrador é inválido.");
   }
 
   let payload: AdminTokenPayload;
@@ -74,11 +74,11 @@ function verifyAdminToken(token: string): AdminTokenPayload {
   try {
     payload = JSON.parse(base64UrlDecode(encodedPayload)) as AdminTokenPayload;
   } catch {
-    throw new ApiError(401, "invalid_token", "The admin token payload is invalid.");
+    throw new ApiError(401, "invalid_token", "O conteúdo do token de administrador é inválido.");
   }
 
   if (!payload.sub || payload.role !== "admin" || payload.exp <= Math.floor(Date.now() / 1000)) {
-    throw new ApiError(401, "invalid_token", "The admin token is expired or invalid.");
+    throw new ApiError(401, "invalid_token", "O token de administrador expirou ou é inválido.");
   }
 
   return payload;
@@ -113,7 +113,7 @@ function getAuthSecret() {
   const secret = process.env.AUTH_SECRET;
 
   if (!secret || secret.length < 24) {
-    throw new ApiError(500, "auth_secret_missing", "AUTH_SECRET must be configured with at least 24 characters.");
+    throw new ApiError(500, "auth_secret_missing", "AUTH_SECRET precisa estar configurado com pelo menos 24 caracteres.");
   }
 
   return secret;

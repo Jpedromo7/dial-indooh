@@ -29,3 +29,13 @@ export async function GET(request: Request, context: RouteContext) {
     return handleRouteError(error);
   }
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    await requireAdmin(request);
+    const params = validateParams(await context.params, idParamsSchema);
+    return ok(await screenService.deleteScreen(params.id));
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}

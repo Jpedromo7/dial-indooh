@@ -27,7 +27,7 @@ export async function readJson<T>(request: Request, schema: ZodSchema<T>) {
   try {
     body = await request.json();
   } catch {
-    throw new ApiError(400, "invalid_json", "Request body must be valid JSON.");
+    throw new ApiError(400, "invalid_json", "O corpo da requisição precisa ser um JSON válido.");
   }
 
   return schema.parse(body);
@@ -44,7 +44,7 @@ export function handleRouteError(error: unknown) {
         ok: false,
         error: {
           code: "validation_error",
-          message: "Invalid request data.",
+          message: "Dados da requisição inválidos.",
           details: error.flatten()
         }
       },
@@ -66,6 +66,19 @@ export function handleRouteError(error: unknown) {
     );
   }
 
+  if (error instanceof Error && error.message.toLowerCase().includes("timeout exceeded when trying to connect")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "database_connection_timeout",
+          message: "O banco de dados demorou para responder. Tente novamente em alguns instantes."
+        }
+      },
+      { status: 503 }
+    );
+  }
+
   console.error(error);
 
   return NextResponse.json(
@@ -73,7 +86,7 @@ export function handleRouteError(error: unknown) {
       ok: false,
       error: {
         code: "internal_error",
-        message: "Unexpected server error."
+        message: "Erro inesperado no servidor."
       }
     },
     { status: 500 }

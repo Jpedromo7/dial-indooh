@@ -57,9 +57,9 @@ export default function PlaylistDetailsPage() {
       });
       applyPlaylist(updatedPlaylist);
       setSelectedMediaId("");
-      toast({ title: "Item added", description: selectedMedia.title, variant: "success" });
+      toast({ title: "Item adicionado", description: selectedMedia.title, variant: "success" });
     } catch (error) {
-      toast({ title: "Could not add item", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Não foi possível adicionar", description: getApiErrorMessage(error), variant: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -71,9 +71,9 @@ export default function PlaylistDetailsPage() {
     try {
       const updatedPlaylist = await apiClient.deletePlaylistItem(playlistId, itemId);
       applyPlaylist(updatedPlaylist);
-      toast({ title: "Item removed", variant: "success" });
+      toast({ title: "Item removido", variant: "success" });
     } catch (error) {
-      toast({ title: "Remove failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao remover", description: getApiErrorMessage(error), variant: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -81,7 +81,7 @@ export default function PlaylistDetailsPage() {
 
   async function updateDuration(itemId: string, duration: number) {
     if (!Number.isFinite(duration) || duration <= 0) {
-      toast({ title: "Invalid duration", description: "Use a positive number of seconds.", variant: "error" });
+      toast({ title: "Duração inválida", description: "Use um número positivo de segundos.", variant: "error" });
       return;
     }
 
@@ -90,9 +90,9 @@ export default function PlaylistDetailsPage() {
         displayDurationSeconds: duration
       });
       applyPlaylist(updatedPlaylist);
-      toast({ title: "Duration saved", variant: "success" });
+      toast({ title: "Duração salva", variant: "success" });
     } catch (error) {
-      toast({ title: "Duration failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao salvar duração", description: getApiErrorMessage(error), variant: "error" });
     }
   }
 
@@ -105,9 +105,9 @@ export default function PlaylistDetailsPage() {
         items.map((item, index) => ({ id: item.id, order: index + 1 }))
       );
       applyPlaylist(updatedPlaylist);
-      toast({ title: "Order saved", variant: "success" });
+      toast({ title: "Ordem salva", variant: "success" });
     } catch (error) {
-      toast({ title: "Reorder failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao reordenar", description: getApiErrorMessage(error), variant: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -143,12 +143,12 @@ export default function PlaylistDetailsPage() {
         <Button asChild type="button" variant="ghost">
           <Link href="/playlists">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to playlists
+            Voltar para playlists
           </Link>
         </Button>
 
         {playlistQuery.error || mediaQuery.error ? (
-          <ErrorBanner message={playlistQuery.error ?? mediaQuery.error ?? "Unable to load playlist."} />
+          <ErrorBanner message={playlistQuery.error ?? mediaQuery.error ?? "Não foi possível carregar a playlist."} />
         ) : playlistQuery.isLoading ? (
           <LoadingSkeleton className="h-96" />
         ) : playlist ? (
@@ -158,7 +158,7 @@ export default function PlaylistDetailsPage() {
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                   <div>
                     <h2 className="text-2xl font-semibold">{playlist.name}</h2>
-                    <p className="mt-2 text-sm text-muted-foreground">{playlist.description ?? "No description"}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{playlist.description ?? "Sem descrição"}</p>
                   </div>
                   <div className="flex flex-col items-stretch gap-3 md:items-end">
                     <div className="flex items-center gap-2">
@@ -188,7 +188,7 @@ export default function PlaylistDetailsPage() {
                     </div>
                     <Button disabled={isSaving || items.length === 0} onClick={saveReorder} type="button">
                       <Save className="h-4 w-4" aria-hidden="true" />
-                      {isSaving ? "Saving..." : "Save order"}
+                      {isSaving ? "Salvando..." : "Salvar ordem"}
                     </Button>
                   </div>
                 </div>
@@ -199,7 +199,7 @@ export default function PlaylistDetailsPage() {
               </div>
 
               {items.length === 0 ? (
-                <EmptyState icon={Plus} title="No playlist items" description="Add media to start building this playback loop." />
+                <EmptyState icon={Plus} title="Nenhum item na playlist" description="Adicione mídias para montar esta sequência de reprodução." />
               ) : (
                 <div className="grid gap-3">
                   {items.map((item, index) => (
@@ -221,7 +221,7 @@ export default function PlaylistDetailsPage() {
 
             <Card className="h-fit bg-card/70">
               <CardHeader>
-                <CardTitle>Add media</CardTitle>
+                <CardTitle>Adicionar mídia</CardTitle>
               </CardHeader>
               <CardContent>
                 <form className="space-y-4" onSubmit={addItem}>
@@ -231,7 +231,7 @@ export default function PlaylistDetailsPage() {
                     required
                     value={selectedMediaId}
                   >
-                    <option value="">Choose media</option>
+                    <option value="">Escolha uma mídia</option>
                     {readyMedia.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.title} - {mediaTypeLabels[item.type]} - {orientationLabels[item.orientation]}
@@ -239,11 +239,11 @@ export default function PlaylistDetailsPage() {
                     ))}
                   </select>
                   {readyMedia.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No ready media available for playlists.</p>
+                    <p className="text-sm text-muted-foreground">Nenhuma mídia pronta disponível para playlists.</p>
                   ) : null}
                   {selectedMedia?.type === "image" ? (
                     <label className="block space-y-2 text-sm font-medium">
-                      <span>Display seconds</span>
+                      <span>Tempo de exibição em segundos</span>
                       <input
                         className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                         min={1}
@@ -269,27 +269,27 @@ export default function PlaylistDetailsPage() {
                   ) : null}
                   {selectedMedia?.type === "video" ? (
                     <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                      Video duration: {formatDuration(selectedMedia.durationSeconds)}. The TV player will play the full
-                      video, then continue the loop.
+                      Duração do vídeo: {formatDuration(selectedMedia.durationSeconds)}. A TV vai reproduzir o vídeo
+                      inteiro e depois continuar a sequência.
                     </div>
                   ) : null}
                   <Button className="w-full" disabled={isSaving || mediaQuery.isLoading} type="submit">
                     <Plus className="h-4 w-4" aria-hidden="true" />
-                    Add to playlist
+                    Adicionar à playlist
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
         ) : (
-          <EmptyState icon={Plus} title="Playlist not found" description="The requested playlist could not be loaded." />
+          <EmptyState icon={Plus} title="Playlist não encontrada" description="Não foi possível carregar a playlist solicitada." />
         )}
       </div>
       <ConfirmDialog
         open={Boolean(removeTarget)}
-        title="Remove playlist item?"
-        description="This item will be removed from the playlist order."
-        confirmLabel="Remove"
+        title="Remover item da playlist?"
+        description="Este item será removido da ordem da playlist."
+        confirmLabel="Remover"
         isLoading={isSaving}
         onCancel={() => setRemoveTarget(null)}
         onConfirm={async () => {

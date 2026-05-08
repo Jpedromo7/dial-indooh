@@ -55,7 +55,7 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
     await acknowledgeScreenCommand(session.screenId, session.deviceKey, {
       commandId: command.id,
       status: "failed",
-      errorMessage: error instanceof Error ? error.message : "Command failed"
+      errorMessage: error instanceof Error ? error.message : "Falha ao executar o comando."
     }).catch(() => undefined);
   }
 }

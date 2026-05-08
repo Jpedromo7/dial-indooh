@@ -6,19 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const sections = [
   {
-    title: "Admin profile",
+    title: "Perfil do administrador",
     icon: ShieldCheck,
-    rows: ["Name and email management", "Password rotation", "Role and permission policy"]
+    rows: ["Gerenciamento de nome e e-mail", "Troca de senha", "Política de funções e permissões"]
   },
   {
-    title: "App configuration",
+    title: "Configuração do aplicativo",
     icon: SlidersHorizontal,
-    rows: ["Default image duration", "Heartbeat interval", "Offline grace period"]
+    rows: ["Duração padrão das imagens", "Intervalo de sinal das TVs", "Tempo de tolerância para offline"]
   },
   {
-    title: "Storage configuration",
+    title: "Configuração de armazenamento",
     icon: Cloud,
-    rows: ["Public CDN URL", "Upload bucket", "Video processing provider"]
+    rows: ["URL pública/CDN", "Bucket de upload", "Provedor de processamento de vídeo"]
   }
 ];
 

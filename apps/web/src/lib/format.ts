@@ -1,9 +1,9 @@
 export function formatDate(value: string | Date | null | undefined) {
   if (!value) {
-    return "Never";
+    return "Nunca";
   }
 
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));

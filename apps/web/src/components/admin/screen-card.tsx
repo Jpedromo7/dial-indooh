@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlaylistDto, ScreenDto } from "@dialindooh/shared";
-import { CalendarClock, MapPin, MonitorPlay } from "lucide-react";
+import { CalendarClock, MapPin, MonitorPlay, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
@@ -11,9 +11,10 @@ interface ScreenCardProps {
   playlists: PlaylistDto[];
   onSelect: (screen: ScreenDto) => void;
   onAssign: (screenId: string, playlistId: string) => void;
+  onDelete: (screen: ScreenDto) => void;
 }
 
-export function ScreenCard({ screen, playlists, onSelect, onAssign }: ScreenCardProps) {
+export function ScreenCard({ screen, playlists, onSelect, onAssign, onDelete }: ScreenCardProps) {
   return (
     <div className="rounded-lg border bg-card/70 p-5 shadow-xl shadow-black/10">
       <div className="flex items-start justify-between gap-3">
@@ -31,11 +32,11 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign }: ScreenCard
       <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-2">
           <MapPin className="h-4 w-4" aria-hidden="true" />
-          {screen.location ?? "No location"}
+          {screen.location ?? "Sem local"}
         </span>
         <span className="flex items-center gap-2">
           <CalendarClock className="h-4 w-4" aria-hidden="true" />
-          Last seen {formatDate(screen.lastSeenAt)}
+          Última atividade {formatDate(screen.lastSeenAt)}
         </span>
         <span className="flex items-center gap-2">
           <MonitorPlay className="h-4 w-4" aria-hidden="true" />
@@ -43,16 +44,16 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign }: ScreenCard
         </span>
       </div>
       <div className="mt-4 rounded-md bg-muted/40 p-3">
-        <p className="text-xs uppercase text-muted-foreground">Activation code</p>
+        <p className="text-xs uppercase text-muted-foreground">Código de ativação</p>
         <p className="mt-1 font-mono text-lg font-semibold tracking-normal">{screen.activationCode}</p>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <select
           className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           onChange={(event) => onAssign(screen.id, event.currentTarget.value)}
           value={screen.activePlaylistId ?? ""}
         >
-          <option value="">No playlist</option>
+          <option value="">Sem playlist</option>
           {playlists.map((playlist) => (
             <option key={playlist.id} value={playlist.id}>
               {playlist.name}
@@ -60,7 +61,10 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign }: ScreenCard
           ))}
         </select>
         <Button onClick={() => onSelect(screen)} type="button" variant="secondary">
-          Details
+          Detalhes
+        </Button>
+        <Button aria-label={`Apagar ${screen.name}`} onClick={() => onDelete(screen)} size="icon" type="button" variant="ghost">
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
     </div>

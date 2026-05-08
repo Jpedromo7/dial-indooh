@@ -1,6 +1,6 @@
-# Dial Indooh Platform
+# Dial indoor Platform
 
-sistema integrado com tv para indooh
+sistema integrado com tv para indoor
 
 Foundation for a full-stack indoor digital signage platform where admins upload media, build playlists, assign playlists to screens, and Android TV boxes fetch and play content remotely.
 

@@ -7,24 +7,24 @@ import { Button } from "@/components/ui/button";
 
 const titles: Record<string, { title: string; description: string }> = {
   "/dashboard": {
-    title: "Dashboard",
-    description: "Live overview of your media library, playlists, and screen fleet."
+    title: "Painel",
+    description: "Visão geral da biblioteca de mídias, playlists e telas conectadas."
   },
   "/media": {
-    title: "Media",
-    description: "Upload, search, and manage image and video assets."
+    title: "Mídias",
+    description: "Envie, pesquise e gerencie imagens e vídeos."
   },
   "/playlists": {
     title: "Playlists",
-    description: "Build ordered playback loops and control active schedules."
+    description: "Monte sequências de reprodução e controle agendamentos."
   },
   "/screens": {
-    title: "Screens",
-    description: "Register devices, assign playlists, and monitor device health."
+    title: "Telas",
+    description: "Cadastre dispositivos, atribua playlists e monitore o status."
   },
   "/settings": {
-    title: "Settings",
-    description: "Workspace, storage, and administrator configuration."
+    title: "Configurações",
+    description: "Configurações do espaço, armazenamento e administrador."
   }
 };
 
@@ -32,8 +32,8 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const fallbackPage = {
-    title: "Dashboard",
-    description: "Live overview of your media library, playlists, and screen fleet."
+    title: "Painel",
+    description: "Visão geral da biblioteca de mídias, playlists e telas conectadas."
   };
   const page = titles[pathname] ?? (pathname.startsWith("/playlists/") ? titles["/playlists"] : fallbackPage) ?? fallbackPage;
 
@@ -60,7 +60,7 @@ export function AppHeader() {
           variant="ghost"
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
-          Sign out
+          Sair
         </Button>
       </div>
     </header>

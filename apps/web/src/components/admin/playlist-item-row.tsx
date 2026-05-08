@@ -55,8 +55,8 @@ export function PlaylistItemRow({
         <p className="mt-1 text-sm text-muted-foreground">{item.media.mimeType}</p>
       </div>
       <div>
-        <p className="text-xs uppercase text-muted-foreground">Type</p>
-        <p className="mt-1 text-sm font-medium capitalize">{item.media.type}</p>
+        <p className="text-xs uppercase text-muted-foreground">Tipo</p>
+        <p className="mt-1 text-sm font-medium">{item.media.type === "image" ? "Imagem" : "Vídeo"}</p>
       </div>
       <div>
         <p className="text-xs uppercase text-muted-foreground">Orientação</p>
@@ -65,7 +65,7 @@ export function PlaylistItemRow({
         </p>
       </div>
       <div>
-        <p className="text-xs uppercase text-muted-foreground">{isImage ? "Display" : "Duration"}</p>
+        <p className="text-xs uppercase text-muted-foreground">{isImage ? "Exibição" : "Duração"}</p>
         {isImage ? (
           <input
             className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"

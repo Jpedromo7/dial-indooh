@@ -1,6 +1,11 @@
 import type { ScreenStatus } from "@dialindooh/shared";
 import { cn } from "@/lib/utils";
 
+const statusLabels: Record<ScreenStatus, string> = {
+  online: "Online",
+  offline: "Offline"
+};
+
 export function StatusBadge({ status }: { status: ScreenStatus }) {
   return (
     <span
@@ -12,7 +17,7 @@ export function StatusBadge({ status }: { status: ScreenStatus }) {
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", status === "online" ? "bg-primary" : "bg-muted-foreground")} />
-      {status}
+      {statusLabels[status]}
     </span>
   );
 }

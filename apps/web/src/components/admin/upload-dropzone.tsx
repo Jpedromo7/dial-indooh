@@ -25,7 +25,10 @@ export function UploadDropzone({ file, onFileChange }: UploadDropzoneProps) {
         className="sr-only"
         type="file"
         accept="image/*,video/*"
-        onChange={(event) => onFileChange(event.target.files?.item(0) ?? null)}
+        onChange={(event) => {
+          onFileChange(event.currentTarget.files?.item(0) ?? null);
+          event.currentTarget.value = "";
+        }}
       />
       <UploadCloud className="h-8 w-8 text-primary" aria-hidden="true" />
       {file ? (
@@ -40,13 +43,13 @@ export function UploadDropzone({ file, onFileChange }: UploadDropzoneProps) {
             type="button"
           >
             <X className="h-3 w-3" aria-hidden="true" />
-            Remove
+            Remover
           </button>
         </div>
       ) : (
         <>
-          <p className="mt-3 text-sm font-semibold">Drop media here or choose a file</p>
-          <p className="mt-1 text-xs text-muted-foreground">Images and videos are supported.</p>
+          <p className="mt-3 text-sm font-semibold">Arraste uma mídia ou escolha um arquivo</p>
+          <p className="mt-1 text-xs text-muted-foreground">Imagens e vídeos são suportados.</p>
         </>
       )}
     </label>

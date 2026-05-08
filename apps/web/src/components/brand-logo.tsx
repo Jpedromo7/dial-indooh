@@ -27,7 +27,7 @@ export function BrandLogo({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <Image
-        alt="Dial Indooh"
+        alt="Dial indoor"
         className={cn("shrink-0 rounded-md bg-black object-contain", imageSizes[variant], imageClassName)}
         height={96}
         priority
@@ -36,8 +36,8 @@ export function BrandLogo({
       />
       {showText ? (
         <div className="min-w-0">
-          <p className={cn("truncate text-sm font-semibold leading-none", textClassName)}>Dial Indooh</p>
-          <p className={cn("mt-1 truncate text-xs text-muted-foreground", subtitleClassName)}>Signage control</p>
+          <p className={cn("truncate text-sm font-semibold leading-none", textClassName)}>Dial indoor</p>
+          <p className={cn("mt-1 truncate text-xs text-muted-foreground", subtitleClassName)}>Controle de telas</p>
         </div>
       ) : null}
     </div>

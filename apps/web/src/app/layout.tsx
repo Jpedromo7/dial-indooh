@@ -3,8 +3,8 @@ import { ToastProvider } from "@/components/feedback/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dial Indooh",
-  description: "Indoor media management for Android TV signage boxes",
+  title: "Dial indoor",
+  description: "Gerenciamento de mídias indoor para reprodutores Android TV",
   icons: {
     apple: "/brand/dial-indooh-logo.png",
     icon: "/brand/dial-indooh-logo.png"
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body>
         <ToastProvider>{children}</ToastProvider>
       </body>

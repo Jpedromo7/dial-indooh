@@ -36,6 +36,7 @@ interface RequestOptions {
 
 async function request<T>(path: string, options: RequestOptions = {}) {
   const response = await fetch(path, {
+    cache: "no-store",
     method: options.method ?? "GET",
     headers: options.body ? { "Content-Type": "application/json" } : undefined,
     credentials: "include",
@@ -48,7 +49,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
 
   if (!response.ok || !payload?.ok) {
     const error = payload && !payload.ok ? payload.error : null;
-    throw new ApiClientError(error?.message ?? "Request failed.", response.status, error?.code, error?.details);
+    throw new ApiClientError(error?.message ?? "A requisição falhou.", response.status, error?.code, error?.details);
   }
 
   return payload.data;
@@ -164,6 +165,8 @@ export const apiClient = {
     DEMO_MODE
       ? demoApi.updateScreen(id, input)
       : request<ScreenDto>(`/api/screens/${id}`, { method: "PATCH", body: input }),
+  deleteScreen: (id: string) =>
+    DEMO_MODE ? demoApi.deleteScreen(id) : request<{ id: string }>(`/api/screens/${id}`, { method: "DELETE" }),
   listScreenEvents: (id: string) =>
     DEMO_MODE ? Promise.resolve([]) : request<ScreenEventDto[]>(`/api/screens/${id}/events`),
   createScreenCommand: (id: string, type: ScreenCommandType) =>
@@ -192,7 +195,7 @@ export function getApiErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "Something went wrong.";
+  return "Algo deu errado.";
 }
 
 interface DemoStore {
@@ -210,7 +213,7 @@ function demoLogin(email: string, password: string): Promise<LoginResponse> {
     token: "demo-token",
     user: {
       id: "demo-admin",
-      name: "Demo Admin",
+      name: "Administrador de demonstração",
       email,
       role: "admin"
     }
@@ -262,7 +265,7 @@ const demoApi = {
   updateMedia: async (id: string, input: { title?: string; orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) => {
     const store = getDemoStore();
     const media = store.media.find((item) => item.id === id);
-    if (!media) throw new ApiClientError("Media não encontrada.", 404);
+    if (!media) throw new ApiClientError("Mídia não encontrada.", 404);
     const updated = {
       ...media,
       title: input.title ?? media.title,
@@ -317,7 +320,7 @@ const demoApi = {
   ) => {
     const store = getDemoStore();
     const media = store.media.find((item) => item.id === input.mediaId);
-    if (!media) throw new ApiClientError("Media não encontrada.", 404);
+    if (!media) throw new ApiClientError("Mídia não encontrada.", 404);
     const playlist = findPlaylist(playlistId, store);
     const item = {
       id: createId("item"),
@@ -433,6 +436,13 @@ const demoApi = {
     store.screens = store.screens.map((item) => (item.id === id ? updated : item));
     saveDemoStore(store);
     return updated;
+  },
+  deleteScreen: async (id: string) => {
+    const store = getDemoStore();
+    findScreen(id, store);
+    store.screens = store.screens.filter((item) => item.id !== id);
+    saveDemoStore(store);
+    return { id };
   }
 };
 
@@ -454,7 +464,7 @@ function createInitialDemoStore(): DemoStore {
   const now = new Date().toISOString();
   const welcomeMedia: MediaDto = {
     id: "media-welcome",
-    title: "Welcome image",
+    title: "Imagem de boas-vindas",
     type: "image",
     fileUrl: "https://cdn.example.com/demo/welcome.jpg",
     mimeType: "image/jpeg",
@@ -470,7 +480,7 @@ function createInitialDemoStore(): DemoStore {
   };
   const promoMedia: MediaDto = {
     id: "media-promo",
-    title: "Promo loop",
+    title: "Vídeo promocional",
     type: "video",
     fileUrl: "https://cdn.example.com/demo/promo.mp4",
     mimeType: "video/mp4",
@@ -486,7 +496,7 @@ function createInitialDemoStore(): DemoStore {
   };
   const menuMedia: MediaDto = {
     id: "media-menu",
-    title: "Menu board",
+    title: "Cardápio digital",
     type: "image",
     fileUrl: "https://cdn.example.com/demo/menu.jpg",
     mimeType: "image/jpeg",
@@ -507,8 +517,8 @@ function createInitialDemoStore(): DemoStore {
   ];
   const playlist: PlaylistDto = {
     id: "playlist-lobby",
-    name: "Demo Lobby Playlist",
-    description: "Sample playlist for the demo screen.",
+    name: "Playlist de demonstração da recepção",
+    description: "Playlist de exemplo para a tela de demonstração.",
     isActive: true,
     scheduledStartAt: null,
     scheduledEndAt: null,
@@ -527,9 +537,9 @@ function createInitialDemoStore(): DemoStore {
     screens: [
       {
         id: "screen-lobby",
-        name: "Demo Lobby Screen",
+        name: "Tela de demonstração da recepção",
         slug: "demo-lobby",
-        location: "Lobby",
+        location: "Recepção",
         orientation: "landscape",
         activationCode: "DEMO01",
         deviceKeyRegistered: false,

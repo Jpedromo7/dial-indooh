@@ -50,7 +50,7 @@ export const playlistService = {
     });
 
     if (!playlist) {
-      throw new ApiError(404, "playlist_not_found", "Playlist was not found.");
+      throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
     }
 
     return serializePlaylist(playlist);
@@ -77,7 +77,7 @@ export const playlistService = {
       return serializePlaylist(playlist);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        throw new ApiError(404, "playlist_not_found", "Playlist was not found.");
+        throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
       }
 
       throw error;
@@ -94,11 +94,11 @@ export const playlistService = {
       ]);
 
       if (!existingPlaylist) {
-        throw new ApiError(404, "playlist_not_found", "Playlist was not found.");
+      throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
       }
 
       if (!media) {
-        throw new ApiError(404, "media_not_found", "Media item was not found.");
+      throw new ApiError(404, "media_not_found", "Mídia não encontrada.");
       }
 
       assertPlaylistItemRules(media, data.displayDurationSeconds);
@@ -147,7 +147,7 @@ export const playlistService = {
       const existingPlaylist = await tx.playlist.findUnique({ where: { id: playlistId } });
 
       if (!existingPlaylist) {
-        throw new ApiError(404, "playlist_not_found", "Playlist was not found.");
+      throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
       }
 
       const existingItems = await tx.playlistItem.findMany({
@@ -158,12 +158,12 @@ export const playlistService = {
       const incomingIds = new Set(data.items.map((item) => item.id));
 
       if (existingItems.length !== data.items.length || incomingIds.size !== data.items.length) {
-        throw new ApiError(422, "invalid_reorder", "Reorder payload must include each playlist item once.");
+      throw new ApiError(422, "invalid_reorder", "A reordenação precisa incluir cada item da playlist uma única vez.");
       }
 
       for (const item of data.items) {
         if (!existingIds.has(item.id)) {
-          throw new ApiError(422, "invalid_reorder", "Reorder payload contains an item from another playlist.");
+      throw new ApiError(422, "invalid_reorder", "A reordenação contém um item de outra playlist.");
         }
       }
 
@@ -203,7 +203,7 @@ export const playlistService = {
       });
 
       if (!item) {
-        throw new ApiError(404, "playlist_item_not_found", "Playlist item was not found.");
+      throw new ApiError(404, "playlist_item_not_found", "Item da playlist não encontrado.");
       }
 
       await tx.playlistItem.delete({ where: { id: itemId } });
@@ -244,11 +244,11 @@ export const playlistService = {
       });
 
       if (!item) {
-        throw new ApiError(404, "playlist_item_not_found", "Playlist item was not found.");
+      throw new ApiError(404, "playlist_item_not_found", "Item da playlist não encontrado.");
       }
 
       if (item.media.type === "image" && !data.displayDurationSeconds) {
-        throw new ApiError(422, "image_duration_required", "Images must define displayDurationSeconds.");
+      throw new ApiError(422, "image_duration_required", "Imagens precisam definir displayDurationSeconds.");
       }
 
       await tx.playlistItem.update({
@@ -273,19 +273,19 @@ function assertPlaylistItemRules(
   displayDurationSeconds?: number | null
 ) {
   if (media.status && media.status !== "ready") {
-    throw new ApiError(422, "media_not_ready", "Only ready media can be added to playlists.");
+    throw new ApiError(422, "media_not_ready", "Apenas mídias prontas podem ser adicionadas a playlists.");
   }
 
   if (media.type === "image" && !displayDurationSeconds) {
     throw new ApiError(
       422,
       "image_duration_required",
-      "Images must define displayDurationSeconds when added to a playlist."
+        "Imagens precisam definir displayDurationSeconds ao serem adicionadas a uma playlist."
     );
   }
 
   if (media.type === "video" && !media.durationSeconds) {
-    throw new ApiError(422, "video_duration_required", "Videos must have an intrinsic durationSeconds value.");
+    throw new ApiError(422, "video_duration_required", "Vídeos precisam ter um valor de durationSeconds.");
   }
 }
 
@@ -294,7 +294,7 @@ function assertContiguousOrders(orders: number[]) {
 
   for (let index = 0; index < sortedOrders.length; index += 1) {
     if (sortedOrders[index] !== index + 1) {
-      throw new ApiError(422, "invalid_order", "Playlist item order must be contiguous starting at 1.");
+    throw new ApiError(422, "invalid_order", "A ordem dos itens da playlist precisa ser contínua e começar em 1.");
     }
   }
 }

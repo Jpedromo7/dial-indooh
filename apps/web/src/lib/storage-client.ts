@@ -35,7 +35,7 @@ function getSupabaseBrowserClient() {
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!url || !publishableKey) {
-    throw new ApiClientError("Supabase public configuration is missing.", 500, "supabase_public_config_missing");
+    throw new ApiClientError("A configuração pública do Supabase está ausente.", 500, "supabase_public_config_missing");
   }
 
   browserClient = createClient(url, publishableKey, {

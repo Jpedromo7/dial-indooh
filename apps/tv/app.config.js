@@ -1,6 +1,6 @@
 module.exports = {
   expo: {
-    name: "Dial Indooh TV",
+    name: "Dial indoor TV",
     slug: "dial-indooh-tv",
     version: "0.1.5",
     icon: "./assets/dial-indooh-logo.png",

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         ok: false,
         error: {
           code: "unauthorized",
-          message: "Unauthorized"
+        message: "Não autorizado"
         }
       },
       { status: 401 }
@@ -45,11 +45,11 @@ async function pingSupabaseStorage() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL must be configured.");
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL precisa estar configurado.");
   }
 
   if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY must be configured.");
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY precisa estar configurado.");
   }
 
   const client = createClient(url, serviceRoleKey, {

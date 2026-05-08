@@ -34,7 +34,7 @@ export async function createMediaUploadUrl(input: UploadUrlInput): Promise<Media
   });
 
   if (error || !data) {
-    throw new ApiError(502, "storage_signed_url_failed", error?.message ?? "Could not create upload URL.");
+    throw new ApiError(502, "storage_signed_url_failed", error?.message ?? "Não foi possível criar a URL de upload.");
   }
 
   return {
@@ -51,11 +51,15 @@ function createSupabaseAdminClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) {
-    throw new ApiError(500, "supabase_url_missing", "NEXT_PUBLIC_SUPABASE_URL must be configured.");
+    throw new ApiError(500, "supabase_url_missing", "NEXT_PUBLIC_SUPABASE_URL precisa estar configurado.");
   }
 
   if (!serviceRoleKey) {
-    throw new ApiError(500, "supabase_service_role_missing", "SUPABASE_SERVICE_ROLE_KEY must be configured.");
+    throw new ApiError(
+      500,
+      "supabase_service_role_missing",
+      "Configure SUPABASE_SERVICE_ROLE_KEY no servidor para habilitar o envio de mídias."
+    );
   }
 
   return createClient(url, serviceRoleKey, {
@@ -92,11 +96,11 @@ async function ensurePublicBucket(client: ReturnType<typeof createSupabaseAdminC
 
 function validateUploadInput(input: UploadUrlInput) {
   if (!SUPPORTED_MIME_PREFIXES.some((prefix) => input.mimeType.startsWith(prefix))) {
-    throw new ApiError(422, "unsupported_media_type", "Only image and video uploads are supported.");
+    throw new ApiError(422, "unsupported_media_type", "Apenas uploads de imagem e vídeo são suportados.");
   }
 
   if (input.sizeBytes > MAX_UPLOAD_SIZE_BYTES) {
-    throw new ApiError(413, "file_too_large", "The maximum upload size is 500 MB.");
+    throw new ApiError(413, "file_too_large", "O tamanho máximo de upload é 500 MB.");
   }
 }
 
@@ -131,7 +135,7 @@ function getMediaBucket() {
 function getPublicMediaUrl(client: ReturnType<typeof createSupabaseAdminClient>, bucket: string, path: string) {
   const configuredBaseUrl = process.env.MEDIA_STORAGE_PUBLIC_URL?.replace(/\/+$/, "");
 
-  if (configuredBaseUrl) {
+  if (configuredBaseUrl && !configuredBaseUrl.includes("example.com")) {
     return `${configuredBaseUrl}/${path
       .split("/")
       .map((segment) => encodeURIComponent(segment))

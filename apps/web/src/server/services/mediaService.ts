@@ -48,7 +48,7 @@ export const mediaService = {
       return serializeMedia(media);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        throw new ApiError(404, "media_not_found", "Media item was not found.");
+        throw new ApiError(404, "media_not_found", "Mídia não encontrada.");
       }
 
       throw error;
@@ -61,14 +61,14 @@ export const mediaService = {
     });
 
     if (playlistUsageCount > 0) {
-      throw new ApiError(409, "media_in_use", "Media used by a playlist cannot be deleted.");
+      throw new ApiError(409, "media_in_use", "Mídias usadas em playlists não podem ser apagadas.");
     }
 
     try {
       await prisma.media.delete({ where: { id } });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-        throw new ApiError(404, "media_not_found", "Media item was not found.");
+        throw new ApiError(404, "media_not_found", "Mídia não encontrada.");
       }
 
       throw error;
@@ -84,14 +84,14 @@ function assertMediaMetadata(data: {
   durationSeconds?: number | null;
 }) {
   if (data.type === "image" && !data.mimeType.startsWith("image/")) {
-    throw new ApiError(422, "invalid_media_type", "Image media must use an image MIME type.");
+    throw new ApiError(422, "invalid_media_type", "Mídias de imagem precisam usar um MIME type de imagem.");
   }
 
   if (data.type === "video" && !data.mimeType.startsWith("video/")) {
-    throw new ApiError(422, "invalid_media_type", "Video media must use a video MIME type.");
+    throw new ApiError(422, "invalid_media_type", "Mídias de vídeo precisam usar um MIME type de vídeo.");
   }
 
   if (data.type === "video" && !data.durationSeconds) {
-    throw new ApiError(422, "video_duration_required", "Video media requires durationSeconds.");
+    throw new ApiError(422, "video_duration_required", "Mídias de vídeo precisam informar durationSeconds.");
   }
 }

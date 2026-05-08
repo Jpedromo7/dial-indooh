@@ -93,7 +93,7 @@ async function request<T>(
       const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
       if (!response.ok || !payload?.ok) {
-        throw new ApiError(payload?.error?.message ?? "Request failed", response.status, payload?.error?.code);
+        throw new ApiError(payload?.error?.message ?? "A requisição falhou.", response.status, payload?.error?.code);
       }
 
       return payload.data as T;
@@ -106,7 +106,7 @@ async function request<T>(
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error("Network request failed");
+  throw lastError instanceof Error ? lastError : new Error("Falha na requisição de rede.");
 }
 
 function withDeviceKey(deviceKey: string) {

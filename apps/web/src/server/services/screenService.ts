@@ -96,7 +96,7 @@ export const screenService = {
     });
 
     if (!screen) {
-      throw new ApiError(404, "screen_not_found", "Screen was not found.");
+      throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
     }
 
     return serializeScreenDetail(screen);
@@ -122,7 +122,7 @@ export const screenService = {
       return serializeScreen(screen);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ApiError(409, "screen_conflict", "Screen slug or activation code already exists.");
+        throw new ApiError(409, "screen_conflict", "Slug ou código de ativação da tela já existe.");
       }
 
       throw error;
@@ -137,14 +137,14 @@ export const screenService = {
       const existingScreen = await tx.screen.findUnique({ where: { id } });
 
       if (!existingScreen) {
-        throw new ApiError(404, "screen_not_found", "Screen was not found.");
+        throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
       }
 
       if (screenData.slug && screenData.slug !== existingScreen.slug) {
         const slugOwner = await tx.screen.findUnique({ where: { slug: screenData.slug } });
 
         if (slugOwner) {
-          throw new ApiError(409, "screen_slug_exists", "Screen slug is already in use.");
+          throw new ApiError(409, "screen_slug_exists", "O slug da tela já está em uso.");
         }
       }
 
@@ -165,7 +165,7 @@ export const screenService = {
           const playlist = await tx.playlist.findUnique({ where: { id: playlistId } });
 
           if (!playlist || !playlist.isActive) {
-            throw new ApiError(404, "playlist_not_found", "Active playlist was not found.");
+            throw new ApiError(404, "playlist_not_found", "Playlist ativa não encontrada.");
           }
 
           await tx.screenAssignment.create({
@@ -187,6 +187,22 @@ export const screenService = {
     return serializeScreen(screen);
   },
 
+  async deleteScreen(id: string) {
+    try {
+      await prisma.screen.delete({
+        where: { id }
+      });
+
+      return { id };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
+      }
+
+      throw error;
+    }
+  },
+
   async activateScreen(input: unknown) {
     const data = screenActivationSchema.parse(input);
     const screen = await prisma.screen.findUnique({
@@ -194,7 +210,7 @@ export const screenService = {
     });
 
     if (!screen) {
-      throw new ApiError(404, "activation_code_not_found", "Activation code was not found.");
+      throw new ApiError(404, "activation_code_not_found", "Código de ativação não encontrado.");
     }
 
     if (screen.deviceKey) {
@@ -207,7 +223,7 @@ export const screenService = {
     const updatedScreen = await attachUniqueDeviceKey(screen.id);
 
     if (!updatedScreen.deviceKey) {
-      throw new ApiError(500, "device_key_generation_failed", "Could not generate a device key.");
+      throw new ApiError(500, "device_key_generation_failed", "Não foi possível gerar a chave do dispositivo.");
     }
 
     return {
@@ -250,7 +266,7 @@ export const screenService = {
     const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
 
     if (!screen) {
-      throw new ApiError(404, "screen_not_found", "Screen was not found.");
+      throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
     }
 
     const events = await prisma.screenEvent.findMany({
@@ -271,7 +287,7 @@ export const screenService = {
       const media = await prisma.media.findUnique({ where: { id: data.mediaId } });
 
       if (!media) {
-        throw new ApiError(404, "media_not_found", "Media item was not found.");
+        throw new ApiError(404, "media_not_found", "Mídia não encontrada.");
       }
     }
 
@@ -295,7 +311,7 @@ export const screenService = {
     const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
 
     if (!screen) {
-      throw new ApiError(404, "screen_not_found", "Screen was not found.");
+      throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
     }
 
     const command = await prisma.screenCommand.create({
@@ -351,7 +367,7 @@ export const screenService = {
     });
 
     if (!command) {
-      throw new ApiError(404, "screen_command_not_found", "Screen command was not found.");
+      throw new ApiError(404, "screen_command_not_found", "Comando da tela não encontrado.");
     }
 
     const updatedCommand = await prisma.screenCommand.update({
@@ -370,14 +386,16 @@ export const screenService = {
     const data = screenHeartbeatSchema.parse(input);
     await assertDeviceAccess(screenId, deviceKey);
 
-    const sentAt = data.sentAt ? new Date(data.sentAt) : new Date();
+    const receivedAt = new Date();
     const heartbeat = await prisma.$transaction(async (tx) => {
-      if (data.currentMediaId) {
-        const media = await tx.media.findUnique({ where: { id: data.currentMediaId } });
+      let currentMediaId: string | null = null;
 
-        if (!media) {
-          throw new ApiError(404, "media_not_found", "Current media item was not found.");
-        }
+      if (data.currentMediaId) {
+        const media = await tx.media.findUnique({
+          where: { id: data.currentMediaId },
+          select: { id: true }
+        });
+        currentMediaId = media?.id ?? null;
       }
 
       const createdHeartbeat = await tx.screenHeartbeat.create({
@@ -386,8 +404,8 @@ export const screenService = {
           status: data.status,
           appVersion: data.appVersion ?? null,
           ipAddress: data.ipAddress ?? null,
-          currentMediaId: data.currentMediaId ?? null,
-          sentAt
+          currentMediaId,
+          sentAt: receivedAt
         }
       });
 
@@ -395,7 +413,7 @@ export const screenService = {
         where: { id: screenId },
         data: {
           status: data.status,
-          lastSeenAt: sentAt
+          lastSeenAt: receivedAt
         }
       });
 
@@ -416,7 +434,7 @@ function toJson(value: Record<string, unknown> | null | undefined) {
 
 async function assertDeviceAccess(screenId: string, deviceKey: string | null) {
   if (!deviceKey) {
-    throw new ApiError(401, "device_key_required", "Device key is required.");
+    throw new ApiError(401, "device_key_required", "A chave do dispositivo é obrigatória.");
   }
 
   const screen = await prisma.screen.findUnique({
@@ -425,11 +443,11 @@ async function assertDeviceAccess(screenId: string, deviceKey: string | null) {
   });
 
   if (!screen) {
-    throw new ApiError(404, "screen_not_found", "Screen was not found.");
+    throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
   }
 
   if (!screen.deviceKey || screen.deviceKey !== deviceKey) {
-    throw new ApiError(403, "invalid_device_key", "Device key is invalid for this screen.");
+    throw new ApiError(403, "invalid_device_key", "A chave do dispositivo é inválida para esta tela.");
   }
 
   return screen;
@@ -453,7 +471,7 @@ async function attachUniqueDeviceKey(screenId: string) {
     }
   }
 
-  throw new ApiError(500, "device_key_generation_failed", "Could not generate a unique device key.");
+  throw new ApiError(500, "device_key_generation_failed", "Não foi possível gerar uma chave única para o dispositivo.");
 }
 
 async function createUniqueActivationCode() {
@@ -468,7 +486,7 @@ async function createUniqueActivationCode() {
     }
   }
 
-  throw new ApiError(500, "activation_code_generation_failed", "Could not generate a unique activation code.");
+  throw new ApiError(500, "activation_code_generation_failed", "Não foi possível gerar um código de ativação único.");
 }
 
 async function createUniqueSlug(baseSlug: string) {

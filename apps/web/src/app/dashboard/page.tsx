@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Image, ListVideo, MonitorPlay, RadioTower, WifiOff } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
@@ -10,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { apiClient } from "@/lib/api-client";
 import { formatBytes, formatDate } from "@/lib/format";
+
+const SCREEN_STATUS_REFRESH_MS = 30 * 1000;
 
 export default function DashboardPage() {
   const mediaQuery = useApiQuery(apiClient.listMedia, []);
@@ -29,6 +32,11 @@ export default function DashboardPage() {
     .slice(0, 5);
   const error = mediaQuery.error ?? playlistsQuery.error ?? screensQuery.error;
 
+  useEffect(() => {
+    const interval = setInterval(() => void screensQuery.refresh({ silent: true }), SCREEN_STATUS_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [screensQuery.refresh]);
+
   return (
     <AppShell>
       {error ? <ErrorBanner message={error} /> : null}
@@ -37,17 +45,17 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard label="Media files" value={media.length} icon={Image} caption="Images and videos in library" />
-            <StatCard label="Playlists" value={playlists.length} icon={ListVideo} caption="Playback loops configured" />
-            <StatCard label="Screens" value={screens.length} icon={MonitorPlay} caption="Registered display devices" />
-            <StatCard label="Online" value={onlineScreens.length} icon={RadioTower} caption="Currently reporting online" />
-            <StatCard label="Offline" value={offlineScreens.length} icon={WifiOff} caption="Needs attention or idle" />
+            <StatCard label="Mídias" value={media.length} icon={Image} caption="Imagens e vídeos na biblioteca" />
+            <StatCard label="Playlists" value={playlists.length} icon={ListVideo} caption="Sequências de reprodução configuradas" />
+            <StatCard label="Telas" value={screens.length} icon={MonitorPlay} caption="Dispositivos cadastrados" />
+            <StatCard label="Online" value={onlineScreens.length} icon={RadioTower} caption="Reportando atividade agora" />
+            <StatCard label="Offline" value={offlineScreens.length} icon={WifiOff} caption="Sem sinal recente ou em atenção" />
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3">
             <Card className="bg-card/70 xl:col-span-1">
               <CardHeader>
-                <CardTitle>Recent screens</CardTitle>
+                <CardTitle>Telas recentes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {recentScreens.map((screen) => (
@@ -59,13 +67,13 @@ export default function DashboardPage() {
                     <StatusBadge status={screen.status} />
                   </div>
                 ))}
-                {recentScreens.length === 0 ? <p className="text-sm text-muted-foreground">No screens yet.</p> : null}
+                {recentScreens.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma tela cadastrada.</p> : null}
               </CardContent>
             </Card>
 
             <Card className="bg-card/70 xl:col-span-1">
               <CardHeader>
-                <CardTitle>Latest uploaded media</CardTitle>
+                <CardTitle>Últimas mídias enviadas</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {latestMedia.map((item) => (
@@ -73,19 +81,19 @@ export default function DashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{item.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.type} · {formatBytes(item.sizeBytes)}
+                        {mediaTypeLabels[item.type]} · {formatBytes(item.sizeBytes)}
                       </p>
                     </div>
                     <p className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</p>
                   </div>
                 ))}
-                {latestMedia.length === 0 ? <p className="text-sm text-muted-foreground">No media uploaded yet.</p> : null}
+                {latestMedia.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma mídia enviada.</p> : null}
               </CardContent>
             </Card>
 
             <Card className="bg-card/70 xl:col-span-1">
               <CardHeader>
-                <CardTitle>Last heartbeat activity</CardTitle>
+                <CardTitle>Últimos sinais das TVs</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {heartbeatActivity.map((screen) => (
@@ -97,7 +105,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">{formatDate(screen.lastHeartbeatAt)}</p>
                   </div>
                 ))}
-                {heartbeatActivity.length === 0 ? <p className="text-sm text-muted-foreground">No heartbeats received yet.</p> : null}
+                {heartbeatActivity.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum sinal recebido ainda.</p> : null}
               </CardContent>
             </Card>
           </div>
@@ -106,6 +114,11 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
+
+const mediaTypeLabels = {
+  image: "Imagem",
+  video: "Vídeo"
+};
 
 function DashboardSkeleton() {
   return (

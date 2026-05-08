@@ -37,14 +37,14 @@ export default function PlaylistsPage() {
         scheduledStartAt: toIsoDateTime(scheduledStartAt),
         scheduledEndAt: toIsoDateTime(scheduledEndAt)
       });
-      toast({ title: "Playlist created", description: name, variant: "success" });
+      toast({ title: "Playlist criada", description: name, variant: "success" });
       setName("");
       setDescription("");
       setScheduledStartAt("");
       setScheduledEndAt("");
       await query.refresh();
     } catch (error) {
-      toast({ title: "Create failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao criar", description: getApiErrorMessage(error), variant: "error" });
     } finally {
       setIsCreating(false);
     }
@@ -53,11 +53,11 @@ export default function PlaylistsPage() {
   async function updatePlaylist(id: string, input: { name?: string; description?: string | null; isActive?: boolean }) {
     try {
       await apiClient.updatePlaylist(id, input);
-      toast({ title: "Playlist updated", variant: "success" });
+      toast({ title: "Playlist atualizada", variant: "success" });
       setEditingId(null);
       await query.refresh();
     } catch (error) {
-      toast({ title: "Update failed", description: getApiErrorMessage(error), variant: "error" });
+      toast({ title: "Falha ao atualizar", description: getApiErrorMessage(error), variant: "error" });
     }
   }
 
@@ -66,21 +66,21 @@ export default function PlaylistsPage() {
       <div className="grid gap-6 xl:grid-cols-[24rem_1fr]">
         <Card className="h-fit bg-card/70">
           <CardHeader>
-            <CardTitle>Create playlist</CardTitle>
+            <CardTitle>Criar playlist</CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={createPlaylist}>
               <input
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 onChange={(event) => setName(event.currentTarget.value)}
-                placeholder="Lobby loop"
+                placeholder="Playlist da recepção"
                 required
                 value={name}
               />
               <textarea
                 className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 onChange={(event) => setDescription(event.currentTarget.value)}
-                placeholder="Description"
+                placeholder="Descrição"
                 value={description}
               />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -105,7 +105,7 @@ export default function PlaylistsPage() {
               </div>
               <Button className="w-full" disabled={isCreating} type="submit">
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                {isCreating ? "Creating..." : "Create playlist"}
+                {isCreating ? "Criando..." : "Criar playlist"}
               </Button>
             </form>
           </CardContent>
@@ -116,7 +116,7 @@ export default function PlaylistsPage() {
         ) : query.isLoading ? (
           <LoadingSkeleton className="h-96" />
         ) : playlists.length === 0 ? (
-          <EmptyState icon={ListVideo} title="No playlists yet" description="Create a playlist to start building screen loops." />
+          <EmptyState icon={ListVideo} title="Nenhuma playlist cadastrada" description="Crie uma playlist para montar a sequência das telas." />
         ) : (
           <div className="grid gap-4">
             {playlists.map((playlist) => {
@@ -141,12 +141,12 @@ export default function PlaylistsPage() {
                             <div className="flex flex-wrap items-center gap-3">
                               <h2 className="text-lg font-semibold">{playlist.name}</h2>
                               <span className="rounded-full border px-2.5 py-1 text-xs font-semibold">
-                                {playlist.isActive ? "Active" : "Inactive"}
+                                {playlist.isActive ? "Ativa" : "Inativa"}
                               </span>
                             </div>
-                            <p className="mt-2 text-sm text-muted-foreground">{playlist.description ?? "No description"}</p>
+                            <p className="mt-2 text-sm text-muted-foreground">{playlist.description ?? "Sem descrição"}</p>
                             <p className="mt-3 text-xs text-muted-foreground">
-                              {playlist.items.length} items · Updated {formatDate(playlist.updatedAt)}
+                              {playlist.items.length} item(ns) · Atualizada em {formatDate(playlist.updatedAt)}
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">
                               Janela: {formatDate(playlist.scheduledStartAt)} até {formatDate(playlist.scheduledEndAt)}
@@ -165,11 +165,11 @@ export default function PlaylistsPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         <Button asChild type="button" variant="secondary">
-                          <Link href={`/playlists/${playlist.id}`}>Open</Link>
+                          <Link href={`/playlists/${playlist.id}`}>Abrir</Link>
                         </Button>
                         <Button onClick={() => setEditingId(playlist.id)} type="button" variant="ghost">
                           <Pencil className="h-4 w-4" aria-hidden="true" />
-                          Edit
+                          Editar
                         </Button>
                         <Button
                           onClick={() => updatePlaylist(playlist.id, { isActive: !playlist.isActive })}
@@ -177,7 +177,7 @@ export default function PlaylistsPage() {
                           variant="ghost"
                         >
                           {playlist.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                          {playlist.isActive ? "Disable" : "Enable"}
+                          {playlist.isActive ? "Desativar" : "Ativar"}
                         </Button>
                       </div>
                     </div>
@@ -250,9 +250,9 @@ function EditPlaylistForm({
         />
       </div>
       <div className="flex gap-2">
-        <Button type="submit">Save</Button>
+        <Button type="submit">Salvar</Button>
         <Button onClick={onCancel} type="button" variant="ghost">
-          Cancel
+          Cancelar
         </Button>
       </div>
     </form>

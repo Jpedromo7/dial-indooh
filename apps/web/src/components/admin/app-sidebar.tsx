@@ -7,11 +7,11 @@ import { BrandLogo } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/media", label: "Media", icon: Library },
+  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
+  { href: "/media", label: "Mídias", icon: Library },
   { href: "/playlists", label: "Playlists", icon: ListVideo },
-  { href: "/screens", label: "Screens", icon: Tv },
-  { href: "/settings", label: "Settings", icon: Settings }
+  { href: "/screens", label: "Telas", icon: Tv },
+  { href: "/settings", label: "Configurações", icon: Settings }
 ];
 
 export function AppSidebar() {

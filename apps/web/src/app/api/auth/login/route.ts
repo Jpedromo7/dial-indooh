@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     });
 
     if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
-      throw new ApiError(401, "invalid_credentials", "Email or password is invalid.");
+      throw new ApiError(401, "invalid_credentials", "E-mail ou senha inválidos.");
     }
 
     const token = issueAdminToken(user);

@@ -17,7 +17,7 @@ interface PlayerScreenProps {
 export function PlayerScreen({ session }: PlayerScreenProps) {
   const [playlist, setPlaylist] = useState<TvPlaylist | null>(null);
   const [screenOrientation, setScreenOrientation] = useState<ScreenOrientation>("landscape");
-  const [statusMessage, setStatusMessage] = useState("Loading playlist");
+  const [statusMessage, setStatusMessage] = useState("Carregando playlist");
   const [playerKey, setPlayerKey] = useState(0);
   const windowDimensions = useWindowDimensions();
   const currentItemRef = useRef<TvPlaylistItem | null>(null);
@@ -31,13 +31,13 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
       await reportScreenEvent(session, {
         level: "info",
         type: "playlist_synced",
-        message: `Playlist synced with ${syncedPlayback.playlist?.items.length ?? 0} playable items.`
+        message: `Playlist sincronizada com ${syncedPlayback.playlist?.items.length ?? 0} item(ns) reproduzível(is).`
       });
     } catch (error) {
       const offlinePlayback = await loadOfflinePlayback();
       setPlaylist(offlinePlayback.playlist);
       setScreenOrientation(offlinePlayback.screenOrientation);
-      setStatusMessage(hasPlayableItems(offlinePlayback.playlist) ? "" : `Offline mode: ${getErrorMessage(error)}`);
+      setStatusMessage(hasPlayableItems(offlinePlayback.playlist) ? "" : `Modo offline: ${getErrorMessage(error)}`);
       await reportScreenEvent(session, {
         level: "warn",
         type: "playlist_sync_failed",
@@ -68,7 +68,7 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
           void reportScreenEvent(session, {
             level: "info",
             type: "player_restarted",
-            message: "Player restarted by remote command."
+            message: "Reprodutor reiniciado por comando remoto."
           });
         }
       }).catch(() => undefined);
@@ -133,7 +133,7 @@ function getPlaylistStatusMessage(playlist: TvPlaylist | null) {
     return "";
   }
 
-  return playlist ? "No playable media" : "No playlist assigned";
+  return playlist ? "Nenhuma mídia reproduzível" : "Nenhuma playlist atribuída";
 }
 
 const styles = StyleSheet.create({

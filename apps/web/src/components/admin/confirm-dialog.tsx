@@ -16,7 +16,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel = "Confirmar",
   isLoading = false,
   onCancel,
   onConfirm
@@ -32,10 +32,10 @@ export function ConfirmDialog({
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
         <div className="mt-6 flex justify-end gap-3">
           <Button disabled={isLoading} onClick={onCancel} type="button" variant="ghost">
-            Cancel
+            Cancelar
           </Button>
           <Button disabled={isLoading} onClick={onConfirm} type="button" variant="destructive">
-            {isLoading ? "Working..." : confirmLabel}
+            {isLoading ? "Processando..." : confirmLabel}
           </Button>
         </div>
       </div>
