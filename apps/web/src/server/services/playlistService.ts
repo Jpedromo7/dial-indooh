@@ -84,6 +84,37 @@ export const playlistService = {
     }
   },
 
+  async deletePlaylist(id: string) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        const playlist = await tx.playlist.findUnique({
+          where: { id },
+          select: { id: true }
+        });
+
+        if (!playlist) {
+          throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
+        }
+
+        await tx.screenAssignment.deleteMany({
+          where: { playlistId: id }
+        });
+
+        await tx.playlist.delete({
+          where: { id }
+        });
+      });
+
+      return { id };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        throw new ApiError(404, "playlist_not_found", "Playlist não encontrada.");
+      }
+
+      throw error;
+    }
+  },
+
   async addItem(playlistId: string, input: unknown) {
     const data = playlistItemCreateSchema.parse(input);
 

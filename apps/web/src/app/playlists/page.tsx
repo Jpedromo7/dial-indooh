@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { ListVideo, Pencil, Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import type { PlaylistDto } from "@dialindooh/shared";
+import { ListVideo, Pencil, Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ErrorBanner } from "@/components/admin/error-banner";
 import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
@@ -23,6 +25,8 @@ export default function PlaylistsPage() {
   const [description, setDescription] = useState("");
   const [scheduledStartAt, setScheduledStartAt] = useState("");
   const [scheduledEndAt, setScheduledEndAt] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<PlaylistDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const playlists = query.data ?? [];
 
   async function createPlaylist(event: FormEvent<HTMLFormElement>) {
@@ -58,6 +62,28 @@ export default function PlaylistsPage() {
       await query.refresh();
     } catch (error) {
       toast({ title: "Falha ao atualizar", description: getApiErrorMessage(error), variant: "error" });
+    }
+  }
+
+  async function confirmDeletePlaylist() {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await apiClient.deletePlaylist(deleteTarget.id);
+      toast({ title: "Playlist apagada", description: deleteTarget.name, variant: "success" });
+      if (editingId === deleteTarget.id) {
+        setEditingId(null);
+      }
+      setDeleteTarget(null);
+      await query.refresh();
+    } catch (error) {
+      toast({ title: "Falha ao apagar playlist", description: getApiErrorMessage(error), variant: "error" });
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -179,6 +205,16 @@ export default function PlaylistsPage() {
                           {playlist.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                           {playlist.isActive ? "Desativar" : "Ativar"}
                         </Button>
+                        <Button
+                          aria-label={`Apagar ${playlist.name}`}
+                          className="border border-border bg-background/60"
+                          onClick={() => setDeleteTarget(playlist)}
+                          size="icon"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -188,6 +224,20 @@ export default function PlaylistsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Apagar playlist?"
+        description={
+          deleteTarget
+            ? `A playlist "${deleteTarget.name}" será removida junto com seus itens e deixará de estar atribuída às telas.`
+            : "Essa ação não pode ser desfeita."
+        }
+        confirmLabel="Apagar"
+        isLoading={isDeleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeletePlaylist}
+      />
     </AppShell>
   );
 }

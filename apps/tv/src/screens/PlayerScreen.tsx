@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { ScreenOrientation } from "@dialindooh/shared";
 import { COMMAND_POLL_MS, HEARTBEAT_MS, PLAYLIST_REFRESH_MS } from "../config/appConfig";
+import { BrandLogo } from "../components/BrandLogo";
 import { PlaylistController } from "../components/player/PlaylistController";
 import { postHeartbeat } from "../services/heartbeat";
 import { hasPlayableItems, loadOfflinePlayback, syncPlaylist } from "../services/playlistSync";
@@ -102,8 +103,10 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
         />
       </View>
       {showStatus ? (
-        <View style={styles.statusOverlay}>
-          <Text style={styles.statusText}>{statusMessage}</Text>
+        <View style={styles.emptyOverlay}>
+          <BrandLogo size={92} />
+          <Text style={styles.emptyTitle}>Dial indoor TV</Text>
+          <Text style={styles.emptyMessage}>{statusMessage}</Text>
         </View>
       ) : null}
     </View>
@@ -151,14 +154,29 @@ const styles = StyleSheet.create({
   playbackFrame: {
     backgroundColor: "#000000"
   },
-  statusOverlay: {
-    bottom: 22,
-    left: 22,
-    opacity: 0.72,
-    position: "absolute"
+  emptyMessage: {
+    color: "#a8b3c7",
+    fontSize: 20,
+    lineHeight: 28,
+    maxWidth: 620,
+    textAlign: "center"
   },
-  statusText: {
-    color: "#7d8798",
-    fontSize: 14
+  emptyOverlay: {
+    alignItems: "center",
+    backgroundColor: "#060910",
+    bottom: 0,
+    gap: 16,
+    justifyContent: "center",
+    left: 0,
+    padding: 48,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  emptyTitle: {
+    color: "#f8fafc",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: 0
   }
 });

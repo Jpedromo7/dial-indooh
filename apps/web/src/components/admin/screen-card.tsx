@@ -47,9 +47,9 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign, onDelete }: 
         <p className="text-xs uppercase text-muted-foreground">Código de ativação</p>
         <p className="mt-1 font-mono text-lg font-semibold tracking-normal">{screen.activationCode}</p>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+      <div className="mt-4 grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
         <select
-          className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 min-w-0 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           onChange={(event) => onAssign(screen.id, event.currentTarget.value)}
           value={screen.activePlaylistId ?? ""}
         >
@@ -63,7 +63,14 @@ export function ScreenCard({ screen, playlists, onSelect, onAssign, onDelete }: 
         <Button onClick={() => onSelect(screen)} type="button" variant="secondary">
           Detalhes
         </Button>
-        <Button aria-label={`Apagar ${screen.name}`} onClick={() => onDelete(screen)} size="icon" type="button" variant="ghost">
+        <Button
+          aria-label={`Apagar ${screen.name}`}
+          className="border border-border bg-background/60"
+          onClick={() => onDelete(screen)}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
           <Trash2 className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>

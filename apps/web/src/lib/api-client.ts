@@ -137,6 +137,8 @@ export const apiClient = {
     DEMO_MODE
       ? demoApi.updatePlaylist(id, input)
       : request<PlaylistDto>(`/api/playlists/${id}`, { method: "PATCH", body: input }),
+  deletePlaylist: (id: string) =>
+    DEMO_MODE ? demoApi.deletePlaylist(id) : request<{ id: string }>(`/api/playlists/${id}`, { method: "DELETE" }),
   addPlaylistItem: (
     playlistId: string,
     input: { mediaId: string; order?: number; displayDurationSeconds?: number | null }
@@ -364,6 +366,17 @@ const demoApi = {
         .map((item, index) => ({ ...item, order: index + 1 })),
       updatedAt: new Date().toISOString()
     });
+  },
+  deletePlaylist: async (id: string) => {
+    const store = getDemoStore();
+    findPlaylist(id, store);
+    store.playlists = store.playlists.filter((playlist) => playlist.id !== id);
+    store.screens = store.screens.map((screen) => ({
+      ...screen,
+      activePlaylistId: screen.activePlaylistId === id ? null : screen.activePlaylistId
+    }));
+    saveDemoStore(store);
+    return { id };
   },
   listScreens: async () => getDemoStore().screens,
   createScreen: async (input: ScreenCreateInput) => {
