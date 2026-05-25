@@ -1,8 +1,8 @@
 # Dial indoor Platform
 
-sistema integrado com tv para indoor
+Plataforma de mídia indoor (digital signage) para gerenciar conteúdos exibidos em TVs e Android TV boxes.
 
-Foundation for a full-stack indoor digital signage platform where admins upload media, build playlists, assign playlists to screens, and Android TV boxes fetch and play content remotely.
+O sistema permite enviar mídias, criar playlists, vincular programações a telas e acompanhar dispositivos remotamente por um painel web. O player Android TV sincroniza os conteúdos, armazena mídia em cache e mantém a reprodução mesmo com instabilidade de internet.
 
 ## Stack
 
