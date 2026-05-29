@@ -1,5 +1,13 @@
 import { API_BASE_URL, NETWORK_RETRY_ATTEMPTS } from "../config/appConfig";
-import type { ActivationResponse, DevicePlaylistResponse, HeartbeatInput, ScreenCommand, ScreenEventInput } from "../types/signage";
+import type {
+  ActivationResponse,
+  DevicePlaylistResponse,
+  HeartbeatInput,
+  ScreenCommand,
+  ScreenEventInput,
+  ScreenMirrorCandidate,
+  ScreenMirrorSession
+} from "../types/signage";
 import { sleep } from "../utils/sleep";
 
 interface ApiResponse<T> {
@@ -63,6 +71,49 @@ export async function acknowledgeScreenCommand(
   input: { commandId: string; status?: "acknowledged" | "failed"; errorMessage?: string | null }
 ) {
   return request(`/screens/${screenId}/commands/ack`, {
+    method: "POST",
+    headers: withDeviceKey(deviceKey),
+    body: input
+  });
+}
+
+export async function fetchScreenMirrorSession(screenId: string, deviceKey: string, sessionId: string) {
+  return request<ScreenMirrorSession>(`/screens/${screenId}/mirror-sessions/${sessionId}`, {
+    headers: withDeviceKey(deviceKey)
+  });
+}
+
+export async function updateScreenMirrorSession(
+  screenId: string,
+  deviceKey: string,
+  sessionId: string,
+  input: {
+    status?: ScreenMirrorSession["status"];
+    offer?: RTCSessionDescriptionInit | null;
+    answer?: RTCSessionDescriptionInit | null;
+    errorMessage?: string | null;
+  }
+) {
+  return request<ScreenMirrorSession>(`/screens/${screenId}/mirror-sessions/${sessionId}`, {
+    method: "PATCH",
+    headers: withDeviceKey(deviceKey),
+    body: input
+  });
+}
+
+export async function fetchScreenMirrorCandidates(screenId: string, deviceKey: string, sessionId: string) {
+  return request<ScreenMirrorCandidate[]>(`/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, {
+    headers: withDeviceKey(deviceKey)
+  });
+}
+
+export async function createScreenMirrorCandidate(
+  screenId: string,
+  deviceKey: string,
+  sessionId: string,
+  input: Pick<ScreenMirrorCandidate, "peer" | "candidate">
+) {
+  return request<ScreenMirrorCandidate>(`/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, {
     method: "POST",
     headers: withDeviceKey(deviceKey),
     body: input

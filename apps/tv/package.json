@@ -24,9 +24,11 @@
     "expo-updates": "^55.0.20",
     "expo-video": "^55.0.15",
     "react": "19.2.0",
-    "react-native": "0.83.4"
+    "react-native": "0.83.4",
+    "react-native-webrtc": "^124.0.7"
   },
   "devDependencies": {
+    "@config-plugins/react-native-webrtc": "^14.0.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.7.0"
   }

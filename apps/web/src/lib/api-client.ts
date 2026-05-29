@@ -11,6 +11,8 @@ import type {
   ScreenDetailDto,
   ScreenDto,
   ScreenEventDto,
+  ScreenMirrorCandidateDto,
+  ScreenMirrorSessionDto,
   ScreenOrientation
 } from "@dialindooh/shared";
 
@@ -186,7 +188,45 @@ export const apiClient = {
           acknowledgedAt: null,
           errorMessage: null
         } satisfies ScreenCommandDto)
-      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type, payload } })
+      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type, payload } }),
+  createScreenMirrorSession: (id: string) =>
+    DEMO_MODE
+      ? demoApi.createScreenMirrorSession(id)
+      : request<ScreenMirrorSessionDto>(`/api/screens/${id}/mirror-sessions`, { method: "POST" }),
+  getScreenMirrorSession: (screenId: string, sessionId: string) =>
+    DEMO_MODE
+      ? demoApi.getScreenMirrorSession(screenId, sessionId)
+      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`),
+  updateScreenMirrorSession: (
+    screenId: string,
+    sessionId: string,
+    input: Partial<Pick<ScreenMirrorSessionDto, "status" | "offer" | "answer" | "errorMessage">>
+  ) =>
+    DEMO_MODE
+      ? demoApi.updateScreenMirrorSession(screenId, sessionId, input)
+      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, {
+          method: "PATCH",
+          body: input
+        }),
+  stopScreenMirrorSession: (screenId: string, sessionId: string) =>
+    DEMO_MODE
+      ? demoApi.updateScreenMirrorSession(screenId, sessionId, { status: "ended" })
+      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, { method: "DELETE" }),
+  listScreenMirrorCandidates: (screenId: string, sessionId: string) =>
+    DEMO_MODE
+      ? demoApi.listScreenMirrorCandidates(screenId, sessionId)
+      : request<ScreenMirrorCandidateDto[]>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`),
+  createScreenMirrorCandidate: (
+    screenId: string,
+    sessionId: string,
+    input: Pick<ScreenMirrorCandidateDto, "peer" | "candidate">
+  ) =>
+    DEMO_MODE
+      ? demoApi.createScreenMirrorCandidate(screenId, sessionId, input)
+      : request<ScreenMirrorCandidateDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, {
+          method: "POST",
+          body: input
+        })
 };
 
 export type { RemoteControlKey };
@@ -207,6 +247,8 @@ interface DemoStore {
   media: MediaDto[];
   playlists: PlaylistDto[];
   screens: ScreenDto[];
+  mirrorSessions: ScreenMirrorSessionDto[];
+  mirrorCandidates: ScreenMirrorCandidateDto[];
 }
 
 function demoLogin(email: string, password: string): Promise<LoginResponse> {
@@ -461,15 +503,84 @@ const demoApi = {
     const store = getDemoStore();
     findScreen(id, store);
     store.screens = store.screens.filter((item) => item.id !== id);
+    store.mirrorSessions = store.mirrorSessions.filter((session) => session.screenId !== id);
+    store.mirrorCandidates = store.mirrorCandidates.filter((candidate) =>
+      store.mirrorSessions.some((session) => session.id === candidate.sessionId)
+    );
     saveDemoStore(store);
     return { id };
+  },
+  createScreenMirrorSession: async (screenId: string) => {
+    const store = getDemoStore();
+    findScreen(screenId, store);
+    const now = new Date().toISOString();
+    const session: ScreenMirrorSessionDto = {
+      id: createId("mirror"),
+      screenId,
+      status: "requested",
+      requestedById: "demo-admin",
+      offer: null,
+      answer: null,
+      errorMessage: null,
+      createdAt: now,
+      updatedAt: now,
+      endedAt: null
+    };
+    store.mirrorSessions.unshift(session);
+    saveDemoStore(store);
+    return session;
+  },
+  getScreenMirrorSession: async (_screenId: string, sessionId: string) => findMirrorSession(sessionId),
+  updateScreenMirrorSession: async (
+    _screenId: string,
+    sessionId: string,
+    input: Partial<Pick<ScreenMirrorSessionDto, "status" | "offer" | "answer" | "errorMessage">>
+  ) => {
+    const store = getDemoStore();
+    const session = findMirrorSession(sessionId, store);
+    const updated: ScreenMirrorSessionDto = {
+      ...session,
+      ...input,
+      updatedAt: new Date().toISOString(),
+      endedAt: input.status === "ended" || input.status === "failed" ? new Date().toISOString() : session.endedAt
+    };
+    store.mirrorSessions = store.mirrorSessions.map((item) => (item.id === sessionId ? updated : item));
+    saveDemoStore(store);
+    return updated;
+  },
+  listScreenMirrorCandidates: async (_screenId: string, sessionId: string) =>
+    getDemoStore().mirrorCandidates.filter((candidate) => candidate.sessionId === sessionId),
+  createScreenMirrorCandidate: async (
+    _screenId: string,
+    sessionId: string,
+    input: Pick<ScreenMirrorCandidateDto, "peer" | "candidate">
+  ) => {
+    const store = getDemoStore();
+    findMirrorSession(sessionId, store);
+    const candidate: ScreenMirrorCandidateDto = {
+      id: createId("candidate"),
+      sessionId,
+      peer: input.peer,
+      candidate: input.candidate,
+      createdAt: new Date().toISOString()
+    };
+    store.mirrorCandidates.push(candidate);
+    saveDemoStore(store);
+    return candidate;
   }
 };
 
 function getDemoStore(): DemoStore {
   const rawStore = window.localStorage.getItem(DEMO_STORE_KEY);
   if (rawStore) {
-    return JSON.parse(rawStore) as DemoStore;
+    const store = JSON.parse(rawStore) as Partial<DemoStore>;
+    return {
+      media: store.media ?? [],
+      playlists: store.playlists ?? [],
+      screens: store.screens ?? [],
+      mirrorSessions: store.mirrorSessions ?? [],
+      mirrorCandidates: store.mirrorCandidates ?? []
+    };
   }
   const store = createInitialDemoStore();
   saveDemoStore(store);
@@ -554,6 +665,8 @@ function createInitialDemoStore(): DemoStore {
   return {
     media,
     playlists: [playlist],
+    mirrorSessions: [],
+    mirrorCandidates: [],
     screens: [
       {
         id: "screen-lobby",
@@ -590,6 +703,12 @@ function findScreen(id: string, store = getDemoStore()) {
   const screen = store.screens.find((item) => item.id === id);
   if (!screen) throw new ApiClientError("Tela não encontrada.", 404);
   return screen;
+}
+
+function findMirrorSession(id: string, store = getDemoStore()) {
+  const session = store.mirrorSessions.find((item) => item.id === id);
+  if (!session) throw new ApiClientError("Sessão de espelhamento não encontrada.", 404);
+  return session;
 }
 
 function createId(prefix: string) {

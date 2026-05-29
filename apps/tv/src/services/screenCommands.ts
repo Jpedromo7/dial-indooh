@@ -9,6 +9,8 @@ interface CommandHandlers {
   refreshPlaylist: () => Promise<void>;
   restartPlayer: () => void;
   remoteKey: (key: RemoteControlKey, commandId: string) => void;
+  startScreenMirror: (sessionId: string) => Promise<void>;
+  stopScreenMirror: (sessionId: string) => Promise<void>;
 }
 
 export async function pollAndRunScreenCommands(session: DeviceSession, handlers: CommandHandlers) {
@@ -50,6 +52,14 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       handlers.remoteKey(key, command.id);
     }
 
+    if (command.type === "start_screen_mirror") {
+      await handlers.startScreenMirror(getMirrorSessionId(command.payload));
+    }
+
+    if (command.type === "stop_screen_mirror") {
+      await handlers.stopScreenMirror(getMirrorSessionId(command.payload));
+    }
+
     await acknowledgeScreenCommand(session.screenId, session.deviceKey, {
       commandId: command.id,
       status: "acknowledged"
@@ -65,6 +75,16 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       errorMessage: error instanceof Error ? error.message : "Falha ao executar o comando."
     }).catch(() => undefined);
   }
+}
+
+function getMirrorSessionId(payload: Record<string, unknown> | null) {
+  const sessionId = payload?.sessionId;
+
+  if (typeof sessionId === "string" && sessionId.length > 0) {
+    return sessionId;
+  }
+
+  throw new Error("Sessão de espelhamento inválida.");
 }
 
 function getRemoteControlKey(payload: Record<string, unknown> | null): RemoteControlKey {

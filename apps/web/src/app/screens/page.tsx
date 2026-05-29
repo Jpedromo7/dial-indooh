@@ -9,6 +9,7 @@ import type {
   ScreenDetailDto,
   ScreenDto,
   ScreenEventLevel,
+  ScreenMirrorSessionDto,
   ScreenOrientation
 } from "@dialindooh/shared";
 import {
@@ -21,6 +22,8 @@ import {
   MonitorPlay,
   MonitorUp,
   RotateCcw,
+  ScreenShare,
+  ScreenShareOff,
   Settings,
   Trash2,
   Tv,
@@ -279,6 +282,7 @@ export default function ScreensPage() {
             {detail ? (
               <div className="mt-6 space-y-5">
                 <LivePreview detail={detail} />
+                <ScreenMirrorPanel detail={detail} />
                 <div className="grid gap-3 rounded-lg border bg-background/40 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Status</span>
@@ -337,7 +341,9 @@ const commandLabels: Record<ScreenCommandType, string> = {
   restart_player: "Reiniciar reprodutor",
   reload_app: "Recarregar aplicativo",
   open_overlay_settings: "Abrir permissão de sobreposição",
-  remote_key: "Controle remoto"
+  remote_key: "Controle remoto",
+  start_screen_mirror: "Iniciar espelhamento",
+  stop_screen_mirror: "Encerrar espelhamento"
 };
 
 const remoteKeyLabels: Record<RemoteControlKey, string> = {
@@ -355,6 +361,14 @@ const playbackStateLabels = {
   paused: "Pausado",
   transitioning: "Transição",
   error: "Erro"
+};
+
+const mirrorSessionStatusLabels = {
+  requested: "Solicitado",
+  connecting: "Conectando",
+  active: "Ao vivo",
+  ended: "Encerrado",
+  failed: "Falhou"
 };
 
 const commandStatusLabels: Record<ScreenCommandStatus, string> = {
@@ -485,6 +499,203 @@ function LivePreview({ detail }: { detail: ScreenDetailDto }) {
       </div>
     </div>
   );
+}
+
+function ScreenMirrorPanel({ detail }: { detail: ScreenDetailDto }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const remoteOfferSetRef = useRef(false);
+  const appliedCandidateIdsRef = useRef<Set<string>>(new Set());
+  const [session, setSession] = useState<ScreenMirrorSessionDto | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isActiveSession = session && session.status !== "ended" && session.status !== "failed";
+
+  useEffect(() => {
+    if (!session || !isActiveSession) {
+      return undefined;
+    }
+
+    let active = true;
+    const poll = async () => {
+      try {
+        const updatedSession = await apiClient.getScreenMirrorSession(detail.id, session.id);
+
+        if (!active) {
+          return;
+        }
+
+        setSession(updatedSession);
+
+        if (updatedSession.status === "ended" || updatedSession.status === "failed") {
+          closeMirrorViewer();
+          return;
+        }
+
+        const peerConnection = peerConnectionRef.current ?? createMirrorPeerConnection(detail.id, session.id);
+        await acceptMirrorOffer(peerConnection, detail.id, updatedSession);
+        await addRemoteMirrorCandidates(peerConnection, detail.id, session.id, appliedCandidateIdsRef.current);
+      } catch (error) {
+        if (active) {
+          setErrorMessage(getApiErrorMessage(error));
+        }
+      }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 1000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [detail.id, isActiveSession, session]);
+
+  useEffect(() => () => closeMirrorViewer(), []);
+
+  async function startMirror() {
+    if (!("RTCPeerConnection" in window)) {
+      setErrorMessage("Este navegador não suporta WebRTC.");
+      return;
+    }
+
+    setIsStarting(true);
+    setErrorMessage(null);
+    closeMirrorViewer();
+
+    try {
+      const createdSession = await apiClient.createScreenMirrorSession(detail.id);
+      setSession(createdSession);
+      createMirrorPeerConnection(detail.id, createdSession.id);
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error));
+    } finally {
+      setIsStarting(false);
+    }
+  }
+
+  async function stopMirror() {
+    if (!session) {
+      return;
+    }
+
+    setIsStopping(true);
+
+    try {
+      const stoppedSession = await apiClient.stopScreenMirrorSession(detail.id, session.id);
+      setSession(stoppedSession);
+    } catch (error) {
+      setErrorMessage(getApiErrorMessage(error));
+    } finally {
+      closeMirrorViewer();
+      setIsStopping(false);
+    }
+  }
+
+  function createMirrorPeerConnection(screenId: string, sessionId: string) {
+    const peerConnection = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }]
+    });
+
+    peerConnection.onicecandidate = (event) => {
+      if (!event.candidate) {
+        return;
+      }
+
+      void apiClient
+        .createScreenMirrorCandidate(screenId, sessionId, {
+          peer: "viewer",
+          candidate: event.candidate.toJSON()
+        })
+        .catch((error) => setErrorMessage(getApiErrorMessage(error)));
+    };
+
+    peerConnection.ontrack = (event) => {
+      const stream = event.streams[0];
+
+      if (stream && videoRef.current) {
+        videoRef.current.srcObject = stream;
+        void videoRef.current.play().catch(() => undefined);
+      }
+    };
+
+    peerConnectionRef.current = peerConnection;
+    return peerConnection;
+  }
+
+  function closeMirrorViewer() {
+    peerConnectionRef.current?.close();
+    peerConnectionRef.current = null;
+    remoteOfferSetRef.current = false;
+    appliedCandidateIdsRef.current = new Set();
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">Espelhamento real</h3>
+        <span className="rounded-full border px-2 py-0.5 text-xs">
+          {session ? mirrorSessionStatusLabels[session.status] : "Desligado"}
+        </span>
+      </div>
+      <div className="mt-3 aspect-video overflow-hidden rounded-md bg-black">
+        <video className="h-full w-full object-contain" muted playsInline ref={videoRef} />
+      </div>
+      {errorMessage ? <p className="mt-3 rounded-md border border-destructive/40 p-3 text-sm">{errorMessage}</p> : null}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <Button disabled={isStarting || Boolean(isActiveSession)} onClick={startMirror} type="button">
+          <ScreenShare className="h-4 w-4" aria-hidden="true" />
+          {isStarting ? "Iniciando..." : "Iniciar espelhamento"}
+        </Button>
+        <Button disabled={isStopping || !isActiveSession} onClick={stopMirror} type="button" variant="secondary">
+          <ScreenShareOff className="h-4 w-4" aria-hidden="true" />
+          {isStopping ? "Encerrando..." : "Encerrar"}
+        </Button>
+      </div>
+    </div>
+  );
+
+  async function acceptMirrorOffer(
+    peerConnection: RTCPeerConnection,
+    screenId: string,
+    mirrorSession: ScreenMirrorSessionDto
+  ) {
+    if (!mirrorSession.offer || remoteOfferSetRef.current) {
+      return;
+    }
+
+    await peerConnection.setRemoteDescription(mirrorSession.offer);
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    remoteOfferSetRef.current = true;
+
+    await apiClient.updateScreenMirrorSession(screenId, mirrorSession.id, {
+      answer: peerConnection.localDescription?.toJSON() ?? answer,
+      status: "active"
+    });
+  }
+
+  async function addRemoteMirrorCandidates(
+    peerConnection: RTCPeerConnection,
+    screenId: string,
+    sessionId: string,
+    appliedCandidateIds: Set<string>
+  ) {
+    const candidates = await apiClient.listScreenMirrorCandidates(screenId, sessionId);
+    const screenCandidates = candidates.filter(
+      (candidate) => candidate.peer === "screen" && !appliedCandidateIds.has(candidate.id)
+    );
+
+    for (const candidate of screenCandidates) {
+      await peerConnection.addIceCandidate(candidate.candidate);
+      appliedCandidateIds.add(candidate.id);
+    }
+  }
 }
 
 function VirtualRemote({ onRemoteKey }: { onRemoteKey: (key: RemoteControlKey) => void }) {

@@ -54,6 +54,8 @@ enum ScreenCommandType {
   reload_app
   open_overlay_settings
   remote_key
+  start_screen_mirror
+  stop_screen_mirror
 }
 
 enum ScreenCommandStatus {
@@ -63,6 +65,19 @@ enum ScreenCommandStatus {
   failed
 }
 
+enum ScreenMirrorSessionStatus {
+  requested
+  connecting
+  active
+  ended
+  failed
+}
+
+enum ScreenMirrorPeer {
+  screen
+  viewer
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -70,6 +85,7 @@ model User {
   passwordHash String
   role         UserRole @default(admin)
   commands     ScreenCommand[]
+  mirrorSessions ScreenMirrorSession[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -141,6 +157,7 @@ model Screen {
   heartbeats     ScreenHeartbeat[]
   events         ScreenEvent[]
   commands       ScreenCommand[]
+  mirrorSessions ScreenMirrorSession[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -213,4 +230,34 @@ model ScreenCommand {
 
   @@index([screenId, status, requestedAt])
   @@index([requestedById])
+}
+
+model ScreenMirrorSession {
+  id             String                    @id @default(cuid())
+  screenId       String
+  screen         Screen                    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  status         ScreenMirrorSessionStatus @default(requested)
+  requestedById  String?
+  requestedBy    User?                     @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  offer          Json?
+  answer         Json?
+  errorMessage   String?
+  candidates     ScreenMirrorCandidate[]
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  endedAt        DateTime?
+
+  @@index([screenId, status, createdAt])
+  @@index([requestedById])
+}
+
+model ScreenMirrorCandidate {
+  id        String              @id @default(cuid())
+  sessionId String
+  session   ScreenMirrorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  peer      ScreenMirrorPeer
+  candidate Json
+  createdAt DateTime            @default(now())
+
+  @@index([sessionId, peer, createdAt])
 }

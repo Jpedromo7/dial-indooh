@@ -8,13 +8,31 @@ const screenOrientation = z.enum(["landscape", "portrait"]);
 const mediaRotation = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]);
 const playbackState = z.enum(["idle", "playing", "paused", "transitioning", "error"]);
 const remoteControlKey = z.enum(["up", "down", "left", "right", "select", "back"]);
+const screenMirrorSessionStatus = z.enum(["requested", "connecting", "active", "ended", "failed"]);
+const screenMirrorPeer = z.enum(["screen", "viewer"]);
+const rtcSessionDescription = z
+  .object({
+    type: z.enum(["offer", "answer", "pranswer", "rollback"]),
+    sdp: z.string().min(1)
+  })
+  .passthrough();
+const rtcIceCandidate = z
+  .object({
+    candidate: z.string().min(1),
+    sdpMid: z.string().nullable().optional(),
+    sdpMLineIndex: z.number().int().nonnegative().nullable().optional(),
+    usernameFragment: z.string().nullable().optional()
+  })
+  .passthrough();
 const screenCommandType = z.enum([
   "refresh_playlist",
   "clear_cache",
   "restart_player",
   "reload_app",
   "open_overlay_settings",
-  "remote_key"
+  "remote_key",
+  "start_screen_mirror",
+  "stop_screen_mirror"
 ]);
 const slug = z
   .string()
@@ -25,6 +43,11 @@ const slug = z
 
 export const idParamsSchema = z.object({
   id
+});
+
+export const screenMirrorSessionParamsSchema = z.object({
+  id,
+  sessionId: id
 });
 
 export const mediaIdParamsSchema = z.object({
@@ -163,6 +186,22 @@ export const screenCommandCreateSchema = z.object({
   payload: metadata
 }).superRefine((value, context) => {
   if (value.type !== "remote_key") {
+    if (value.type === "start_screen_mirror" || value.type === "stop_screen_mirror") {
+      const result = z
+        .object({
+          sessionId: id
+        })
+        .safeParse(value.payload);
+
+      if (!result.success) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Informe a sessão de espelhamento no payload.",
+          path: ["payload", "sessionId"]
+        });
+      }
+    }
+
     return;
   }
 
@@ -179,6 +218,22 @@ export const screenCommandCreateSchema = z.object({
       path: ["payload", "key"]
     });
   }
+});
+
+export const screenMirrorSessionUpdateSchema = z
+  .object({
+    status: screenMirrorSessionStatus.optional(),
+    offer: rtcSessionDescription.nullable().optional(),
+    answer: rtcSessionDescription.nullable().optional(),
+    errorMessage: z.string().trim().min(1).max(500).nullable().optional()
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Informe pelo menos um campo."
+  });
+
+export const screenMirrorCandidateCreateSchema = z.object({
+  peer: screenMirrorPeer,
+  candidate: rtcIceCandidate
 });
 
 export const screenCommandAckSchema = z.object({

@@ -8,6 +8,8 @@ import type {
   ScreenCommandStatus,
   ScreenCommandType,
   ScreenEventLevel,
+  ScreenMirrorCandidateDto,
+  ScreenMirrorSessionDto,
   ScreenOrientation,
   ScreenStatus
 } from "@dialindooh/shared";
@@ -78,6 +80,10 @@ export interface RemoteKeyCommand {
   id: string;
   key: RemoteControlKey;
 }
+
+export type ScreenMirrorSession = ScreenMirrorSessionDto;
+
+export type ScreenMirrorCandidate = ScreenMirrorCandidateDto;
 
 export interface ScreenEventInput {
   level: ScreenEventLevel;

@@ -7,11 +7,15 @@ import {
   serializeScreen,
   serializeScreenCommand,
   serializeScreenDetail,
-  serializeScreenEvent
+  serializeScreenEvent,
+  serializeScreenMirrorCandidate,
+  serializeScreenMirrorSession
 } from "@/server/utils/serializers";
 import {
   screenCommandAckSchema,
   screenCommandCreateSchema,
+  screenMirrorCandidateCreateSchema,
+  screenMirrorSessionUpdateSchema,
   screenActivationSchema,
   screenCreateSchema,
   screenEventSchema,
@@ -382,6 +386,157 @@ export const screenService = {
     return serializeScreenCommand(updatedCommand);
   },
 
+  async createMirrorSession(screenId: string, requestedById: string) {
+    const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
+
+    if (!screen) {
+      throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
+    }
+
+    const session = await prisma.$transaction(async (tx) => {
+      const createdSession = await tx.screenMirrorSession.create({
+        data: {
+          screenId,
+          requestedById,
+          status: "requested"
+        }
+      });
+
+      await tx.screenCommand.create({
+        data: {
+          screenId,
+          requestedById,
+          type: "start_screen_mirror",
+          payload: toJson({ sessionId: createdSession.id })
+        }
+      });
+
+      return createdSession;
+    });
+
+    return serializeScreenMirrorSession(session);
+  },
+
+  async getMirrorSessionForAdmin(screenId: string, sessionId: string) {
+    await assertScreenExists(screenId);
+    return serializeScreenMirrorSession(await getMirrorSession(screenId, sessionId));
+  },
+
+  async getMirrorSessionForDevice(screenId: string, deviceKey: string | null, sessionId: string) {
+    await assertDeviceAccess(screenId, deviceKey);
+    return serializeScreenMirrorSession(await getMirrorSession(screenId, sessionId));
+  },
+
+  async updateMirrorSessionForAdmin(screenId: string, sessionId: string, input: unknown) {
+    await assertScreenExists(screenId);
+    const data = screenMirrorSessionUpdateSchema.parse(input);
+    return serializeScreenMirrorSession(await updateMirrorSession(screenId, sessionId, data));
+  },
+
+  async updateMirrorSessionForDevice(screenId: string, deviceKey: string | null, sessionId: string, input: unknown) {
+    await assertDeviceAccess(screenId, deviceKey);
+    const data = screenMirrorSessionUpdateSchema.parse(input);
+    return serializeScreenMirrorSession(await updateMirrorSession(screenId, sessionId, data));
+  },
+
+  async stopMirrorSession(screenId: string, requestedById: string, sessionId: string) {
+    await assertScreenExists(screenId);
+
+    const session = await prisma.$transaction(async (tx) => {
+      const existingSession = await tx.screenMirrorSession.findFirst({
+        where: { id: sessionId, screenId },
+        select: { id: true }
+      });
+
+      if (!existingSession) {
+        throw new ApiError(404, "screen_mirror_session_not_found", "Sessão de espelhamento não encontrada.");
+      }
+
+      const updatedSession = await tx.screenMirrorSession.update({
+        where: { id: existingSession.id },
+        data: {
+          status: "ended",
+          endedAt: new Date()
+        }
+      });
+
+      await tx.screenCommand.create({
+        data: {
+          screenId,
+          requestedById,
+          type: "stop_screen_mirror",
+          payload: toJson({ sessionId })
+        }
+      });
+
+      return updatedSession;
+    });
+
+    return serializeScreenMirrorSession(session);
+  },
+
+  async listMirrorCandidatesForAdmin(screenId: string, sessionId: string) {
+    await assertScreenExists(screenId);
+    await getMirrorSession(screenId, sessionId);
+    const candidates = await prisma.screenMirrorCandidate.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return candidates.map(serializeScreenMirrorCandidate);
+  },
+
+  async listMirrorCandidatesForDevice(screenId: string, deviceKey: string | null, sessionId: string) {
+    await assertDeviceAccess(screenId, deviceKey);
+    await getMirrorSession(screenId, sessionId);
+    const candidates = await prisma.screenMirrorCandidate.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return candidates.map(serializeScreenMirrorCandidate);
+  },
+
+  async createMirrorCandidateForAdmin(screenId: string, sessionId: string, input: unknown) {
+    await assertScreenExists(screenId);
+    await getMirrorSession(screenId, sessionId);
+    const data = screenMirrorCandidateCreateSchema.parse(input);
+
+    if (data.peer !== "viewer") {
+      throw new ApiError(400, "invalid_mirror_peer", "O painel só pode enviar candidatos como viewer.");
+    }
+
+    const candidate = await prisma.screenMirrorCandidate.create({
+      data: {
+        sessionId,
+        peer: data.peer,
+        candidate: toJson(data.candidate) ?? Prisma.JsonNull
+      }
+    });
+
+    return serializeScreenMirrorCandidate(candidate);
+  },
+
+  async createMirrorCandidateForDevice(screenId: string, deviceKey: string | null, sessionId: string, input: unknown) {
+    await assertDeviceAccess(screenId, deviceKey);
+    await getMirrorSession(screenId, sessionId);
+    const data = screenMirrorCandidateCreateSchema.parse(input);
+
+    if (data.peer !== "screen") {
+      throw new ApiError(400, "invalid_mirror_peer", "A TV só pode enviar candidatos como screen.");
+    }
+
+    const candidate = await prisma.screenMirrorCandidate.create({
+      data: {
+        sessionId,
+        peer: data.peer,
+        candidate: toJson(data.candidate) ?? Prisma.JsonNull
+      }
+    });
+
+    return serializeScreenMirrorCandidate(candidate);
+  },
+
   async recordHeartbeat(screenId: string, deviceKey: string | null, input: unknown) {
     const data = screenHeartbeatSchema.parse(input);
     await assertDeviceAccess(screenId, deviceKey);
@@ -434,6 +589,56 @@ function toJson(value: Record<string, unknown> | null | undefined) {
   }
 
   return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+}
+
+async function assertScreenExists(screenId: string) {
+  const screen = await prisma.screen.findUnique({ where: { id: screenId }, select: { id: true } });
+
+  if (!screen) {
+    throw new ApiError(404, "screen_not_found", "Tela não encontrada.");
+  }
+
+  return screen;
+}
+
+async function getMirrorSession(screenId: string, sessionId: string) {
+  const session = await prisma.screenMirrorSession.findFirst({
+    where: {
+      id: sessionId,
+      screenId
+    }
+  });
+
+  if (!session) {
+    throw new ApiError(404, "screen_mirror_session_not_found", "Sessão de espelhamento não encontrada.");
+  }
+
+  return session;
+}
+
+async function updateMirrorSession(
+  screenId: string,
+  sessionId: string,
+  data: {
+    status?: "requested" | "connecting" | "active" | "ended" | "failed";
+    offer?: Record<string, unknown> | null;
+    answer?: Record<string, unknown> | null;
+    errorMessage?: string | null;
+  }
+) {
+  const session = await getMirrorSession(screenId, sessionId);
+  const shouldEnd = data.status === "ended" || data.status === "failed";
+
+  return prisma.screenMirrorSession.update({
+    where: { id: session.id },
+    data: {
+      status: data.status,
+      offer: data.offer === undefined ? undefined : toJson(data.offer),
+      answer: data.answer === undefined ? undefined : toJson(data.answer),
+      errorMessage: data.errorMessage === undefined ? undefined : data.errorMessage,
+      endedAt: shouldEnd ? new Date() : undefined
+    }
+  });
 }
 
 async function assertDeviceAccess(screenId: string, deviceKey: string | null) {

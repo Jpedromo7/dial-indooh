@@ -8,6 +8,7 @@ import { postHeartbeat } from "../services/heartbeat";
 import { hasPlayableItems, loadOfflinePlayback, syncPlaylist } from "../services/playlistSync";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
 import { reportScreenEvent } from "../services/screenEvents";
+import { startScreenMirror, stopScreenMirror } from "../services/screenMirror";
 import type { DeviceSession, PlaybackStatus, RemoteKeyCommand, TvPlaylist } from "../types/signage";
 import { getErrorMessage } from "../utils/errors";
 
@@ -79,6 +80,22 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
         },
         remoteKey: (key, commandId) => {
           setRemoteKeyCommand({ id: commandId, key });
+        },
+        startScreenMirror: async (sessionId) => {
+          await startScreenMirror(session, sessionId);
+          await reportScreenEvent(session, {
+            level: "info",
+            type: "screen_mirror_started",
+            message: "Espelhamento de tela iniciado por comando remoto."
+          });
+        },
+        stopScreenMirror: async () => {
+          await stopScreenMirror();
+          await reportScreenEvent(session, {
+            level: "info",
+            type: "screen_mirror_stopped",
+            message: "Espelhamento de tela encerrado por comando remoto."
+          });
         }
       }).catch(() => undefined);
 

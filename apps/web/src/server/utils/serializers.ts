@@ -6,7 +6,9 @@ import type {
   ScreenAssignment,
   ScreenCommand,
   ScreenEvent,
-  ScreenHeartbeat
+  ScreenHeartbeat,
+  ScreenMirrorCandidate,
+  ScreenMirrorSession
 } from "@prisma/client";
 
 type PlaylistItemWithMedia = PlaylistItem & {
@@ -91,6 +93,14 @@ export function serializeScreenEvent(event: ScreenEvent & { media?: Media | null
 
 export function serializeScreenCommand(command: ScreenCommand) {
   return command;
+}
+
+export function serializeScreenMirrorSession(session: ScreenMirrorSession) {
+  return session;
+}
+
+export function serializeScreenMirrorCandidate(candidate: ScreenMirrorCandidate) {
+  return candidate;
 }
 
 export function serializeScreenDetail(screen: ScreenDetail) {

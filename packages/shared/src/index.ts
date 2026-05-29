@@ -16,13 +16,19 @@ export type PlaybackState = "idle" | "playing" | "paused" | "transitioning" | "e
 
 export type RemoteControlKey = "up" | "down" | "left" | "right" | "select" | "back";
 
+export type ScreenMirrorSessionStatus = "requested" | "connecting" | "active" | "ended" | "failed";
+
+export type ScreenMirrorPeer = "screen" | "viewer";
+
 export type ScreenCommandType =
   | "refresh_playlist"
   | "clear_cache"
   | "restart_player"
   | "reload_app"
   | "open_overlay_settings"
-  | "remote_key";
+  | "remote_key"
+  | "start_screen_mirror"
+  | "stop_screen_mirror";
 
 export type ScreenCommandStatus = "pending" | "delivered" | "acknowledged" | "failed";
 
@@ -119,6 +125,27 @@ export interface ScreenCommandDto {
   deliveredAt: string | null;
   acknowledgedAt: string | null;
   errorMessage: string | null;
+}
+
+export interface ScreenMirrorSessionDto {
+  id: string;
+  screenId: string;
+  status: ScreenMirrorSessionStatus;
+  requestedById: string | null;
+  offer: RTCSessionDescriptionInit | null;
+  answer: RTCSessionDescriptionInit | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  endedAt: string | null;
+}
+
+export interface ScreenMirrorCandidateDto {
+  id: string;
+  sessionId: string;
+  peer: ScreenMirrorPeer;
+  candidate: RTCIceCandidateInit;
+  createdAt: string;
 }
 
 export interface ScreenAssignmentDto {
