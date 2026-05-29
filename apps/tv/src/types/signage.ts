@@ -3,6 +3,8 @@ import type {
   MediaRotation,
   MediaStatus,
   MediaType,
+  PlaybackState,
+  RemoteControlKey,
   ScreenCommandStatus,
   ScreenCommandType,
   ScreenEventLevel,
@@ -65,6 +67,18 @@ export interface ScreenCommand {
   requestedAt: string;
 }
 
+export interface PlaybackStatus {
+  currentItem: TvPlaylistItem | null;
+  positionSeconds: number | null;
+  durationSeconds: number | null;
+  state: PlaybackState;
+}
+
+export interface RemoteKeyCommand {
+  id: string;
+  key: RemoteControlKey;
+}
+
 export interface ScreenEventInput {
   level: ScreenEventLevel;
   type: string;
@@ -89,5 +103,9 @@ export interface HeartbeatInput {
   appVersion: string;
   ipAddress?: string;
   currentMediaId?: string;
+  currentPlaylistItemId?: string | null;
+  playbackPositionSeconds?: number | null;
+  playbackDurationSeconds?: number | null;
+  playbackState?: PlaybackState;
   sentAt: string;
 }

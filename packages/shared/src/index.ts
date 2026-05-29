@@ -12,7 +12,17 @@ export type ScreenOrientation = "landscape" | "portrait";
 
 export type ScreenEventLevel = "info" | "warn" | "error";
 
-export type ScreenCommandType = "refresh_playlist" | "clear_cache" | "restart_player" | "reload_app" | "open_overlay_settings";
+export type PlaybackState = "idle" | "playing" | "paused" | "transitioning" | "error";
+
+export type RemoteControlKey = "up" | "down" | "left" | "right" | "select" | "back";
+
+export type ScreenCommandType =
+  | "refresh_playlist"
+  | "clear_cache"
+  | "restart_player"
+  | "reload_app"
+  | "open_overlay_settings"
+  | "remote_key";
 
 export type ScreenCommandStatus = "pending" | "delivered" | "acknowledged" | "failed";
 
@@ -78,6 +88,10 @@ export interface ScreenHeartbeatDto {
   appVersion: string | null;
   ipAddress: string | null;
   currentMediaId: string | null;
+  currentPlaylistItemId: string | null;
+  playbackPositionSeconds: number | null;
+  playbackDurationSeconds: number | null;
+  playbackState: PlaybackState | null;
   sentAt: string;
   currentMedia?: MediaDto | null;
 }

@@ -53,6 +53,7 @@ enum ScreenCommandType {
   restart_player
   reload_app
   open_overlay_settings
+  remote_key
 }
 
 enum ScreenCommandStatus {
@@ -169,6 +170,10 @@ model ScreenHeartbeat {
   ipAddress      String?
   currentMediaId String?
   currentMedia   Media?                @relation("HeartbeatCurrentMedia", fields: [currentMediaId], references: [id], onDelete: SetNull)
+  currentPlaylistItemId     String?
+  playbackPositionSeconds   Float?
+  playbackDurationSeconds   Float?
+  playbackState             String?
   sentAt         DateTime
 
   @@index([screenId, sentAt])

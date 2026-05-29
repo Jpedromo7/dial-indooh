@@ -405,6 +405,10 @@ export const screenService = {
           appVersion: data.appVersion ?? null,
           ipAddress: data.ipAddress ?? null,
           currentMediaId,
+          currentPlaylistItemId: data.currentPlaylistItemId ?? null,
+          playbackPositionSeconds: data.playbackPositionSeconds ?? null,
+          playbackDurationSeconds: data.playbackDurationSeconds ?? null,
+          playbackState: data.playbackState ?? null,
           sentAt: receivedAt
         }
       });

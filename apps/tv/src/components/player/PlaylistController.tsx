@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import type { ScreenOrientation } from "@dialindooh/shared";
 import { IMAGE_FALLBACK_DURATION_SECONDS } from "../../config/appConfig";
 import { clearCorruptedMedia } from "../../services/mediaCache";
-import type { TvPlaylist, TvPlaylistItem } from "../../types/signage";
+import type { PlaybackStatus, RemoteKeyCommand, TvPlaylist, TvPlaylistItem } from "../../types/signage";
 import { ImageDisplay } from "./ImageDisplay";
 import { VideoPlayer } from "./VideoPlayer";
 
@@ -14,19 +14,23 @@ const PLAYBACK_TRANSITION_MS = 500;
 interface PlaylistControllerProps {
   playlist: TvPlaylist | null;
   screenOrientation: ScreenOrientation;
-  onCurrentItemChange: (item: TvPlaylistItem | null) => void;
+  remoteKeyCommand: RemoteKeyCommand | null;
+  onPlaybackStatusChange: (status: PlaybackStatus) => void;
   onPlaybackError: (item: TvPlaylistItem, error: string) => void;
 }
 
 export function PlaylistController({
   playlist,
   screenOrientation,
-  onCurrentItemChange,
+  remoteKeyCommand,
+  onPlaybackStatusChange,
   onPlaybackError
 }: PlaylistControllerProps) {
   const [failedItemIds, setFailedItemIds] = useState<Set<string>>(() => new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
   const advanceLockRef = useRef(false);
+  const currentItemStartedAtRef = useRef(Date.now());
+  const handledRemoteCommandIdRef = useRef<string | null>(null);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rawItems = useMemo(() => [...(playlist?.items ?? [])].sort((left, right) => left.order - right.order), [playlist]);
   const items = useMemo(
@@ -37,8 +41,8 @@ export function PlaylistController({
   const [cycle, setCycle] = useState(0);
   const currentItem = items[index] ?? null;
 
-  const advance = useCallback(() => {
-    if (advanceLockRef.current) {
+  const moveBy = useCallback((offset: number) => {
+    if (advanceLockRef.current || items.length === 0) {
       return;
     }
 
@@ -56,13 +60,16 @@ export function PlaylistController({
           return 0;
         }
 
-        return (currentIndex + 1) % items.length;
+        return (currentIndex + offset + items.length) % items.length;
       });
       setIsTransitioning(false);
       advanceLockRef.current = false;
       transitionTimeoutRef.current = null;
     }, PLAYBACK_TRANSITION_MS);
   }, [items.length]);
+
+  const advance = useCallback(() => moveBy(1), [moveBy]);
+  const previous = useCallback(() => moveBy(-1), [moveBy]);
 
   useEffect(() => {
     setIndex(0);
@@ -91,8 +98,55 @@ export function PlaylistController({
   }, [items.length]);
 
   useEffect(() => {
-    onCurrentItemChange(currentItem);
-  }, [currentItem, onCurrentItemChange]);
+    if (!remoteKeyCommand || handledRemoteCommandIdRef.current === remoteKeyCommand.id) {
+      return;
+    }
+
+    handledRemoteCommandIdRef.current = remoteKeyCommand.id;
+
+    if (remoteKeyCommand.key === "left" || remoteKeyCommand.key === "up" || remoteKeyCommand.key === "back") {
+      previous();
+      return;
+    }
+
+    advance();
+  }, [advance, previous, remoteKeyCommand]);
+
+  useEffect(() => {
+    currentItemStartedAtRef.current = Date.now();
+
+    if (!currentItem) {
+      onPlaybackStatusChange(emptyPlaybackStatus);
+      return;
+    }
+
+    onPlaybackStatusChange({
+      currentItem,
+      durationSeconds: getItemDurationSeconds(currentItem),
+      positionSeconds: 0,
+      state: isTransitioning ? "transitioning" : "playing"
+    });
+  }, [currentItem, cycle, isTransitioning, onPlaybackStatusChange]);
+
+  useEffect(() => {
+    if (!currentItem || currentItem.media.type !== "image" || isTransitioning) {
+      return undefined;
+    }
+
+    const durationSeconds = getItemDurationSeconds(currentItem);
+    const tick = () => {
+      onPlaybackStatusChange({
+        currentItem,
+        durationSeconds,
+        positionSeconds: Math.min(durationSeconds, (Date.now() - currentItemStartedAtRef.current) / 1000),
+        state: "playing"
+      });
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [currentItem, isTransitioning, onPlaybackStatusChange]);
 
   useEffect(() => {
     if (!currentItem || isTransitioning) {
@@ -135,6 +189,14 @@ export function PlaylistController({
         key={`${currentItem.id}-${cycle}`}
         onAdvanceCue={advance}
         onError={() => handlePlaybackError(currentItem, "Erro no vídeo")}
+        onProgress={(positionSeconds) => {
+          onPlaybackStatusChange({
+            currentItem,
+            durationSeconds: getItemDurationSeconds(currentItem),
+            positionSeconds,
+            state: "playing"
+          });
+        }}
         screenOrientation={screenOrientation}
       />
     );
@@ -155,6 +217,19 @@ export function PlaylistController({
     onPlaybackError(item, message);
     advance();
   }
+}
+
+const emptyPlaybackStatus: PlaybackStatus = {
+  currentItem: null,
+  durationSeconds: null,
+  positionSeconds: null,
+  state: "idle"
+};
+
+function getItemDurationSeconds(item: TvPlaylistItem) {
+  return item.media.type === "image"
+    ? item.displayDurationSeconds ?? IMAGE_FALLBACK_DURATION_SECONDS
+    : item.media.durationSeconds ?? VIDEO_FALLBACK_DURATION_SECONDS;
 }
 
 const styles = StyleSheet.create({

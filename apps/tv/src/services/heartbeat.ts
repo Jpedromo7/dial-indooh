@@ -1,9 +1,9 @@
 import * as Network from "expo-network";
 import { APP_VERSION } from "../config/appConfig";
 import { sendHeartbeat } from "./apiClient";
-import type { DeviceSession, TvPlaylistItem } from "../types/signage";
+import type { DeviceSession, PlaybackStatus } from "../types/signage";
 
-export async function postHeartbeat(session: DeviceSession, currentItem: TvPlaylistItem | null) {
+export async function postHeartbeat(session: DeviceSession, playbackStatus: PlaybackStatus) {
   const networkState = await Network.getNetworkStateAsync().catch(() => null);
   const ipAddress = await Network.getIpAddressAsync().catch(() => undefined);
 
@@ -15,7 +15,11 @@ export async function postHeartbeat(session: DeviceSession, currentItem: TvPlayl
     status: "online",
     appVersion: APP_VERSION,
     ipAddress,
-    currentMediaId: currentItem?.mediaId,
+    currentMediaId: playbackStatus.currentItem?.mediaId,
+    currentPlaylistItemId: playbackStatus.currentItem?.id ?? null,
+    playbackPositionSeconds: playbackStatus.positionSeconds,
+    playbackDurationSeconds: playbackStatus.durationSeconds,
+    playbackState: playbackStatus.state,
     sentAt: new Date().toISOString()
   });
 }

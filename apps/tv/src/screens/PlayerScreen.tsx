@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { ScreenOrientation } from "@dialindooh/shared";
-import { COMMAND_POLL_MS, HEARTBEAT_MS, PLAYLIST_REFRESH_MS } from "../config/appConfig";
+import { COMMAND_POLL_MS, HEARTBEAT_MS, LIVE_PREVIEW_HEARTBEAT_MS, PLAYLIST_REFRESH_MS } from "../config/appConfig";
 import { BrandLogo } from "../components/BrandLogo";
 import { PlaylistController } from "../components/player/PlaylistController";
 import { postHeartbeat } from "../services/heartbeat";
 import { hasPlayableItems, loadOfflinePlayback, syncPlaylist } from "../services/playlistSync";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
 import { reportScreenEvent } from "../services/screenEvents";
-import type { DeviceSession, TvPlaylist, TvPlaylistItem } from "../types/signage";
+import type { DeviceSession, PlaybackStatus, RemoteKeyCommand, TvPlaylist } from "../types/signage";
 import { getErrorMessage } from "../utils/errors";
 
 interface PlayerScreenProps {
@@ -20,8 +20,13 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
   const [screenOrientation, setScreenOrientation] = useState<ScreenOrientation>("landscape");
   const [statusMessage, setStatusMessage] = useState("Carregando playlist");
   const [playerKey, setPlayerKey] = useState(0);
+  const [remoteKeyCommand, setRemoteKeyCommand] = useState<RemoteKeyCommand | null>(null);
   const windowDimensions = useWindowDimensions();
-  const currentItemRef = useRef<TvPlaylistItem | null>(null);
+  const playbackStatusRef = useRef<PlaybackStatus>(emptyPlaybackStatus);
+
+  const updatePlaybackStatus = useCallback((status: PlaybackStatus) => {
+    playbackStatusRef.current = status;
+  }, []);
 
   const refreshPlaylist = useCallback(async () => {
     try {
@@ -54,9 +59,9 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
   }, [refreshPlaylist]);
 
   useEffect(() => {
-    const send = () => postHeartbeat(session, currentItemRef.current).catch(() => undefined);
+    const send = () => postHeartbeat(session, playbackStatusRef.current).catch(() => undefined);
     void send();
-    const interval = setInterval(send, HEARTBEAT_MS);
+    const interval = setInterval(send, Math.min(HEARTBEAT_MS, LIVE_PREVIEW_HEARTBEAT_MS));
     return () => clearInterval(interval);
   }, [session]);
 
@@ -71,6 +76,9 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
             type: "player_restarted",
             message: "Reprodutor reiniciado por comando remoto."
           });
+        },
+        remoteKey: (key, commandId) => {
+          setRemoteKeyCommand({ id: commandId, key });
         }
       }).catch(() => undefined);
 
@@ -86,10 +94,14 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
       <View style={[styles.playbackFrame, getPlaybackFrameStyle(screenOrientation, windowDimensions)]}>
         <PlaylistController
           key={playerKey}
-          onCurrentItemChange={(item) => {
-            currentItemRef.current = item;
-          }}
+          onPlaybackStatusChange={updatePlaybackStatus}
           onPlaybackError={(item, message) => {
+            playbackStatusRef.current = {
+              currentItem: item,
+              durationSeconds: item.media.durationSeconds,
+              positionSeconds: null,
+              state: "error"
+            };
             setStatusMessage(message);
             void reportScreenEvent(session, {
               level: "error",
@@ -99,6 +111,7 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
             });
           }}
           playlist={playlist}
+          remoteKeyCommand={remoteKeyCommand}
           screenOrientation={screenOrientation}
         />
       </View>
@@ -112,6 +125,13 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
     </View>
   );
 }
+
+const emptyPlaybackStatus: PlaybackStatus = {
+  currentItem: null,
+  durationSeconds: null,
+  positionSeconds: null,
+  state: "idle"
+};
 
 function getPlaybackFrameStyle(
   orientation: ScreenOrientation,

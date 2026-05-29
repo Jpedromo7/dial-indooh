@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  RemoteControlKey,
+  ScreenCommandDto,
   ScreenCommandStatus,
   ScreenCommandType,
   ScreenDetailDto,
@@ -9,7 +11,21 @@ import type {
   ScreenEventLevel,
   ScreenOrientation
 } from "@dialindooh/shared";
-import { MonitorUp, RotateCcw, Settings, Trash2, Tv, Wifi } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  CircleDot,
+  CornerDownLeft,
+  MonitorPlay,
+  MonitorUp,
+  RotateCcw,
+  Settings,
+  Trash2,
+  Tv,
+  Wifi
+} from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -25,6 +41,7 @@ import { apiClient, getApiErrorMessage } from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
 
 const SCREEN_STATUS_REFRESH_MS = 30 * 1000;
+const SCREEN_DETAIL_REFRESH_MS = 8 * 1000;
 
 export default function ScreensPage() {
   const { toast } = useToast();
@@ -75,7 +92,7 @@ export default function ScreensPage() {
     };
 
     void loadDetail();
-    const interval = setInterval(() => void loadDetail(true), SCREEN_STATUS_REFRESH_MS);
+    const interval = setInterval(() => void loadDetail(true), SCREEN_DETAIL_REFRESH_MS);
 
     return () => {
       active = false;
@@ -138,6 +155,20 @@ export default function ScreensPage() {
       setDetail(await apiClient.getScreen(selectedScreen.id));
     } catch (error) {
       toast({ title: "Falha no comando", description: getApiErrorMessage(error), variant: "error" });
+    }
+  }
+
+  async function sendRemoteKey(key: RemoteControlKey) {
+    if (!selectedScreen) {
+      return;
+    }
+
+    try {
+      await apiClient.createScreenCommand(selectedScreen.id, "remote_key", { key });
+      toast({ title: "Tecla enviada", description: remoteKeyLabels[key], variant: "success" });
+      setDetail(await apiClient.getScreen(selectedScreen.id));
+    } catch (error) {
+      toast({ title: "Falha no controle", description: getApiErrorMessage(error), variant: "error" });
     }
   }
 
@@ -247,6 +278,7 @@ export default function ScreensPage() {
             {!detail && !detailError ? <LoadingSkeleton className="mt-6 h-96" /> : null}
             {detail ? (
               <div className="mt-6 space-y-5">
+                <LivePreview detail={detail} />
                 <div className="grid gap-3 rounded-lg border bg-background/40 p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Status</span>
@@ -261,6 +293,7 @@ export default function ScreensPage() {
                   <DetailLine label="Endereço IP" value={detail.lastHeartbeat?.ipAddress ?? "Desconhecido"} />
                   <DetailLine label="Mídia atual" value={detail.lastHeartbeat?.currentMedia?.title ?? "Nenhuma"} />
                 </div>
+                <VirtualRemote onRemoteKey={sendRemoteKey} />
                 <RemoteCommands onCommand={sendCommand} />
                 <RecentCommands detail={detail} />
                 <RecentEvents detail={detail} />
@@ -303,7 +336,25 @@ const commandLabels: Record<ScreenCommandType, string> = {
   clear_cache: "Limpar cache",
   restart_player: "Reiniciar reprodutor",
   reload_app: "Recarregar aplicativo",
-  open_overlay_settings: "Abrir permissão de sobreposição"
+  open_overlay_settings: "Abrir permissão de sobreposição",
+  remote_key: "Controle remoto"
+};
+
+const remoteKeyLabels: Record<RemoteControlKey, string> = {
+  up: "Cima",
+  down: "Baixo",
+  left: "Esquerda",
+  right: "Direita",
+  select: "OK",
+  back: "Voltar"
+};
+
+const playbackStateLabels = {
+  idle: "Aguardando",
+  playing: "Reproduzindo",
+  paused: "Pausado",
+  transitioning: "Transição",
+  error: "Erro"
 };
 
 const commandStatusLabels: Record<ScreenCommandStatus, string> = {
@@ -330,6 +381,203 @@ const screenOrientationLabels: Record<ScreenOrientation, string> = {
   landscape: "Horizontal",
   portrait: "Vertical"
 };
+
+function LivePreview({ detail }: { detail: ScreenDetailDto }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const heartbeat = detail.lastHeartbeat;
+  const media = heartbeat?.currentMedia ?? null;
+  const playlistItem = useMemo(() => {
+    const items = detail.activeAssignment?.playlist.items ?? [];
+    return (
+      items.find((item) => item.id === heartbeat?.currentPlaylistItemId) ??
+      items.find((item) => item.mediaId === heartbeat?.currentMediaId) ??
+      null
+    );
+  }, [detail.activeAssignment?.playlist.items, heartbeat?.currentMediaId, heartbeat?.currentPlaylistItemId]);
+  const durationSeconds =
+    heartbeat?.playbackDurationSeconds ??
+    playlistItem?.displayDurationSeconds ??
+    playlistItem?.media.durationSeconds ??
+    media?.durationSeconds ??
+    null;
+  const positionSeconds = useSyncedPlaybackPosition(
+    heartbeat?.sentAt ?? null,
+    heartbeat?.playbackPositionSeconds ?? null,
+    durationSeconds,
+    heartbeat?.playbackState ?? null
+  );
+  const progressPercent =
+    durationSeconds && positionSeconds !== null ? Math.min(100, Math.max(0, (positionSeconds / durationSeconds) * 100)) : 0;
+  const previewAspectClass = detail.orientation === "portrait" ? "aspect-[9/16] max-h-[28rem]" : "aspect-video";
+
+  useEffect(() => {
+    if (!media || media.type !== "video" || !heartbeat) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const sentAt = new Date(heartbeat.sentAt).getTime();
+    const elapsedSeconds =
+      heartbeat.playbackState === "playing" && Number.isFinite(sentAt) ? Math.max(0, (Date.now() - sentAt) / 1000) : 0;
+    const targetSeconds = Math.min(
+      durationSeconds ?? Number.POSITIVE_INFINITY,
+      (heartbeat.playbackPositionSeconds ?? 0) + elapsedSeconds
+    );
+
+    if (Number.isFinite(targetSeconds) && Math.abs(video.currentTime - targetSeconds) > 1.25) {
+      video.currentTime = targetSeconds;
+    }
+
+    if (heartbeat.playbackState === "playing") {
+      void video.play().catch(() => undefined);
+    }
+  }, [durationSeconds, heartbeat, media]);
+
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold">Preview ao vivo</h3>
+        <span className="rounded-full border px-2 py-0.5 text-xs">
+          {getPlaybackStateLabel(heartbeat?.playbackState)}
+        </span>
+      </div>
+      <div className={`mx-auto mt-3 flex w-full items-center justify-center overflow-hidden rounded-md bg-black ${previewAspectClass}`}>
+        {media ? (
+          media.type === "image" ? (
+            <img
+              alt={media.title}
+              className="h-full w-full object-contain"
+              src={media.fileUrl}
+              style={{ transform: `rotate(${media.rotationDegrees}deg)` }}
+            />
+          ) : (
+            <video
+              className="h-full w-full object-contain"
+              loop
+              muted
+              playsInline
+              ref={videoRef}
+              src={media.fileUrl}
+              style={{ transform: `rotate(${media.rotationDegrees}deg)` }}
+            />
+          )
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <MonitorPlay className="h-8 w-8" aria-hidden="true" />
+            <span className="text-sm">Aguardando mídia atual</span>
+          </div>
+        )}
+      </div>
+      <div className="mt-3">
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>{media?.title ?? "Nenhuma mídia em reprodução"}</span>
+          <span className="font-mono">
+            {formatSeconds(positionSeconds)} / {formatSeconds(durationSeconds)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VirtualRemote({ onRemoteKey }: { onRemoteKey: (key: RemoteControlKey) => void }) {
+  return (
+    <div className="rounded-lg border bg-background/40 p-4">
+      <h3 className="font-semibold">Controle remoto virtual</h3>
+      <div className="mx-auto mt-3 grid max-w-[12rem] grid-cols-3 gap-2">
+        <span />
+        <Button onClick={() => onRemoteKey("up")} size="icon" title="Cima" type="button" variant="secondary">
+          <ArrowUp className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <span />
+        <Button onClick={() => onRemoteKey("left")} size="icon" title="Esquerda" type="button" variant="secondary">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <Button onClick={() => onRemoteKey("select")} title="OK" type="button">
+          <CircleDot className="h-4 w-4" aria-hidden="true" />
+          OK
+        </Button>
+        <Button onClick={() => onRemoteKey("right")} size="icon" title="Direita" type="button" variant="secondary">
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <span />
+        <Button onClick={() => onRemoteKey("down")} size="icon" title="Baixo" type="button" variant="secondary">
+          <ArrowDown className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <span />
+      </div>
+      <Button className="mt-3 w-full" onClick={() => onRemoteKey("back")} type="button" variant="secondary">
+        <CornerDownLeft className="h-4 w-4" aria-hidden="true" />
+        Voltar
+      </Button>
+    </div>
+  );
+}
+
+function useSyncedPlaybackPosition(
+  sentAt: string | null,
+  positionSeconds: number | null,
+  durationSeconds: number | null,
+  playbackState: string | null
+) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    setNow(Date.now());
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [sentAt, positionSeconds, durationSeconds, playbackState]);
+
+  if (positionSeconds === null) {
+    return null;
+  }
+
+  const sentAtMs = sentAt ? new Date(sentAt).getTime() : Number.NaN;
+  const elapsedSeconds = playbackState === "playing" && Number.isFinite(sentAtMs) ? Math.max(0, (now - sentAtMs) / 1000) : 0;
+  const livePosition = positionSeconds + elapsedSeconds;
+
+  return durationSeconds ? Math.min(durationSeconds, livePosition) : livePosition;
+}
+
+function formatSeconds(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "--:--";
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(value));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function getPlaybackStateLabel(value: string | null | undefined) {
+  if (!value) {
+    return "Sem sinal";
+  }
+
+  return value in playbackStateLabels ? playbackStateLabels[value as keyof typeof playbackStateLabels] : value;
+}
+
+function getCommandLabel(command: ScreenCommandDto) {
+  if (command.type !== "remote_key") {
+    return commandLabels[command.type];
+  }
+
+  const key = command.payload?.key;
+  return isRemoteControlKey(key) ? `Controle: ${remoteKeyLabels[key]}` : commandLabels.remote_key;
+}
+
+function isRemoteControlKey(value: unknown): value is RemoteControlKey {
+  return typeof value === "string" && value in remoteKeyLabels;
+}
 
 function RemoteCommands({ onCommand }: { onCommand: (type: ScreenCommandType) => void }) {
   return (
@@ -372,7 +620,7 @@ function RecentCommands({ detail }: { detail: ScreenDetailDto }) {
           detail.recentCommands.map((command) => (
             <div className="rounded-md border bg-card/50 p-3 text-sm" key={command.id}>
               <div className="flex items-center justify-between gap-3">
-                <span className="font-medium">{commandLabels[command.type]}</span>
+                <span className="font-medium">{getCommandLabel(command)}</span>
                 <span className="rounded-full border px-2 py-0.5 text-xs">{commandStatusLabels[command.status]}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{formatDate(command.requestedAt)}</p>

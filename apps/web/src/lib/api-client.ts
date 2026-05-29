@@ -5,6 +5,7 @@ import type {
   MediaOrientation,
   MediaRotation,
   PlaylistDto,
+  RemoteControlKey,
   ScreenCommandDto,
   ScreenCommandType,
   ScreenDetailDto,
@@ -171,13 +172,13 @@ export const apiClient = {
     DEMO_MODE ? demoApi.deleteScreen(id) : request<{ id: string }>(`/api/screens/${id}`, { method: "DELETE" }),
   listScreenEvents: (id: string) =>
     DEMO_MODE ? Promise.resolve([]) : request<ScreenEventDto[]>(`/api/screens/${id}/events`),
-  createScreenCommand: (id: string, type: ScreenCommandType) =>
+  createScreenCommand: (id: string, type: ScreenCommandType, payload?: Record<string, unknown> | null) =>
     DEMO_MODE
       ? Promise.resolve({
           id: createId("command"),
           screenId: id,
           type,
-          payload: null,
+          payload: payload ?? null,
           status: "pending",
           requestedById: "demo-admin",
           requestedAt: new Date().toISOString(),
@@ -185,8 +186,10 @@ export const apiClient = {
           acknowledgedAt: null,
           errorMessage: null
         } satisfies ScreenCommandDto)
-      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type } })
+      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type, payload } })
 };
+
+export type { RemoteControlKey };
 
 export function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
@@ -425,6 +428,10 @@ const demoApi = {
             appVersion: "0.1.0-demo",
             ipAddress: "192.168.0.40",
             currentMediaId: playlist?.items[0]?.mediaId ?? null,
+            currentPlaylistItemId: playlist?.items[0]?.id ?? null,
+            playbackPositionSeconds: 3,
+            playbackDurationSeconds: playlist?.items[0]?.displayDurationSeconds ?? playlist?.items[0]?.media.durationSeconds ?? null,
+            playbackState: "playing" as const,
             currentMedia: playlist?.items[0]?.media ?? null,
             sentAt: screen.lastSeenAt
           }

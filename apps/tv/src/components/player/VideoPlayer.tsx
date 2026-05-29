@@ -13,9 +13,10 @@ interface VideoPlayerProps {
   screenOrientation: ScreenOrientation;
   onAdvanceCue: () => void;
   onError: () => void;
+  onProgress: (positionSeconds: number) => void;
 }
 
-export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError }: VideoPlayerProps) {
+export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, onProgress }: VideoPlayerProps) {
   const hasAdvancedRef = useRef(false);
   const [stageBounds, setStageBounds] = useState<{ width: number; height: number } | null>(null);
   const [autoRotationDegrees, setAutoRotationDegrees] = useState<MediaRotation>(0);
@@ -48,6 +49,8 @@ export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError }: 
 
   useEffect(() => {
     const timeSubscription = player.addListener("timeUpdate", (payload) => {
+      onProgress(payload.currentTime);
+
       if (!advanceAtSeconds || hasAdvancedRef.current) {
         return;
       }
@@ -86,7 +89,7 @@ export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError }: 
       sourceLoadSubscription.remove();
       trackSubscription.remove();
     };
-  }, [advanceAtSeconds, item.media.orientation, onAdvanceCue, onError, player]);
+  }, [advanceAtSeconds, item.media.orientation, onAdvanceCue, onError, onProgress, player]);
 
   const rotationDegrees = item.media.rotationDegrees !== 0 ? item.media.rotationDegrees : autoRotationDegrees;
 

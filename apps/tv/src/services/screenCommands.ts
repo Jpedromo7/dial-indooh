@@ -2,11 +2,13 @@ import * as Updates from "expo-updates";
 import { acknowledgeScreenCommand, fetchScreenCommands } from "./apiClient";
 import { clearMediaCache } from "./mediaCache";
 import { openOverlayPermissionSettings } from "./systemSettings";
+import type { RemoteControlKey } from "@dialindooh/shared";
 import type { DeviceSession, ScreenCommand } from "../types/signage";
 
 interface CommandHandlers {
   refreshPlaylist: () => Promise<void>;
   restartPlayer: () => void;
+  remoteKey: (key: RemoteControlKey, commandId: string) => void;
 }
 
 export async function pollAndRunScreenCommands(session: DeviceSession, handlers: CommandHandlers) {
@@ -43,6 +45,11 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       await openOverlayPermissionSettings();
     }
 
+    if (command.type === "remote_key") {
+      const key = getRemoteControlKey(command.payload);
+      handlers.remoteKey(key, command.id);
+    }
+
     await acknowledgeScreenCommand(session.screenId, session.deviceKey, {
       commandId: command.id,
       status: "acknowledged"
@@ -58,6 +65,16 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       errorMessage: error instanceof Error ? error.message : "Falha ao executar o comando."
     }).catch(() => undefined);
   }
+}
+
+function getRemoteControlKey(payload: Record<string, unknown> | null): RemoteControlKey {
+  const key = payload?.key;
+
+  if (key === "up" || key === "down" || key === "left" || key === "right" || key === "select" || key === "back") {
+    return key;
+  }
+
+  throw new Error("Tecla remota inválida.");
 }
 
 async function reloadAppWithLatestUpdate() {

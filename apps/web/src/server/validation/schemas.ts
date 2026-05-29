@@ -6,6 +6,16 @@ const optionalDateTime = z.string().datetime().nullable().optional();
 const metadata = z.record(z.unknown()).nullable().optional();
 const screenOrientation = z.enum(["landscape", "portrait"]);
 const mediaRotation = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]);
+const playbackState = z.enum(["idle", "playing", "paused", "transitioning", "error"]);
+const remoteControlKey = z.enum(["up", "down", "left", "right", "select", "back"]);
+const screenCommandType = z.enum([
+  "refresh_playlist",
+  "clear_cache",
+  "restart_player",
+  "reload_app",
+  "open_overlay_settings",
+  "remote_key"
+]);
 const slug = z
   .string()
   .trim()
@@ -133,6 +143,10 @@ export const screenHeartbeatSchema = z.object({
   appVersion: z.string().trim().min(1).max(40).optional(),
   ipAddress: z.string().trim().min(3).max(80).optional(),
   currentMediaId: id.nullable().optional(),
+  currentPlaylistItemId: id.nullable().optional(),
+  playbackPositionSeconds: z.number().finite().nonnegative().nullable().optional(),
+  playbackDurationSeconds: z.number().finite().positive().nullable().optional(),
+  playbackState: playbackState.nullable().optional(),
   sentAt: z.string().datetime().optional()
 });
 
@@ -145,8 +159,26 @@ export const screenEventSchema = z.object({
 });
 
 export const screenCommandCreateSchema = z.object({
-  type: z.enum(["refresh_playlist", "clear_cache", "restart_player", "reload_app", "open_overlay_settings"]),
+  type: screenCommandType,
   payload: metadata
+}).superRefine((value, context) => {
+  if (value.type !== "remote_key") {
+    return;
+  }
+
+  const result = z
+    .object({
+      key: remoteControlKey
+    })
+    .safeParse(value.payload);
+
+  if (!result.success) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Informe uma tecla válida no payload do controle remoto.",
+      path: ["payload", "key"]
+    });
+  }
 });
 
 export const screenCommandAckSchema = z.object({
