@@ -7,6 +7,7 @@ import { ManifestPlayer } from "../components/player/ManifestPlayer";
 import { ApiError } from "../services/apiClient";
 import { postHeartbeat } from "../services/heartbeat";
 import { loadOfflineManifest, syncManifest } from "../services/manifestSync";
+import { maybeDailyRestart, resumeWatchdog } from "../services/maintenance";
 import { flushPlays } from "../services/playLog";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
 import { reportScreenEvent } from "../services/screenEvents";
@@ -92,6 +93,14 @@ export function PlayerScreen({ onSessionExpired, session }: PlayerScreenProps) {
     const interval = setInterval(send, Math.min(HEARTBEAT_MS, LIVE_PREVIEW_HEARTBEAT_MS));
     return () => clearInterval(interval);
   }, [session]);
+
+  // Vigia ativo enquanto o player roda; reinício diário de madrugada.
+  const timezone = manifest?.screen.timezone ?? "America/Sao_Paulo";
+  useEffect(() => {
+    void resumeWatchdog();
+    const interval = setInterval(() => void maybeDailyRestart(timezone), 60 * 1000);
+    return () => clearInterval(interval);
+  }, [timezone]);
 
   useEffect(() => {
     void flushPlays(session);

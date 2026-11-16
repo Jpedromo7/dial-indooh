@@ -36,7 +36,7 @@ export const commandLabels: Record<ScreenCommandType, string> = {
   clear_cache: "Limpar cache",
   restart_player: "Reiniciar reprodutor",
   reload_app: "Recarregar aplicativo",
-  open_overlay_settings: "Abrir permissão de sobreposição",
+  open_overlay_settings: "Modo manutenção (abre ajustes, pausa vigia 15 min)",
   remote_key: "Controle remoto",
   start_screen_mirror: "Iniciar espelhamento",
   stop_screen_mirror: "Encerrar espelhamento"

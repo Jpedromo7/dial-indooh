@@ -1,6 +1,7 @@
 import * as Updates from "expo-updates";
 import { acknowledgeScreenCommand, fetchScreenCommands } from "./apiClient";
 import { clearAllMedia } from "./manifestSync";
+import { pauseWatchdog } from "./maintenance";
 import { openOverlayPermissionSettings } from "./systemSettings";
 import type { RemoteControlKey } from "@dialindooh/shared";
 import type { DeviceSession, ScreenCommand } from "../types/signage";
@@ -44,6 +45,8 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
     }
 
     if (command.type === "open_overlay_settings") {
+      // Dá 15 minutos para ajustar as configurações antes do vigia trazer o app de volta.
+      await pauseWatchdog(15);
       await openOverlayPermissionSettings();
     }
 
