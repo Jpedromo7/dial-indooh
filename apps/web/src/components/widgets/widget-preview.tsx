@@ -1,0 +1,230 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Sun } from "lucide-react";
+import type {
+  ClockConfig,
+  CurrencyConfig,
+  CurrencyQuote,
+  FooterConfig,
+  InstagramPost,
+  NoticeConfig,
+  RssConfig,
+  RssItem,
+  WeatherConfig,
+  WeatherData
+} from "@dialindooh/shared";
+import { cn } from "@/lib/utils";
+
+const WEEKDAYS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+export function useNow(intervalMs = 1000) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
+export function WeatherIcon({ icon, className }: { icon: string; className?: string }) {
+  const Icon =
+    { sun: Sun, "cloud-sun": CloudSun, cloud: Cloud, fog: CloudFog, drizzle: CloudDrizzle, rain: CloudRain, snow: CloudSnow, storm: CloudLightning }[icon] ??
+    CloudSun;
+  return <Icon className={className} />;
+}
+
+function Frame({ background, color, children, portrait }: { background: string; color: string; children: React.ReactNode; portrait?: boolean }) {
+  return (
+    <div
+      className={cn("relative mx-auto overflow-hidden rounded-lg shadow-xl", portrait ? "aspect-[9/16] w-56" : "aspect-video w-full")}
+      style={{ background: `radial-gradient(circle at 20% 10%, rgba(255,255,255,0.18), transparent 45%), ${background}`, color }}
+    >
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-[5%] text-center">{children}</div>
+    </div>
+  );
+}
+
+export function ClockPreview({ config, portrait }: { config: ClockConfig; portrait?: boolean }) {
+  const now = useNow();
+  const date = `${WEEKDAYS[now.getDay()]}, ${now.toLocaleDateString("pt-BR")}`;
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <p className="font-medium opacity-90" style={{ fontSize: portrait ? 14 : 22 }}>
+        {date}
+      </p>
+      <p className="font-bold tabular-nums leading-none" style={{ fontSize: portrait ? 44 : "clamp(28px, 9vw, 88px)" }}>
+        {now.toLocaleTimeString("pt-BR")}
+      </p>
+      {config.logoUrl ? <img alt="" className="mt-4 max-h-[22%] max-w-[40%] rounded bg-white/90 object-contain p-2" src={config.logoUrl} /> : null}
+    </Frame>
+  );
+}
+
+export function CurrencyPreview({ config, quotes, portrait }: { config: CurrencyConfig; quotes: CurrencyQuote[]; portrait?: boolean }) {
+  const today = new Date().toLocaleDateString("pt-BR");
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <p className="mb-3 font-bold" style={{ fontSize: portrait ? 16 : 22 }}>
+        Cotação em {today}
+      </p>
+      <div className={cn("grid w-full gap-2", portrait ? "grid-cols-1" : quotes.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+        {(quotes.length ? quotes : config.currencies.map((code) => ({ code, name: code, bid: 0, pctChange: 0 }))).map((quote) => (
+          <div className="rounded-xl bg-white/15 px-4 py-3 backdrop-blur" key={quote.code}>
+            <p className="text-sm font-semibold opacity-90">
+              {quote.name} ({quote.code})
+            </p>
+            <p className="font-bold tabular-nums" style={{ fontSize: portrait ? 24 : 34 }}>
+              R$ {quote.bid ? quote.bid.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: quote.code === "BTC" ? 0 : 2 }) : "--"}
+            </p>
+            <p className={cn("text-xs font-semibold", quote.pctChange >= 0 ? "text-emerald-200" : "text-red-200")}>
+              {quote.pctChange >= 0 ? "▲" : "▼"} {Math.abs(quote.pctChange).toFixed(2)}%
+            </p>
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+export function WeatherPreview({ config, weather, portrait }: { config: WeatherConfig; weather: WeatherData | null; portrait?: boolean }) {
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      {weather ? (
+        <>
+          <p className="font-semibold" style={{ fontSize: portrait ? 18 : 24 }}>
+            {weather.city}
+          </p>
+          <div className="flex items-center gap-4">
+            <WeatherIcon className="h-16 w-16" icon={weather.icon} />
+            <p className="font-bold" style={{ fontSize: portrait ? 48 : 72 }}>
+              {weather.temperature}°
+            </p>
+          </div>
+          <p className="opacity-90">{weather.description}</p>
+          <p className="text-sm opacity-80">
+            Máx {weather.max}° · Mín {weather.min}°
+          </p>
+          {weather.forecast?.length ? (
+            <div className="mt-3 flex gap-3">
+              {weather.forecast.map((day) => (
+                <div className="rounded-lg bg-white/15 px-3 py-2 text-xs" key={day.date}>
+                  <p>{WEEKDAYS[new Date(`${day.date}T12:00:00`).getDay()]?.slice(0, 3)}</p>
+                  <WeatherIcon className="mx-auto my-1 h-5 w-5" icon={day.icon} />
+                  <p>
+                    {day.max}° / {day.min}°
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="opacity-80">Informe a cidade para ver a prévia.</p>
+      )}
+    </Frame>
+  );
+}
+
+export function RssPreview({ config, items, portrait }: { config: RssConfig; items: RssItem[]; portrait?: boolean }) {
+  const item = items[0];
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      {item ? (
+        <div className={cn("flex h-full w-full gap-4 text-left", portrait ? "flex-col" : "flex-row items-center")}>
+          {item.imageUrl ? <img alt="" className={cn("rounded-lg object-cover", portrait ? "h-1/2 w-full" : "h-full w-1/2")} src={item.imageUrl} /> : null}
+          <div className="flex flex-1 flex-col justify-center gap-2">
+            <div className="flex items-center gap-2">
+              {config.logoUrl ? <img alt="" className="h-6 object-contain" src={config.logoUrl} /> : null}
+              <span className="text-xs font-semibold uppercase tracking-wide opacity-80">{config.source || "Notícias"}</span>
+            </div>
+            <p className="font-bold leading-tight" style={{ fontSize: portrait ? 18 : 26 }}>
+              {item.title}
+            </p>
+            {item.description ? <p className="line-clamp-3 text-sm opacity-85">{item.description}</p> : null}
+          </div>
+        </div>
+      ) : (
+        <p className="opacity-80">Informe um feed RSS válido para ver a prévia.</p>
+      )}
+    </Frame>
+  );
+}
+
+export function NoticePreview({ config, portrait }: { config: NoticeConfig; portrait?: boolean }) {
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      {config.imageUrl ? <img alt="" className="mb-4 max-h-[35%] max-w-[60%] object-contain" src={config.imageUrl} /> : null}
+      <p className="font-extrabold leading-tight" style={{ fontSize: portrait ? 24 : 40 }}>
+        {config.text || "Seu aviso aqui"}
+      </p>
+      {config.subtitle ? <p className="mt-3 opacity-90" style={{ fontSize: portrait ? 14 : 20 }}>{config.subtitle}</p> : null}
+    </Frame>
+  );
+}
+
+export function InstagramPreview({
+  background,
+  color,
+  username,
+  profileImageUrl,
+  posts,
+  count,
+  portrait
+}: {
+  background: string;
+  color: string;
+  username: string | null;
+  profileImageUrl: string | null;
+  posts: InstagramPost[];
+  count: number;
+  portrait?: boolean;
+}) {
+  const shown = posts.slice(0, count);
+  return (
+    <Frame background={background} color={color} portrait={portrait}>
+      <div className="mb-3 flex items-center gap-2">
+        {profileImageUrl ? <img alt="" className="h-9 w-9 rounded-full object-cover" src={profileImageUrl} /> : <span className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-400 via-pink-500 to-violet-600" />}
+        <span className="font-semibold">@{username ?? "suaconta"}</span>
+      </div>
+      <div className={cn("grid w-full gap-2", count === 3 && !portrait ? "grid-cols-3" : "grid-cols-1")}>
+        {(shown.length ? shown : Array.from({ length: count }, (_, index) => ({ id: String(index), imageUrl: "", caption: "Postagem" }))).map((post) => (
+          <div className="overflow-hidden rounded-lg bg-white/10" key={post.id}>
+            {post.imageUrl ? <img alt="" className="aspect-square w-full object-cover" src={post.imageUrl} /> : <div className="aspect-square w-full bg-white/10" />}
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+export function FooterPreview({ config, weather }: { config: FooterConfig; weather?: WeatherData | null }) {
+  const now = useNow();
+  const duration = config.speed === "fast" ? 10 : config.speed === "slow" ? 30 : 18;
+
+  return (
+    <div className="overflow-hidden rounded-lg border bg-black">
+      <div className="flex aspect-[16/7] items-center justify-center text-sm text-muted-foreground">Conteúdo do terminal</div>
+      <div className="flex h-12 items-center gap-3 px-3" style={{ background: config.background, color: config.color }}>
+        {config.logoUrl ? <img alt="" className="h-8 max-w-[6rem] object-contain" src={config.logoUrl} /> : null}
+        {config.showPhrase ? (
+          <div className="relative flex-1 overflow-hidden whitespace-nowrap">
+            <span className="inline-block animate-[ticker_linear_infinite] font-medium" style={{ animationDuration: `${duration}s` }}>
+              {config.phrase || "Sua frase aqui"}
+            </span>
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        {config.showWeather && weather ? (
+          <span className="flex items-center gap-1 text-sm font-semibold">
+            {config.showIcons ? <WeatherIcon className="h-4 w-4" icon={weather.icon} /> : null}
+            {weather.temperature}°
+          </span>
+        ) : null}
+        {config.showDate ? <span className="text-sm">{now.toLocaleDateString("pt-BR")}</span> : null}
+        {config.showTime ? <span className="text-sm font-bold tabular-nums">{now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span> : null}
+      </div>
+    </div>
+  );
+}

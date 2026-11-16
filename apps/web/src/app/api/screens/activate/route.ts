@@ -1,14 +1,14 @@
-import { created, handleRouteError, readJson } from "@/server/http";
-import { screenService } from "@/server/services/screenService";
-import { screenActivationSchema } from "@/server/validation/schemas";
+import { apiRoute } from "@/server/http";
+import { enforceRateLimit } from "@/server/rateLimit";
+import { deviceService } from "@/server/services/deviceService";
+import { getRequestIp } from "@/server/utils/request";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
-  try {
-    const body = await readJson(request, screenActivationSchema);
-    return created(await screenService.activateScreen(body));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = apiRoute(
+  async (request) => {
+    await enforceRateLimit(`activate:${getRequestIp(request) ?? "unknown"}`, 10, 15 * 60);
+    return deviceService.activate(await request.json());
+  },
+  { status: 201 }
+);

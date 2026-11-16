@@ -25,7 +25,8 @@ export async function createR2MediaUploadUrl(input: UploadUrlInput): Promise<Med
     new PutObjectCommand({
       Bucket: bucket,
       Key: path,
-      ContentType: input.mimeType || "application/octet-stream"
+      ContentType: input.mimeType || "application/octet-stream",
+      ContentLength: input.sizeBytes
     }),
     { expiresIn: SIGNED_URL_TTL_SECONDS }
   );

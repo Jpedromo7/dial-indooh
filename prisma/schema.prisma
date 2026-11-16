@@ -9,12 +9,27 @@ datasource db {
 }
 
 enum UserRole {
+  superadmin
   admin
+  operator
+}
+
+enum AccountKind {
+  reseller
+  client
 }
 
 enum MediaType {
   image
   video
+  youtube
+  url
+  instagram
+  rss
+  clock
+  currency
+  weather
+  notice
 }
 
 enum ScreenStatus {
@@ -78,54 +93,148 @@ enum ScreenMirrorPeer {
   viewer
 }
 
+model Account {
+  id            String      @id @default(cuid())
+  name          String
+  kind          AccountKind @default(client)
+  parentId      String?
+  parent        Account?    @relation("AccountChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children      Account[]   @relation("AccountChildren")
+  isActive      Boolean     @default(true)
+  logoUrl       String?
+  loginImageUrl String?
+  splashUrl     String?
+  splashEnabled Boolean     @default(false)
+  primaryColor  String?
+  maxScreens    Int?
+  maxInstagram  Int         @default(5)
+  footer        Json?
+  apkUrl        String?
+  users         User[]
+  companies     Company[]
+  screens       Screen[]
+  media         Media[]
+  playlists     Playlist[]
+  rssSources    RssSource[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([parentId])
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  document  String?
+  contact   String?
+  phone     String?
+  screens   Screen[]
+  media     Media[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(admin)
-  commands     ScreenCommand[]
-  mirrorSessions ScreenMirrorSession[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String                @id @default(cuid())
+  accountId       String?
+  account         Account?              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name            String
+  email           String                @unique
+  passwordHash    String
+  role            UserRole              @default(admin)
+  avatarUrl       String?
+  timezone        String?
+  isActive        Boolean               @default(true)
+  restrictContent Boolean               @default(false)
+  lastLoginAt     DateTime?
+  screenAccess    UserScreenAccess[]
+  commands        ScreenCommand[]
+  mirrorSessions  ScreenMirrorSession[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([accountId])
+}
+
+model UserScreenAccess {
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  screenId String
+  screen   Screen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@id([userId, screenId])
+  @@index([screenId])
 }
 
 model Media {
-  id              String            @id @default(cuid())
-  title           String
-  type            MediaType
-  fileUrl         String
-  mimeType        String
-  sizeBytes       BigInt
-  durationSeconds Int?
-  status          MediaStatus       @default(ready)
-  orientation     MediaOrientation  @default(auto)
-  rotationDegrees Int               @default(0)
-  processingError String?
-  readyAt         DateTime?
-  playlistItems   PlaylistItem[]
-  heartbeats      ScreenHeartbeat[] @relation("HeartbeatCurrentMedia")
-  events          ScreenEvent[]
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  accountId         String?
+  account           Account?          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  companyId         String?
+  company           Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title             String
+  type              MediaType
+  category          String?
+  fileUrl           String            @default("")
+  fileUrlVertical   String?
+  thumbnailUrl      String?
+  mimeType          String            @default("")
+  sizeBytes         BigInt            @default(0)
+  sizeBytesVertical BigInt?
+  durationSeconds   Int?
+  config            Json?
+  recordStats       Boolean           @default(true)
+  isLibrary         Boolean           @default(false)
+  scheduleStartsAt  DateTime?
+  scheduleEndsAt    DateTime?
+  scheduleTimeFrom  String?
+  scheduleTimeTo    String?
+  scheduleWeekdays  Int[]             @default([])
+  status            MediaStatus       @default(ready)
+  orientation       MediaOrientation  @default(auto)
+  rotationDegrees   Int               @default(0)
+  processingError   String?
+  readyAt           DateTime?
+  playlistItems     PlaylistItem[]
+  screenItems       ScreenItem[]
+  playLogs          PlayLog[]
+  heartbeats        ScreenHeartbeat[] @relation("HeartbeatCurrentMedia")
+  events            ScreenEvent[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
+  @@index([accountId])
+  @@index([isLibrary])
   @@index([type])
   @@index([status])
   @@index([orientation])
 }
 
 model Playlist {
-  id          String             @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean            @default(true)
+  id               String             @id @default(cuid())
+  accountId        String?
+  account          Account?           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  imageUrl         String?
+  isLibrary        Boolean            @default(false)
+  category         String?
+  name             String
+  description      String?
+  isActive         Boolean            @default(true)
   scheduledStartAt DateTime?
   scheduledEndAt   DateTime?
-  items       PlaylistItem[]
-  assignments ScreenAssignment[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  items            PlaylistItem[]
+  assignments      ScreenAssignment[]
+  screenItems      ScreenItem[]
+  playLogs         PlayLog[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
+  @@index([accountId])
+  @@index([isLibrary])
   @@index([isActive])
 }
 
@@ -144,54 +253,89 @@ model PlaylistItem {
 }
 
 model Screen {
-  id             String             @id @default(cuid())
-  name           String
-  slug           String             @unique
-  activationCode String             @unique
-  deviceKey      String?            @unique
-  location       String?
-  orientation    ScreenOrientation  @default(landscape)
-  status         ScreenStatus       @default(offline)
-  lastSeenAt     DateTime?
-  assignments    ScreenAssignment[]
-  heartbeats     ScreenHeartbeat[]
-  events         ScreenEvent[]
-  commands       ScreenCommand[]
-  mirrorSessions ScreenMirrorSession[]
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id                    String                @id @default(cuid())
+  accountId             String?
+  account               Account?              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  companyId             String?
+  company               Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name                  String
+  slug                  String                @unique
+  activationCode        String?               @unique
+  deviceKey             String?               @unique
+  deviceKeyHash         String?               @unique
+  location              String?
+  imageUrl              String?
+  segment               String?
+  street                String?
+  streetNumber          String?
+  complement            String?
+  zipCode               String?
+  district              String?
+  state                 String?
+  city                  String?
+  phone1                String?
+  phone2                String?
+  openFrom              String?
+  openTo                String?
+  openDays              Int[]                 @default([])
+  footfall              Int?
+  socialClasses         String[]              @default([])
+  refreshMinutes        Int                   @default(5)
+  soundEnabled          Boolean               @default(false)
+  timezone              String                @default("America/Sao_Paulo")
+  footerEnabled         Boolean               @default(false)
+  notes                 String?
+  isFavorite            Boolean               @default(false)
+  shuffle               Boolean               @default(false)
+  orientation           ScreenOrientation     @default(landscape)
+  status                ScreenStatus          @default(offline)
+  lastSeenAt            DateTime?
+  lastHeartbeat         Json?
+  diagnostics           Json?
+  lastHeartbeatStoredAt DateTime?
+  items                 ScreenItem[]
+  userAccess            UserScreenAccess[]
+  playLogs              PlayLog[]
+  assignments           ScreenAssignment[]
+  heartbeats            ScreenHeartbeat[]
+  events                ScreenEvent[]
+  commands              ScreenCommand[]
+  mirrorSessions        ScreenMirrorSession[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
+  @@index([accountId])
   @@index([status])
   @@index([orientation])
 }
 
 model ScreenAssignment {
-  id           String   @id @default(cuid())
-  screenId     String
-  screen       Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
-  playlistId   String
-  playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Restrict)
-  isActive     Boolean  @default(true)
-  assignedAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  screenId   String
+  screen     Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Restrict)
+  isActive   Boolean  @default(true)
+  assignedAt DateTime @default(now())
 
   @@index([screenId, isActive])
   @@index([playlistId])
 }
 
 model ScreenHeartbeat {
-  id             String                @id @default(cuid())
-  screenId       String
-  screen         Screen                @relation(fields: [screenId], references: [id], onDelete: Cascade)
-  status         ScreenStatus
-  appVersion     String?
-  ipAddress      String?
-  currentMediaId String?
-  currentMedia   Media?                @relation("HeartbeatCurrentMedia", fields: [currentMediaId], references: [id], onDelete: SetNull)
-  currentPlaylistItemId     String?
-  playbackPositionSeconds   Float?
-  playbackDurationSeconds   Float?
-  playbackState             String?
-  sentAt         DateTime
+  id                      String       @id @default(cuid())
+  screenId                String
+  screen                  Screen       @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  status                  ScreenStatus
+  appVersion              String?
+  ipAddress               String?
+  currentMediaId          String?
+  currentMedia            Media?       @relation("HeartbeatCurrentMedia", fields: [currentMediaId], references: [id], onDelete: SetNull)
+  currentPlaylistItemId   String?
+  playbackPositionSeconds Float?
+  playbackDurationSeconds Float?
+  playbackState           String?
+  sentAt                  DateTime
 
   @@index([screenId, sentAt])
   @@index([currentMediaId])
@@ -233,19 +377,19 @@ model ScreenCommand {
 }
 
 model ScreenMirrorSession {
-  id             String                    @id @default(cuid())
-  screenId       String
-  screen         Screen                    @relation(fields: [screenId], references: [id], onDelete: Cascade)
-  status         ScreenMirrorSessionStatus @default(requested)
-  requestedById  String?
-  requestedBy    User?                     @relation(fields: [requestedById], references: [id], onDelete: SetNull)
-  offer          Json?
-  answer         Json?
-  errorMessage   String?
-  candidates     ScreenMirrorCandidate[]
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
-  endedAt        DateTime?
+  id            String                    @id @default(cuid())
+  screenId      String
+  screen        Screen                    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  status        ScreenMirrorSessionStatus @default(requested)
+  requestedById String?
+  requestedBy   User?                     @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  offer         Json?
+  answer        Json?
+  errorMessage  String?
+  candidates    ScreenMirrorCandidate[]
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  endedAt       DateTime?
 
   @@index([screenId, status, createdAt])
   @@index([requestedById])
@@ -260,4 +404,62 @@ model ScreenMirrorCandidate {
   createdAt DateTime            @default(now())
 
   @@index([sessionId, peer, createdAt])
+}
+
+model ScreenItem {
+  id              String    @id @default(cuid())
+  screenId        String
+  screen          Screen    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  order           Int
+  mediaId         String?
+  media           Media?    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  playlistId      String?
+  playlist        Playlist? @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  durationSeconds Int?
+  createdAt       DateTime  @default(now())
+
+  @@index([screenId, order])
+  @@index([mediaId])
+  @@index([playlistId])
+}
+
+model PlayLog {
+  id              String    @id
+  screenId        String
+  screen          Screen    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  mediaId         String
+  media           Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  playlistId      String?
+  playlist        Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  startedAt       DateTime
+  durationSeconds Int
+  receivedAt      DateTime  @default(now())
+
+  @@index([screenId, startedAt])
+  @@index([mediaId, startedAt])
+  @@index([playlistId, startedAt])
+}
+
+model RssSource {
+  id        String   @id @default(cuid())
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+}
+
+model ExternalCache {
+  key       String   @id
+  data      Json
+  fetchedAt DateTime @default(now())
+  error     String?
+}
+
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
 }

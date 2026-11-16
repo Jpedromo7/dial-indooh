@@ -1,25 +1,16 @@
-import { requireAdmin } from "@/server/auth";
-import { created, handleRouteError, ok, readJson } from "@/server/http";
+import { requireUser } from "@/server/auth";
+import { apiRoute, getSearchParams } from "@/server/http";
 import { screenService } from "@/server/services/screenService";
-import { screenCreateSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
-  try {
-    await requireAdmin(request);
-    return ok(await screenService.listScreens());
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const GET = apiRoute(async (request) => {
+  const params = getSearchParams(request);
+  return screenService.listScreens(await requireUser(request), {
+    status: params.get("status"),
+    q: params.get("q"),
+    favorites: params.get("favorites") === "1"
+  });
+});
 
-export async function POST(request: Request) {
-  try {
-    await requireAdmin(request);
-    const body = await readJson(request, screenCreateSchema);
-    return created(await screenService.createScreen(body));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = apiRoute(async (request) => screenService.createScreen(await requireUser(request), await request.json()), { status: 201 });

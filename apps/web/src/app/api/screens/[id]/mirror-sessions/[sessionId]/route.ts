@@ -1,62 +1,29 @@
-import { getDeviceKeyFromRequest, requireAdmin } from "@/server/auth";
-import { handleRouteError, ok, readJson, validateParams } from "@/server/http";
+import { getDeviceKeyFromRequest, requireUser } from "@/server/auth";
+import { apiRoute } from "@/server/http";
+import { deviceService } from "@/server/services/deviceService";
 import { screenService } from "@/server/services/screenService";
-import { screenMirrorSessionParamsSchema, screenMirrorSessionUpdateSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";
 
-interface RouteContext {
-  params: Promise<{ id: string; sessionId: string }> | { id: string; sessionId: string };
-}
-
-export async function GET(request: Request, context: RouteContext) {
-  try {
-    const params = validateParams(await context.params, screenMirrorSessionParamsSchema);
-
-    if (isDeviceRequest(request)) {
-      return ok(await screenService.getMirrorSessionForDevice(params.id, getDeviceKeyFromRequest(request), params.sessionId));
-    }
-
-    await requireAdmin(request);
-    return ok(await screenService.getMirrorSessionForAdmin(params.id, params.sessionId));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function PATCH(request: Request, context: RouteContext) {
-  try {
-    const params = validateParams(await context.params, screenMirrorSessionParamsSchema);
-    const body = await readJson(request, screenMirrorSessionUpdateSchema);
-
-    if (isDeviceRequest(request)) {
-      return ok(
-        await screenService.updateMirrorSessionForDevice(
-          params.id,
-          getDeviceKeyFromRequest(request),
-          params.sessionId,
-          body
-        )
-      );
-    }
-
-    await requireAdmin(request);
-    return ok(await screenService.updateMirrorSessionForAdmin(params.id, params.sessionId, body));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function DELETE(request: Request, context: RouteContext) {
-  try {
-    const user = await requireAdmin(request);
-    const params = validateParams(await context.params, screenMirrorSessionParamsSchema);
-    return ok(await screenService.stopMirrorSession(params.id, user.id, params.sessionId));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+type Params = { id: string; sessionId: string };
 
 function isDeviceRequest(request: Request) {
   return Boolean(request.headers.get("x-device-key"));
 }
+
+export const GET = apiRoute<Params>(async (request, { id, sessionId }) =>
+  isDeviceRequest(request)
+    ? deviceService.getMirrorSession(id, getDeviceKeyFromRequest(request), sessionId)
+    : screenService.getMirrorSessionForAdmin(await requireUser(request), id, sessionId)
+);
+
+export const PATCH = apiRoute<Params>(async (request, { id, sessionId }) => {
+  const body = await request.json();
+  return isDeviceRequest(request)
+    ? deviceService.updateMirrorSession(id, getDeviceKeyFromRequest(request), sessionId, body)
+    : screenService.updateMirrorSessionForAdmin(await requireUser(request), id, sessionId, body);
+});
+
+export const DELETE = apiRoute<Params>(async (request, { id, sessionId }) =>
+  screenService.stopMirrorSession(await requireUser(request), id, sessionId)
+);

@@ -1,27 +1,14 @@
 import { getDeviceKeyFromRequest } from "@/server/auth";
-import { handleRouteError, ok, readJson, validateParams } from "@/server/http";
-import { screenService } from "@/server/services/screenService";
+import { apiRoute } from "@/server/http";
+import { deviceService } from "@/server/services/deviceService";
 import { getRequestIp } from "@/server/utils/request";
-import { idParamsSchema, screenHeartbeatSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";
 
-interface RouteContext {
-  params: Promise<{ id: string }> | { id: string };
-}
-
-export async function POST(request: Request, context: RouteContext) {
-  try {
-    const params = validateParams(await context.params, idParamsSchema);
-    const body = await readJson(request, screenHeartbeatSchema);
-
-    return ok(
-      await screenService.recordHeartbeat(params.id, getDeviceKeyFromRequest(request), {
-        ...body,
-        ipAddress: body.ipAddress ?? getRequestIp(request)
-      })
-    );
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = apiRoute<{ id: string }>(async (request, { id }) => {
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  return deviceService.recordHeartbeat(id, getDeviceKeyFromRequest(request), {
+    ...body,
+    ipAddress: body.ipAddress ?? getRequestIp(request)
+  });
+});

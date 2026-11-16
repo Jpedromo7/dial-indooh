@@ -1,41 +1,11 @@
-import { requireAdmin } from "@/server/auth";
-import { handleRouteError, ok, readJson, validateParams } from "@/server/http";
+import { requireUser } from "@/server/auth";
+import { apiRoute } from "@/server/http";
 import { screenService } from "@/server/services/screenService";
-import { idParamsSchema, screenUpdateSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";
 
-interface RouteContext {
-  params: Promise<{ id: string }> | { id: string };
-}
-
-export async function PATCH(request: Request, context: RouteContext) {
-  try {
-    await requireAdmin(request);
-    const params = validateParams(await context.params, idParamsSchema);
-    const body = await readJson(request, screenUpdateSchema);
-    return ok(await screenService.updateScreen(params.id, body));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function GET(request: Request, context: RouteContext) {
-  try {
-    await requireAdmin(request);
-    const params = validateParams(await context.params, idParamsSchema);
-    return ok(await screenService.getScreen(params.id));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function DELETE(request: Request, context: RouteContext) {
-  try {
-    await requireAdmin(request);
-    const params = validateParams(await context.params, idParamsSchema);
-    return ok(await screenService.deleteScreen(params.id));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const GET = apiRoute<{ id: string }>(async (request, { id }) => screenService.getScreen(await requireUser(request), id));
+export const PATCH = apiRoute<{ id: string }>(async (request, { id }) =>
+  screenService.updateScreen(await requireUser(request), id, await request.json())
+);
+export const DELETE = apiRoute<{ id: string }>(async (request, { id }) => screenService.deleteScreen(await requireUser(request), id));

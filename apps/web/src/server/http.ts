@@ -92,3 +92,33 @@ export function handleRouteError(error: unknown) {
     { status: 500 }
   );
 }
+
+type RouteParams = Record<string, string>;
+
+/**
+ * Envolve um handler de rota: resolve params, converte o retorno em `{ ok, data }`
+ * e trata erros de validação/negócio de forma uniforme.
+ */
+export function apiRoute<P extends RouteParams = RouteParams>(
+  fn: (request: Request, params: P) => Promise<unknown>,
+  options: { status?: number } = {}
+) {
+  return async (request: Request, context: { params: Promise<P> | P }) => {
+    try {
+      const params = ((await context?.params) ?? {}) as P;
+      const data = await fn(request, params);
+
+      if (data instanceof Response) {
+        return data;
+      }
+
+      return ok(data, options.status ? { status: options.status } : undefined);
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  };
+}
+
+export function getSearchParams(request: Request) {
+  return new URL(request.url).searchParams;
+}

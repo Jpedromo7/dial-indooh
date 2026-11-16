@@ -1,24 +1,33 @@
 "use client";
 
 import type {
+  AccountDto,
+  CompanyDto,
+  DashboardDto,
+  FooterConfig,
   MediaDto,
-  MediaOrientation,
-  MediaRotation,
+  MediaType,
+  NotificationDto,
   PlaylistDto,
   RemoteControlKey,
+  ReportDto,
+  ScheduleDto,
   ScreenCommandDto,
   ScreenCommandType,
   ScreenDetailDto,
   ScreenDto,
   ScreenEventDto,
+  ScreenItemDto,
   ScreenMirrorCandidateDto,
   ScreenMirrorSessionDto,
-  ScreenOrientation
+  SessionDto,
+  UserDto,
+  CurrencyQuote,
+  RssItem,
+  WeatherData
 } from "@dialindooh/shared";
 
-type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-const DEMO_STORE_KEY = "dial_indooh_demo_store";
+type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export class ApiClientError extends Error {
   constructor(
@@ -32,18 +41,13 @@ export class ApiClientError extends Error {
   }
 }
 
-interface RequestOptions {
-  method?: HttpMethod;
-  body?: unknown;
-}
-
-async function request<T>(path: string, options: RequestOptions = {}) {
+async function request<T>(path: string, method: HttpMethod = "GET", body?: unknown) {
   const response = await fetch(path, {
     cache: "no-store",
-    method: options.method ?? "GET",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    method,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     credentials: "include",
-    body: options.body ? JSON.stringify(options.body) : undefined
+    body: body !== undefined ? JSON.stringify(body) : undefined
   });
   const payload = (await response.json().catch(() => null)) as
     | { ok: true; data: T }
@@ -58,35 +62,21 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   return payload.data;
 }
 
-export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: "admin";
-  };
-}
+function query(params: Record<string, string | number | boolean | null | undefined>) {
+  const search = new URLSearchParams();
 
-export interface MediaCreateInput {
-  title: string;
-  type: "image" | "video";
-  fileUrl: string;
-  mimeType: string;
-  sizeBytes: number;
-  durationSeconds?: number | null;
-  orientation?: MediaOrientation;
-  rotationDegrees?: MediaRotation;
-}
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "" && value !== false) {
+      search.set(key, value === true ? "1" : String(value));
+    }
+  }
 
-export interface MediaUploadUrlInput {
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
+  const text = search.toString();
+  return text ? `?${text}` : "";
 }
 
 export interface MediaUploadUrlResponse {
-  provider?: "supabase" | "r2" | "demo";
+  provider?: "supabase" | "r2";
   bucket: string;
   path: string;
   token: string;
@@ -94,638 +84,202 @@ export interface MediaUploadUrlResponse {
   publicUrl: string;
 }
 
-export interface PlaylistCreateInput {
-  name: string;
-  description?: string | null;
-  isActive?: boolean;
-  scheduledStartAt?: string | null;
-  scheduledEndAt?: string | null;
+export interface MediaInput {
+  title?: string;
+  type?: MediaType;
+  companyId?: string | null;
+  category?: string | null;
+  fileUrl?: string | null;
+  fileUrlVertical?: string | null;
+  thumbnailUrl?: string | null;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  sizeBytesVertical?: number | null;
+  durationSeconds?: number | null;
+  config?: Record<string, unknown> | null;
+  recordStats?: boolean;
+  isLibrary?: boolean;
+  schedule?: ScheduleDto | null;
+  screenIds?: string[];
 }
 
-export interface ScreenCreateInput {
-  name: string;
-  slug?: string;
-  location?: string | null;
-  orientation?: ScreenOrientation;
+export interface PlaylistInput {
+  name?: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  category?: string | null;
+  isActive?: boolean;
+  isLibrary?: boolean;
+  scheduledStartAt?: string | null;
+  scheduledEndAt?: string | null;
+  mediaIds?: string[];
+  screenIds?: string[];
+}
+
+export type ScreenInput = Partial<
+  Omit<
+    ScreenDto,
+    | "id"
+    | "accountId"
+    | "companyName"
+    | "activationCode"
+    | "deviceKeyRegistered"
+    | "status"
+    | "activePlaylistId"
+    | "itemCount"
+    | "totalSeconds"
+    | "diagnostics"
+    | "lastSeenAt"
+    | "lastHeartbeatAt"
+    | "createdAt"
+    | "updatedAt"
+  >
+>;
+
+export interface ScreenItemInput {
+  mediaId?: string | null;
+  playlistId?: string | null;
+  durationSeconds?: number | null;
+}
+
+export interface UserInput {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: "admin" | "operator";
+  avatarUrl?: string | null;
+  timezone?: string | null;
+  restrictContent?: boolean;
+  screenIds?: string[];
+  isActive?: boolean;
+}
+
+export interface AccountSettingsDto extends AccountDto {
+  footer: FooterConfig;
 }
 
 export const apiClient = {
-  login: (email: string, password: string) => {
-    if (DEMO_MODE) {
-      return demoLogin(email, password);
-    }
+  /* sessão */
+  login: (email: string, password: string) => request<{ user: { id: string; name: string } }>("/api/auth/login", "POST", { email, password }),
+  logout: () => request("/api/auth/logout", "POST"),
+  getSession: () => request<SessionDto>("/api/session"),
+  switchAccount: (accountId: string | null) => request("/api/session/account", "POST", { accountId }),
+  updateProfile: (input: { name?: string; avatarUrl?: string | null; timezone?: string | null; currentPassword?: string; newPassword?: string }) =>
+    request<UserDto>("/api/session/profile", "PATCH", input),
+  getBranding: () => request<{ name: string; logoUrl: string | null; loginImageUrl: string | null; primaryColor: string | null }>("/api/public/branding"),
 
-    return request<LoginResponse>("/api/auth/login", {
-      method: "POST",
-      body: { email, password }
-    });
-  },
+  /* conta atual */
+  getAccount: () => request<AccountSettingsDto>("/api/account"),
+  updateAccount: (input: Partial<Omit<AccountSettingsDto, "footer">> & { footer?: FooterConfig }) =>
+    request<AccountDto>("/api/account", "PATCH", input),
 
-  listMedia: () => (DEMO_MODE ? demoApi.listMedia() : request<MediaDto[]>("/api/media")),
-  createMediaUploadUrl: (input: MediaUploadUrlInput) =>
-    DEMO_MODE
-      ? demoApi.createMediaUploadUrl(input)
-      : request<MediaUploadUrlResponse>("/api/media/upload-url", { method: "POST", body: input }),
-  createMedia: (input: MediaCreateInput) =>
-    DEMO_MODE ? demoApi.createMedia(input) : request<MediaDto>("/api/media", { method: "POST", body: input }),
-  updateMedia: (id: string, input: { title?: string; orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) =>
-    DEMO_MODE ? demoApi.updateMedia(id, input) : request<MediaDto>(`/api/media/${id}`, { method: "PATCH", body: input }),
-  deleteMedia: (id: string) =>
-    DEMO_MODE ? demoApi.deleteMedia(id) : request<{ id: string }>(`/api/media/${id}`, { method: "DELETE" }),
+  /* clientes */
+  listAccounts: () => request<AccountDto[]>("/api/accounts"),
+  createAccount: (input: { name: string; kind?: "client" | "reseller"; maxScreens?: number | null; maxInstagram?: number; admin: { name: string; email: string; password: string } }) =>
+    request<AccountDto>("/api/accounts", "POST", input),
+  updateAccountAdmin: (id: string, input: { name?: string; isActive?: boolean; maxScreens?: number | null; maxInstagram?: number }) =>
+    request<AccountDto>(`/api/accounts/${id}`, "PATCH", input),
+  deleteAccount: (id: string) => request(`/api/accounts/${id}`, "DELETE"),
 
-  listPlaylists: () => (DEMO_MODE ? demoApi.listPlaylists() : request<PlaylistDto[]>("/api/playlists")),
-  createPlaylist: (input: PlaylistCreateInput) =>
-    DEMO_MODE ? demoApi.createPlaylist(input) : request<PlaylistDto>("/api/playlists", { method: "POST", body: input }),
-  getPlaylist: (id: string) => (DEMO_MODE ? demoApi.getPlaylist(id) : request<PlaylistDto>(`/api/playlists/${id}`)),
-  updatePlaylist: (id: string, input: Partial<PlaylistCreateInput>) =>
-    DEMO_MODE
-      ? demoApi.updatePlaylist(id, input)
-      : request<PlaylistDto>(`/api/playlists/${id}`, { method: "PATCH", body: input }),
-  deletePlaylist: (id: string) =>
-    DEMO_MODE ? demoApi.deletePlaylist(id) : request<{ id: string }>(`/api/playlists/${id}`, { method: "DELETE" }),
-  addPlaylistItem: (
-    playlistId: string,
-    input: { mediaId: string; order?: number; displayDurationSeconds?: number | null }
-  ) =>
-    DEMO_MODE
-      ? demoApi.addPlaylistItem(playlistId, input)
-      : request<PlaylistDto>(`/api/playlists/${playlistId}/items`, { method: "POST", body: input }),
-  updatePlaylistItem: (playlistId: string, itemId: string, input: { displayDurationSeconds: number | null }) =>
-    DEMO_MODE
-      ? demoApi.updatePlaylistItem(playlistId, itemId, input)
-      : request<PlaylistDto>(`/api/playlists/${playlistId}/items/${itemId}`, { method: "PATCH", body: input }),
-  reorderPlaylistItems: (playlistId: string, items: Array<{ id: string; order: number }>) =>
-    DEMO_MODE
-      ? demoApi.reorderPlaylistItems(playlistId, items)
-      : request<PlaylistDto>(`/api/playlists/${playlistId}/items/reorder`, { method: "PATCH", body: { items } }),
-  deletePlaylistItem: (playlistId: string, itemId: string) =>
-    DEMO_MODE
-      ? demoApi.deletePlaylistItem(playlistId, itemId)
-      : request<PlaylistDto>(`/api/playlists/${playlistId}/items/${itemId}`, { method: "DELETE" }),
+  /* empresas */
+  listCompanies: () => request<CompanyDto[]>("/api/companies"),
+  createCompany: (input: { name: string; document?: string | null; contact?: string | null; phone?: string | null }) =>
+    request<CompanyDto>("/api/companies", "POST", input),
+  updateCompany: (id: string, input: { name?: string; document?: string | null; contact?: string | null; phone?: string | null }) =>
+    request<CompanyDto>(`/api/companies/${id}`, "PATCH", input),
+  deleteCompany: (id: string) => request(`/api/companies/${id}`, "DELETE"),
 
-  listScreens: () => (DEMO_MODE ? demoApi.listScreens() : request<ScreenDto[]>("/api/screens")),
-  createScreen: (input: ScreenCreateInput) =>
-    DEMO_MODE ? demoApi.createScreen(input) : request<ScreenDto>("/api/screens", { method: "POST", body: input }),
-  getScreen: (id: string) => (DEMO_MODE ? demoApi.getScreen(id) : request<ScreenDetailDto>(`/api/screens/${id}`)),
-  updateScreen: (id: string, input: Partial<ScreenCreateInput> & { playlistId?: string | null; status?: string }) =>
-    DEMO_MODE
-      ? demoApi.updateScreen(id, input)
-      : request<ScreenDto>(`/api/screens/${id}`, { method: "PATCH", body: input }),
-  deleteScreen: (id: string) =>
-    DEMO_MODE ? demoApi.deleteScreen(id) : request<{ id: string }>(`/api/screens/${id}`, { method: "DELETE" }),
-  listScreenEvents: (id: string) =>
-    DEMO_MODE ? Promise.resolve([]) : request<ScreenEventDto[]>(`/api/screens/${id}/events`),
+  /* usuários */
+  listUsers: () => request<UserDto[]>("/api/users"),
+  createUser: (input: UserInput) => request<UserDto>("/api/users", "POST", input),
+  updateUser: (id: string, input: UserInput) => request<UserDto>(`/api/users/${id}`, "PATCH", input),
+  deleteUser: (id: string) => request(`/api/users/${id}`, "DELETE"),
+
+  /* mídias */
+  listMedia: (filters: { type?: string; companyId?: string; q?: string; library?: boolean } = {}) =>
+    request<MediaDto[]>(`/api/media${query(filters)}`),
+  getMedia: (id: string) => request<MediaDto>(`/api/media/${id}`),
+  createMediaUploadUrl: (input: { fileName: string; mimeType: string; sizeBytes: number }) =>
+    request<MediaUploadUrlResponse>("/api/media/upload-url", "POST", input),
+  createMedia: (input: MediaInput) => request<MediaDto>("/api/media", "POST", input),
+  updateMedia: (id: string, input: MediaInput) => request<MediaDto>(`/api/media/${id}`, "PATCH", input),
+  deleteMedia: (id: string) => request<{ id: string }>(`/api/media/${id}`, "DELETE"),
+  deleteMediaMany: (ids: string[]) => request<{ deleted: string[]; skipped: string[] }>("/api/media/bulk-delete", "POST", { ids }),
+  getMediaScreens: (id: string) => request<string[]>(`/api/media/${id}/screens`),
+  includeMediaInScreens: (id: string, screenIds: string[]) => request(`/api/media/${id}/screens`, "POST", { screenIds }),
+
+  /* grupos */
+  listPlaylists: (filters: { library?: boolean } = {}) => request<PlaylistDto[]>(`/api/playlists${query(filters)}`),
+  getPlaylist: (id: string) => request<PlaylistDto>(`/api/playlists/${id}`),
+  createPlaylist: (input: PlaylistInput) => request<PlaylistDto>("/api/playlists", "POST", input),
+  updatePlaylist: (id: string, input: PlaylistInput) => request<PlaylistDto>(`/api/playlists/${id}`, "PATCH", input),
+  deletePlaylist: (id: string) => request<{ id: string }>(`/api/playlists/${id}`, "DELETE"),
+  getPlaylistScreens: (id: string) => request<string[]>(`/api/playlists/${id}/screens`),
+  includePlaylistInScreens: (id: string, screenIds: string[]) => request(`/api/playlists/${id}/screens`, "POST", { screenIds }),
+
+  /* telas */
+  listScreens: (filters: { status?: string; q?: string; favorites?: boolean } = {}) =>
+    request<ScreenDto[]>(`/api/screens${query(filters)}`),
+  createScreen: (input: ScreenInput & { name: string }) => request<ScreenDto>("/api/screens", "POST", input),
+  getScreen: (id: string) => request<ScreenDetailDto>(`/api/screens/${id}`),
+  updateScreen: (id: string, input: ScreenInput & { playlistId?: string | null }) =>
+    request<ScreenDto>(`/api/screens/${id}`, "PATCH", input),
+  deleteScreen: (id: string) => request<{ id: string }>(`/api/screens/${id}`, "DELETE"),
+  duplicateScreen: (id: string) => request<ScreenDto>(`/api/screens/${id}/duplicate`, "POST"),
+  resetScreenPairing: (id: string) => request<ScreenDto>(`/api/screens/${id}/reset-pairing`, "POST"),
+  replaceScreenItems: (id: string, items: ScreenItemInput[]) => request<ScreenItemDto[]>(`/api/screens/${id}/items`, "PUT", { items }),
+  addScreenItem: (id: string, item: ScreenItemInput) => request<ScreenItemDto[]>(`/api/screens/${id}/items`, "POST", item),
+  removeScreenItem: (id: string, itemId: string) => request<ScreenItemDto[]>(`/api/screens/${id}/items/${itemId}`, "DELETE"),
+  listScreenEvents: (id: string) => request<ScreenEventDto[]>(`/api/screens/${id}/events`),
   createScreenCommand: (id: string, type: ScreenCommandType, payload?: Record<string, unknown> | null) =>
-    DEMO_MODE
-      ? Promise.resolve({
-          id: createId("command"),
-          screenId: id,
-          type,
-          payload: payload ?? null,
-          status: "pending",
-          requestedById: "demo-admin",
-          requestedAt: new Date().toISOString(),
-          deliveredAt: null,
-          acknowledgedAt: null,
-          errorMessage: null
-        } satisfies ScreenCommandDto)
-      : request<ScreenCommandDto>(`/api/screens/${id}/commands`, { method: "POST", body: { type, payload } }),
-  createScreenMirrorSession: (id: string) =>
-    DEMO_MODE
-      ? demoApi.createScreenMirrorSession(id)
-      : request<ScreenMirrorSessionDto>(`/api/screens/${id}/mirror-sessions`, { method: "POST" }),
+    request<ScreenCommandDto>(`/api/screens/${id}/commands`, "POST", { type, payload }),
+  createScreenMirrorSession: (screenId: string) => request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions`, "POST"),
   getScreenMirrorSession: (screenId: string, sessionId: string) =>
-    DEMO_MODE
-      ? demoApi.getScreenMirrorSession(screenId, sessionId)
-      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`),
+    request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`),
   updateScreenMirrorSession: (
     screenId: string,
     sessionId: string,
-    input: Partial<Pick<ScreenMirrorSessionDto, "status" | "offer" | "answer" | "errorMessage">>
-  ) =>
-    DEMO_MODE
-      ? demoApi.updateScreenMirrorSession(screenId, sessionId, input)
-      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, {
-          method: "PATCH",
-          body: input
-        }),
+    input: { status?: ScreenMirrorSessionDto["status"]; answer?: RTCSessionDescriptionInit | null; errorMessage?: string | null }
+  ) => request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, "PATCH", input),
   stopScreenMirrorSession: (screenId: string, sessionId: string) =>
-    DEMO_MODE
-      ? demoApi.updateScreenMirrorSession(screenId, sessionId, { status: "ended" })
-      : request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, { method: "DELETE" }),
+    request<ScreenMirrorSessionDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}`, "DELETE"),
   listScreenMirrorCandidates: (screenId: string, sessionId: string) =>
-    DEMO_MODE
-      ? demoApi.listScreenMirrorCandidates(screenId, sessionId)
-      : request<ScreenMirrorCandidateDto[]>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`),
-  createScreenMirrorCandidate: (
-    screenId: string,
-    sessionId: string,
-    input: Pick<ScreenMirrorCandidateDto, "peer" | "candidate">
-  ) =>
-    DEMO_MODE
-      ? demoApi.createScreenMirrorCandidate(screenId, sessionId, input)
-      : request<ScreenMirrorCandidateDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, {
-          method: "POST",
-          body: input
-        })
+    request<ScreenMirrorCandidateDto[]>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`),
+  createScreenMirrorCandidate: (screenId: string, sessionId: string, input: Pick<ScreenMirrorCandidateDto, "peer" | "candidate">) =>
+    request<ScreenMirrorCandidateDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, "POST", input),
+
+  /* conteúdos dinâmicos */
+  previewWidget: (input: { type: "currency" | "weather" | "rss"; currencies?: string[]; city?: string | null; state?: string | null; url?: string; maxItems?: number }) =>
+    request<{ quotes?: CurrencyQuote[]; weather?: WeatherData | null; rss?: RssItem[] }>("/api/widgets/preview", "POST", input),
+  verifyInstagram: (accessToken: string) => request<{ username: string; id: string }>("/api/widgets/instagram", "POST", { accessToken }),
+  listRssSources: () => request<Array<{ id: string; name: string; url: string; accountId: string | null }>>("/api/rss-sources"),
+  createRssSource: (input: { name: string; url: string }) => request("/api/rss-sources", "POST", input),
+  deleteRssSource: (id: string) => request(`/api/rss-sources/${id}`, "DELETE"),
+
+  /* relatórios */
+  getDashboard: () => request<DashboardDto>("/api/dashboard"),
+  getNotifications: () => request<NotificationDto[]>("/api/notifications"),
+  getReport: (filters: { from: string; to: string; mediaId?: string; playlistId?: string; screenId?: string; companyId?: string }) =>
+    request<ReportDto>(`/api/reports${query(filters)}`),
+  reportExportUrl: (
+    format: "pdf" | "xlsx",
+    filters: { from: string; to: string; mediaId?: string; playlistId?: string; screenId?: string; companyId?: string }
+  ) => `/api/reports/export${query({ ...filters, format })}`
 };
 
 export type { RemoteControlKey };
 
 export function getApiErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
-    return error.message;
+    const details = error.details as { fieldErrors?: Record<string, string[]>; formErrors?: string[] } | undefined;
+    const fieldMessage = details?.fieldErrors ? Object.values(details.fieldErrors).flat()[0] : undefined;
+    const formMessage = details?.formErrors?.[0];
+    return fieldMessage ?? formMessage ?? error.message;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "Algo deu errado.";
-}
-
-interface DemoStore {
-  media: MediaDto[];
-  playlists: PlaylistDto[];
-  screens: ScreenDto[];
-  mirrorSessions: ScreenMirrorSessionDto[];
-  mirrorCandidates: ScreenMirrorCandidateDto[];
-}
-
-function demoLogin(email: string, password: string): Promise<LoginResponse> {
-  if (email !== "admin@dialindooh.local" || password !== "Admin123!") {
-    return Promise.reject(new ApiClientError("Email ou senha inválidos.", 401, "invalid_credentials"));
-  }
-
-  return Promise.resolve({
-    token: "demo-token",
-    user: {
-      id: "demo-admin",
-      name: "Administrador de demonstração",
-      email,
-      role: "admin"
-    }
-  });
-}
-
-const demoApi = {
-  listMedia: async () => getDemoStore().media,
-  createMediaUploadUrl: async (input: MediaUploadUrlInput) => ({
-    provider: "demo" as const,
-    bucket: "demo",
-    path: `uploads/${encodeURIComponent(input.fileName)}`,
-    token: "demo-token",
-    signedUrl: "",
-    publicUrl: URL.createObjectURL(new File([], input.fileName, { type: input.mimeType }))
-  }),
-  createMedia: async (input: MediaCreateInput) => {
-    const store = getDemoStore();
-    const now = new Date().toISOString();
-    const media: MediaDto = {
-      id: createId("media"),
-      title: input.title,
-      type: input.type,
-      fileUrl: input.fileUrl,
-      mimeType: input.mimeType,
-      sizeBytes: input.sizeBytes,
-      durationSeconds: input.durationSeconds ?? null,
-      status: "ready",
-      orientation: input.orientation ?? "auto",
-      rotationDegrees: input.rotationDegrees ?? 0,
-      processingError: null,
-      readyAt: now,
-      createdAt: now,
-      updatedAt: now
-    };
-    store.media.unshift(media);
-    saveDemoStore(store);
-    return media;
-  },
-  deleteMedia: async (id: string) => {
-    const store = getDemoStore();
-    store.media = store.media.filter((item) => item.id !== id);
-    store.playlists = store.playlists.map((playlist) => ({
-      ...playlist,
-      items: playlist.items.filter((item) => item.mediaId !== id)
-    }));
-    saveDemoStore(store);
-    return { id };
-  },
-  updateMedia: async (id: string, input: { title?: string; orientation?: MediaOrientation; rotationDegrees?: MediaRotation }) => {
-    const store = getDemoStore();
-    const media = store.media.find((item) => item.id === id);
-    if (!media) throw new ApiClientError("Mídia não encontrada.", 404);
-    const updated = {
-      ...media,
-      title: input.title ?? media.title,
-      orientation: input.orientation ?? media.orientation,
-      rotationDegrees: input.rotationDegrees ?? media.rotationDegrees,
-      updatedAt: new Date().toISOString()
-    };
-    store.media = store.media.map((item) => (item.id === id ? updated : item));
-    store.playlists = store.playlists.map((playlist) => ({
-      ...playlist,
-      items: playlist.items.map((item) => (item.mediaId === id ? { ...item, media: updated } : item))
-    }));
-    saveDemoStore(store);
-    return updated;
-  },
-  listPlaylists: async () => getDemoStore().playlists,
-  createPlaylist: async (input: PlaylistCreateInput) => {
-    const store = getDemoStore();
-    const now = new Date().toISOString();
-    const playlist: PlaylistDto = {
-      id: createId("playlist"),
-      name: input.name,
-      description: input.description ?? null,
-      isActive: input.isActive ?? true,
-      scheduledStartAt: input.scheduledStartAt ?? null,
-      scheduledEndAt: input.scheduledEndAt ?? null,
-      items: [],
-      createdAt: now,
-      updatedAt: now
-    };
-    store.playlists.unshift(playlist);
-    saveDemoStore(store);
-    return playlist;
-  },
-  getPlaylist: async (id: string) => findPlaylist(id),
-  updatePlaylist: async (id: string, input: Partial<PlaylistCreateInput>) => {
-    const store = getDemoStore();
-    let updated = findPlaylist(id, store);
-    updated = {
-      ...updated,
-      ...input,
-      description: input.description === undefined ? updated.description : input.description ?? null,
-      updatedAt: new Date().toISOString()
-    };
-    store.playlists = store.playlists.map((playlist) => (playlist.id === id ? updated : playlist));
-    saveDemoStore(store);
-    return updated;
-  },
-  addPlaylistItem: async (
-    playlistId: string,
-    input: { mediaId: string; order?: number; displayDurationSeconds?: number | null }
-  ) => {
-    const store = getDemoStore();
-    const media = store.media.find((item) => item.id === input.mediaId);
-    if (!media) throw new ApiClientError("Mídia não encontrada.", 404);
-    const playlist = findPlaylist(playlistId, store);
-    const item = {
-      id: createId("item"),
-      mediaId: media.id,
-      order: playlist.items.length + 1,
-      displayDurationSeconds: media.type === "image" ? input.displayDurationSeconds ?? 10 : null,
-      media
-    };
-    return replacePlaylist(store, { ...playlist, items: [...playlist.items, item], updatedAt: new Date().toISOString() });
-  },
-  updatePlaylistItem: async (playlistId: string, itemId: string, input: { displayDurationSeconds: number | null }) => {
-    const store = getDemoStore();
-    const playlist = findPlaylist(playlistId, store);
-    return replacePlaylist(store, {
-      ...playlist,
-      items: playlist.items.map((item) =>
-        item.id === itemId ? { ...item, displayDurationSeconds: input.displayDurationSeconds } : item
-      ),
-      updatedAt: new Date().toISOString()
-    });
-  },
-  reorderPlaylistItems: async (playlistId: string, items: Array<{ id: string; order: number }>) => {
-    const store = getDemoStore();
-    const playlist = findPlaylist(playlistId, store);
-    const orderById = new Map(items.map((item) => [item.id, item.order]));
-    return replacePlaylist(store, {
-      ...playlist,
-      items: playlist.items
-        .map((item) => ({ ...item, order: orderById.get(item.id) ?? item.order }))
-        .sort((left, right) => left.order - right.order),
-      updatedAt: new Date().toISOString()
-    });
-  },
-  deletePlaylistItem: async (playlistId: string, itemId: string) => {
-    const store = getDemoStore();
-    const playlist = findPlaylist(playlistId, store);
-    return replacePlaylist(store, {
-      ...playlist,
-      items: playlist.items
-        .filter((item) => item.id !== itemId)
-        .map((item, index) => ({ ...item, order: index + 1 })),
-      updatedAt: new Date().toISOString()
-    });
-  },
-  deletePlaylist: async (id: string) => {
-    const store = getDemoStore();
-    findPlaylist(id, store);
-    store.playlists = store.playlists.filter((playlist) => playlist.id !== id);
-    store.screens = store.screens.map((screen) => ({
-      ...screen,
-      activePlaylistId: screen.activePlaylistId === id ? null : screen.activePlaylistId
-    }));
-    saveDemoStore(store);
-    return { id };
-  },
-  listScreens: async () => getDemoStore().screens,
-  createScreen: async (input: ScreenCreateInput) => {
-    const store = getDemoStore();
-    const now = new Date().toISOString();
-    const screen: ScreenDto = {
-      id: createId("screen"),
-      name: input.name,
-      slug: input.slug || slugify(input.name),
-      location: input.location ?? null,
-      orientation: input.orientation ?? "landscape",
-      activationCode: createActivationCode(),
-      deviceKeyRegistered: false,
-      status: "offline",
-      activePlaylistId: null,
-      lastSeenAt: null,
-      lastHeartbeatAt: null,
-      createdAt: now,
-      updatedAt: now
-    };
-    store.screens.unshift(screen);
-    saveDemoStore(store);
-    return screen;
-  },
-  getScreen: async (id: string) => {
-    const store = getDemoStore();
-    const screen = findScreen(id, store);
-    const playlist = screen.activePlaylistId ? findPlaylist(screen.activePlaylistId, store) : null;
-    return {
-      ...screen,
-      activeAssignment: playlist
-        ? {
-            id: "demo-assignment",
-            screenId: screen.id,
-            playlistId: playlist.id,
-            isActive: true,
-            assignedAt: screen.updatedAt,
-            playlist
-          }
-        : null,
-      lastHeartbeat: screen.lastSeenAt
-        ? {
-            id: "demo-heartbeat",
-            screenId: screen.id,
-            status: screen.status,
-            appVersion: "0.1.0-demo",
-            ipAddress: "192.168.0.40",
-            currentMediaId: playlist?.items[0]?.mediaId ?? null,
-            currentPlaylistItemId: playlist?.items[0]?.id ?? null,
-            playbackPositionSeconds: 3,
-            playbackDurationSeconds: playlist?.items[0]?.displayDurationSeconds ?? playlist?.items[0]?.media.durationSeconds ?? null,
-            playbackState: "playing" as const,
-            currentMedia: playlist?.items[0]?.media ?? null,
-            sentAt: screen.lastSeenAt
-          }
-        : null,
-      recentEvents: [],
-      recentCommands: []
-    };
-  },
-  updateScreen: async (id: string, input: Partial<ScreenCreateInput> & { playlistId?: string | null; status?: string }) => {
-    const store = getDemoStore();
-    const screen = findScreen(id, store);
-    const updated: ScreenDto = {
-      ...screen,
-      name: input.name ?? screen.name,
-      slug: input.slug ?? screen.slug,
-      location: input.location === undefined ? screen.location : input.location,
-      orientation: input.orientation ?? screen.orientation,
-      activePlaylistId: input.playlistId === undefined ? screen.activePlaylistId : input.playlistId,
-      status: input.status === "online" || input.status === "offline" ? input.status : screen.status,
-      updatedAt: new Date().toISOString()
-    };
-    store.screens = store.screens.map((item) => (item.id === id ? updated : item));
-    saveDemoStore(store);
-    return updated;
-  },
-  deleteScreen: async (id: string) => {
-    const store = getDemoStore();
-    findScreen(id, store);
-    store.screens = store.screens.filter((item) => item.id !== id);
-    store.mirrorSessions = store.mirrorSessions.filter((session) => session.screenId !== id);
-    store.mirrorCandidates = store.mirrorCandidates.filter((candidate) =>
-      store.mirrorSessions.some((session) => session.id === candidate.sessionId)
-    );
-    saveDemoStore(store);
-    return { id };
-  },
-  createScreenMirrorSession: async (screenId: string) => {
-    const store = getDemoStore();
-    findScreen(screenId, store);
-    const now = new Date().toISOString();
-    const session: ScreenMirrorSessionDto = {
-      id: createId("mirror"),
-      screenId,
-      status: "requested",
-      requestedById: "demo-admin",
-      offer: null,
-      answer: null,
-      errorMessage: null,
-      createdAt: now,
-      updatedAt: now,
-      endedAt: null
-    };
-    store.mirrorSessions.unshift(session);
-    saveDemoStore(store);
-    return session;
-  },
-  getScreenMirrorSession: async (_screenId: string, sessionId: string) => findMirrorSession(sessionId),
-  updateScreenMirrorSession: async (
-    _screenId: string,
-    sessionId: string,
-    input: Partial<Pick<ScreenMirrorSessionDto, "status" | "offer" | "answer" | "errorMessage">>
-  ) => {
-    const store = getDemoStore();
-    const session = findMirrorSession(sessionId, store);
-    const updated: ScreenMirrorSessionDto = {
-      ...session,
-      ...input,
-      updatedAt: new Date().toISOString(),
-      endedAt: input.status === "ended" || input.status === "failed" ? new Date().toISOString() : session.endedAt
-    };
-    store.mirrorSessions = store.mirrorSessions.map((item) => (item.id === sessionId ? updated : item));
-    saveDemoStore(store);
-    return updated;
-  },
-  listScreenMirrorCandidates: async (_screenId: string, sessionId: string) =>
-    getDemoStore().mirrorCandidates.filter((candidate) => candidate.sessionId === sessionId),
-  createScreenMirrorCandidate: async (
-    _screenId: string,
-    sessionId: string,
-    input: Pick<ScreenMirrorCandidateDto, "peer" | "candidate">
-  ) => {
-    const store = getDemoStore();
-    findMirrorSession(sessionId, store);
-    const candidate: ScreenMirrorCandidateDto = {
-      id: createId("candidate"),
-      sessionId,
-      peer: input.peer,
-      candidate: input.candidate,
-      createdAt: new Date().toISOString()
-    };
-    store.mirrorCandidates.push(candidate);
-    saveDemoStore(store);
-    return candidate;
-  }
-};
-
-function getDemoStore(): DemoStore {
-  const rawStore = window.localStorage.getItem(DEMO_STORE_KEY);
-  if (rawStore) {
-    const store = JSON.parse(rawStore) as Partial<DemoStore>;
-    return {
-      media: store.media ?? [],
-      playlists: store.playlists ?? [],
-      screens: store.screens ?? [],
-      mirrorSessions: store.mirrorSessions ?? [],
-      mirrorCandidates: store.mirrorCandidates ?? []
-    };
-  }
-  const store = createInitialDemoStore();
-  saveDemoStore(store);
-  return store;
-}
-
-function saveDemoStore(store: DemoStore) {
-  window.localStorage.setItem(DEMO_STORE_KEY, JSON.stringify(store));
-}
-
-function createInitialDemoStore(): DemoStore {
-  const now = new Date().toISOString();
-  const welcomeMedia: MediaDto = {
-    id: "media-welcome",
-    title: "Imagem de boas-vindas",
-    type: "image",
-    fileUrl: "https://cdn.example.com/demo/welcome.jpg",
-    mimeType: "image/jpeg",
-    sizeBytes: 420000,
-    durationSeconds: null,
-    status: "ready",
-    orientation: "landscape",
-    rotationDegrees: 0,
-    processingError: null,
-    readyAt: now,
-    createdAt: now,
-    updatedAt: now
-  };
-  const promoMedia: MediaDto = {
-    id: "media-promo",
-    title: "Vídeo promocional",
-    type: "video",
-    fileUrl: "https://cdn.example.com/demo/promo.mp4",
-    mimeType: "video/mp4",
-    sizeBytes: 8400000,
-    durationSeconds: 30,
-    status: "ready",
-    orientation: "landscape",
-    rotationDegrees: 0,
-    processingError: null,
-    readyAt: now,
-    createdAt: now,
-    updatedAt: now
-  };
-  const menuMedia: MediaDto = {
-    id: "media-menu",
-    title: "Cardápio digital",
-    type: "image",
-    fileUrl: "https://cdn.example.com/demo/menu.jpg",
-    mimeType: "image/jpeg",
-    sizeBytes: 610000,
-    durationSeconds: null,
-    status: "ready",
-    orientation: "portrait",
-    rotationDegrees: 0,
-    processingError: null,
-    readyAt: now,
-    createdAt: now,
-    updatedAt: now
-  };
-  const media: MediaDto[] = [
-    welcomeMedia,
-    promoMedia,
-    menuMedia
-  ];
-  const playlist: PlaylistDto = {
-    id: "playlist-lobby",
-    name: "Playlist de demonstração da recepção",
-    description: "Playlist de exemplo para a tela de demonstração.",
-    isActive: true,
-    scheduledStartAt: null,
-    scheduledEndAt: null,
-    createdAt: now,
-    updatedAt: now,
-    items: [
-      { id: "item-welcome", mediaId: welcomeMedia.id, order: 1, displayDurationSeconds: 10, media: welcomeMedia },
-      { id: "item-promo", mediaId: promoMedia.id, order: 2, displayDurationSeconds: null, media: promoMedia },
-      { id: "item-menu", mediaId: menuMedia.id, order: 3, displayDurationSeconds: 15, media: menuMedia }
-    ]
-  };
-
-  return {
-    media,
-    playlists: [playlist],
-    mirrorSessions: [],
-    mirrorCandidates: [],
-    screens: [
-      {
-        id: "screen-lobby",
-        name: "Tela de demonstração da recepção",
-        slug: "demo-lobby",
-        location: "Recepção",
-        orientation: "landscape",
-        activationCode: "DEMO01",
-        deviceKeyRegistered: false,
-        status: "online",
-        activePlaylistId: playlist.id,
-        lastSeenAt: now,
-        lastHeartbeatAt: now,
-        createdAt: now,
-        updatedAt: now
-      }
-    ]
-  };
-}
-
-function findPlaylist(id: string, store = getDemoStore()) {
-  const playlist = store.playlists.find((item) => item.id === id);
-  if (!playlist) throw new ApiClientError("Playlist não encontrada.", 404);
-  return playlist;
-}
-
-function replacePlaylist(store: DemoStore, playlist: PlaylistDto) {
-  store.playlists = store.playlists.map((item) => (item.id === playlist.id ? playlist : item));
-  saveDemoStore(store);
-  return playlist;
-}
-
-function findScreen(id: string, store = getDemoStore()) {
-  const screen = store.screens.find((item) => item.id === id);
-  if (!screen) throw new ApiClientError("Tela não encontrada.", 404);
-  return screen;
-}
-
-function findMirrorSession(id: string, store = getDemoStore()) {
-  const session = store.mirrorSessions.find((item) => item.id === id);
-  if (!session) throw new ApiClientError("Sessão de espelhamento não encontrada.", 404);
-  return session;
-}
-
-function createId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`;
-}
-
-function createActivationCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return "Ocorreu um erro inesperado.";
 }

@@ -1,146 +1,138 @@
 "use client";
 
-import { useEffect } from "react";
-import { Image, ListVideo, MonitorPlay, RadioTower, WifiOff } from "lucide-react";
+import Link from "next/link";
+import { Activity, FolderKanban, ListVideo, PlayCircle, Star, Tv } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
+import { BarChart, Gauge, monthLabel, Sparkline } from "@/components/admin/charts";
 import { ErrorBanner } from "@/components/admin/error-banner";
+import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/form";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { apiClient } from "@/lib/api-client";
-import { formatBytes, formatDate } from "@/lib/format";
-
-const SCREEN_STATUS_REFRESH_MS = 30 * 1000;
 
 export default function DashboardPage() {
-  const mediaQuery = useApiQuery(apiClient.listMedia, []);
-  const playlistsQuery = useApiQuery(apiClient.listPlaylists, []);
-  const screensQuery = useApiQuery(apiClient.listScreens, []);
-  const isLoading = mediaQuery.isLoading || playlistsQuery.isLoading || screensQuery.isLoading;
-  const media = mediaQuery.data ?? [];
-  const playlists = playlistsQuery.data ?? [];
-  const screens = screensQuery.data ?? [];
-  const onlineScreens = screens.filter((screen) => screen.status === "online");
-  const offlineScreens = screens.filter((screen) => screen.status === "offline");
-  const recentScreens = [...screens].sort(compareDates((screen) => screen.lastSeenAt)).slice(0, 5);
-  const latestMedia = [...media].sort(compareDates((item) => item.createdAt)).slice(0, 5);
-  const heartbeatActivity = [...screens]
-    .filter((screen) => screen.lastHeartbeatAt)
-    .sort(compareDates((screen) => screen.lastHeartbeatAt))
-    .slice(0, 5);
-  const error = mediaQuery.error ?? playlistsQuery.error ?? screensQuery.error;
-
-  useEffect(() => {
-    const interval = setInterval(() => void screensQuery.refresh({ silent: true }), SCREEN_STATUS_REFRESH_MS);
-    return () => clearInterval(interval);
-  }, [screensQuery.refresh]);
+  const dashboard = useApiQuery(apiClient.getDashboard, []);
+  const data = dashboard.data;
+  const onlinePct = data && data.screens.total ? (data.screens.online / data.screens.total) * 100 : 0;
+  const variation =
+    data && data.playsLastMonth ? Math.round(((data.playsThisMonth - data.playsLastMonth) / data.playsLastMonth) * 100) : null;
 
   return (
-    <AppShell>
-      {error ? <ErrorBanner message={error} /> : null}
-      {isLoading ? (
-        <DashboardSkeleton />
-      ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard label="Mídias" value={media.length} icon={Image} caption="Imagens e vídeos na biblioteca" />
-            <StatCard label="Playlists" value={playlists.length} icon={ListVideo} caption="Sequências de reprodução configuradas" />
-            <StatCard label="Telas" value={screens.length} icon={MonitorPlay} caption="Dispositivos cadastrados" />
-            <StatCard label="Online" value={onlineScreens.length} icon={RadioTower} caption="Reportando atividade agora" />
-            <StatCard label="Offline" value={offlineScreens.length} icon={WifiOff} caption="Sem sinal recente ou em atenção" />
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-3">
-            <Card className="bg-card/70 xl:col-span-1">
-              <CardHeader>
-                <CardTitle>Telas recentes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentScreens.map((screen) => (
-                  <div className="flex items-center justify-between gap-3" key={screen.id}>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{screen.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(screen.lastSeenAt)}</p>
-                    </div>
-                    <StatusBadge status={screen.status} />
-                  </div>
-                ))}
-                {recentScreens.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma tela cadastrada.</p> : null}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/70 xl:col-span-1">
-              <CardHeader>
-                <CardTitle>Últimas mídias enviadas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {latestMedia.map((item) => (
-                  <div className="flex items-center justify-between gap-3" key={item.id}>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {mediaTypeLabels[item.type]} · {formatBytes(item.sizeBytes)}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</p>
-                  </div>
-                ))}
-                {latestMedia.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma mídia enviada.</p> : null}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/70 xl:col-span-1">
-              <CardHeader>
-                <CardTitle>Últimos sinais das TVs</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {heartbeatActivity.map((screen) => (
-                  <div className="flex items-center justify-between gap-3" key={screen.id}>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{screen.name}</p>
-                      <p className="text-xs text-muted-foreground">{screen.slug}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{formatDate(screen.lastHeartbeatAt)}</p>
-                  </div>
-                ))}
-                {heartbeatActivity.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum sinal recebido ainda.</p> : null}
-              </CardContent>
-            </Card>
-          </div>
+    <AppShell description="Visão geral dos seus terminais e exibições." title="Início">
+      {dashboard.error ? <ErrorBanner message={dashboard.error} /> : null}
+      {dashboard.isLoading && !data ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          <LoadingSkeleton className="h-48" />
+          <LoadingSkeleton className="h-48" />
+          <LoadingSkeleton className="h-48" />
         </div>
-      )}
+      ) : null}
+      {data ? (
+        <div className="grid gap-5">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="bg-card/70">
+              <CardHeader>
+                <CardTitle className="text-base">Terminais online</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Gauge label={`${data.screens.online} de ${data.screens.total} terminais online`} percent={onlinePct} />
+              </CardContent>
+            </Card>
+            <Card className="bg-card/70">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Exibições no mês</CardTitle>
+                  {variation !== null ? <Badge tone={variation >= 0 ? "success" : "danger"}>{variation >= 0 ? "+" : ""}{variation}%</Badge> : null}
+                </div>
+                <p className="text-3xl font-semibold">{data.playsThisMonth.toLocaleString("pt-BR")}</p>
+              </CardHeader>
+              <CardContent>
+                <BarChart data={data.monthlyPlays.map((row) => ({ label: row.month, value: row.plays }))} formatLabel={monthLabel} height={90} />
+              </CardContent>
+            </Card>
+            <Card className="bg-card/70">
+              <CardHeader>
+                <CardTitle className="text-base">Saúde dos terminais</CardTitle>
+                <p className="text-xs text-muted-foreground">% de terminais que se comunicaram por dia (últimos 7 dias)</p>
+              </CardHeader>
+              <CardContent>
+                <Sparkline values={data.health.map((row) => row.onlinePct)} />
+                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                  {data.health.map((row) => (
+                    <span key={row.date}>{row.date.slice(8, 10)}/{row.date.slice(5, 7)}</span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard icon={Tv} label="Terminais" value={data.screens.total} caption={`${data.screens.offline} offline`} />
+            <StatCard icon={ListVideo} label="Mídias" value={data.mediaCount} />
+            <StatCard icon={FolderKanban} label="Grupos" value={data.playlistCount} />
+            <StatCard icon={PlayCircle} label="Exibições no mês passado" value={data.playsLastMonth.toLocaleString("pt-BR")} />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="bg-card/70">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Activity className="h-4 w-4 text-primary" /> Melhores terminais (30 dias)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {data.topScreens.length === 0 ? <p className="text-sm text-muted-foreground">Ainda não há exibições registradas.</p> : null}
+                {data.topScreens.map((screen, index) => (
+                  <Link className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/40" href={`/screens/${screen.id}`} key={screen.id}>
+                    <span className="w-5 text-sm text-muted-foreground">{index + 1}</span>
+                    <span className="flex-1 truncate text-sm">{screen.name}</span>
+                    <span className="text-sm font-semibold">{screen.plays.toLocaleString("pt-BR")}</span>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="bg-card/70">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Star className="h-4 w-4 text-secondary" /> Terminais favoritos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {data.favorites.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Marque terminais com a estrela para acompanhar aqui.</p>
+                ) : null}
+                {data.favorites.map((screen) => (
+                  <Link className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/40" href={`/screens/${screen.id}`} key={screen.id}>
+                    <span className="flex-1 truncate text-sm">{screen.name}</span>
+                    <StatusBadge status={screen.status} />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {data.notifications.length ? (
+            <Card className="bg-card/70">
+              <CardHeader>
+                <CardTitle className="text-base">Avisos</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {data.notifications.slice(0, 8).map((notification) => (
+                  <Link className="rounded-md border px-3 py-2 hover:bg-muted/40" href={notification.href ?? "#"} key={notification.id}>
+                    <p className={notification.level === "error" ? "text-sm font-medium text-red-300" : "text-sm font-medium text-amber-300"}>
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{notification.message}</p>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
     </AppShell>
   );
-}
-
-const mediaTypeLabels = {
-  image: "Imagem",
-  video: "Vídeo"
-};
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <LoadingSkeleton className="h-36" key={index} />
-        ))}
-      </div>
-      <div className="grid gap-6 xl:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <LoadingSkeleton className="h-80" key={index} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function compareDates<T>(getValue: (item: T) => string | null | undefined) {
-  return (left: T, right: T) => {
-    const leftTime = new Date(getValue(left) ?? 0).getTime();
-    const rightTime = new Date(getValue(right) ?? 0).getTime();
-    return rightTime - leftTime;
-  };
 }

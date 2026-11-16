@@ -1,19 +1,10 @@
 import { getDeviceKeyFromRequest } from "@/server/auth";
-import { handleRouteError, ok, validateParams } from "@/server/http";
-import { screenService } from "@/server/services/screenService";
-import { idParamsSchema } from "@/server/validation/schemas";
+import { apiRoute } from "@/server/http";
+import { deviceService } from "@/server/services/deviceService";
 
 export const runtime = "nodejs";
 
-interface RouteContext {
-  params: Promise<{ id: string }> | { id: string };
-}
-
-export async function GET(request: Request, context: RouteContext) {
-  try {
-    const params = validateParams(await context.params, idParamsSchema);
-    return ok(await screenService.getDevicePlaylist(params.id, getDeviceKeyFromRequest(request)));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+/** Formato antigo usado pelos APKs até 0.1.x. */
+export const GET = apiRoute<{ id: string }>(async (request, { id }) =>
+  deviceService.getLegacyPlaylist(id, getDeviceKeyFromRequest(request))
+);

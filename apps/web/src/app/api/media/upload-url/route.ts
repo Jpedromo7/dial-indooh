@@ -1,16 +1,14 @@
-import { requireAdmin } from "@/server/auth";
-import { handleRouteError, ok, readJson } from "@/server/http";
+import { requireUser } from "@/server/auth";
+import { apiRoute, readJson } from "@/server/http";
+import { enforceRateLimit } from "@/server/rateLimit";
 import { createMediaUploadUrl } from "@/server/storage/mediaStorage";
 import { mediaUploadUrlSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
-  try {
-    await requireAdmin(request);
-    const body = await readJson(request, mediaUploadUrlSchema);
-    return ok(await createMediaUploadUrl(body));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = apiRoute(async (request) => {
+  const ctx = await requireUser(request);
+  await enforceRateLimit(`upload:${ctx.user.id}`, 120, 60 * 60);
+  const body = await readJson(request, mediaUploadUrlSchema);
+  return createMediaUploadUrl(body);
+});
