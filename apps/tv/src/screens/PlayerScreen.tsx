@@ -4,6 +4,7 @@ import type { ScreenOrientation } from "@dialindooh/shared";
 import { COMMAND_POLL_MS, HEARTBEAT_MS, LIVE_PREVIEW_HEARTBEAT_MS, PLAYLIST_REFRESH_MS } from "../config/appConfig";
 import { BrandLogo } from "../components/BrandLogo";
 import { PlaylistController } from "../components/player/PlaylistController";
+import { ApiError } from "../services/apiClient";
 import { postHeartbeat } from "../services/heartbeat";
 import { hasPlayableItems, loadOfflinePlayback, syncPlaylist } from "../services/playlistSync";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
@@ -13,10 +14,11 @@ import type { DeviceSession, PlaybackStatus, RemoteKeyCommand, TvPlaylist } from
 import { getErrorMessage } from "../utils/errors";
 
 interface PlayerScreenProps {
+  onSessionExpired: () => Promise<void>;
   session: DeviceSession;
 }
 
-export function PlayerScreen({ session }: PlayerScreenProps) {
+export function PlayerScreen({ onSessionExpired, session }: PlayerScreenProps) {
   const [playlist, setPlaylist] = useState<TvPlaylist | null>(null);
   const [screenOrientation, setScreenOrientation] = useState<ScreenOrientation>("landscape");
   const [statusMessage, setStatusMessage] = useState("Carregando playlist");
@@ -41,6 +43,11 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
         message: `Playlist sincronizada com ${syncedPlayback.playlist?.items.length ?? 0} item(ns) reproduzível(is).`
       });
     } catch (error) {
+      if (isExpiredDeviceSession(error)) {
+        await onSessionExpired();
+        return;
+      }
+
       const offlinePlayback = await loadOfflinePlayback();
       setPlaylist(offlinePlayback.playlist);
       setScreenOrientation(offlinePlayback.screenOrientation);
@@ -51,7 +58,7 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
         message: getErrorMessage(error)
       });
     }
-  }, [session]);
+  }, [onSessionExpired, session]);
 
   useEffect(() => {
     void refreshPlaylist();
@@ -140,6 +147,13 @@ export function PlayerScreen({ session }: PlayerScreenProps) {
         </View>
       ) : null}
     </View>
+  );
+}
+
+function isExpiredDeviceSession(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    (error.code === "screen_not_found" || error.code === "invalid_device_key" || error.code === "device_key_required")
   );
 }
 

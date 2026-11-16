@@ -13,6 +13,7 @@ interface UploadUrlInput {
 }
 
 export interface MediaUploadUrl {
+  provider: "supabase" | "r2";
   bucket: string;
   path: string;
   token: string;
@@ -38,6 +39,7 @@ export async function createMediaUploadUrl(input: UploadUrlInput): Promise<Media
   }
 
   return {
+    provider: "supabase",
     bucket,
     path,
     token: data.token,

@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/server/auth";
 import { handleRouteError, ok, readJson } from "@/server/http";
-import { createMediaUploadUrl } from "@/server/storage/supabaseStorage";
+import { createMediaUploadUrl } from "@/server/storage/mediaStorage";
 import { mediaUploadUrlSchema } from "@/server/validation/schemas";
 
 export const runtime = "nodejs";

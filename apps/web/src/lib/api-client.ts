@@ -86,6 +86,7 @@ export interface MediaUploadUrlInput {
 }
 
 export interface MediaUploadUrlResponse {
+  provider?: "supabase" | "r2" | "demo";
   bucket: string;
   path: string;
   token: string;
@@ -270,6 +271,7 @@ function demoLogin(email: string, password: string): Promise<LoginResponse> {
 const demoApi = {
   listMedia: async () => getDemoStore().media,
   createMediaUploadUrl: async (input: MediaUploadUrlInput) => ({
+    provider: "demo" as const,
     bucket: "demo",
     path: `uploads/${encodeURIComponent(input.fileName)}`,
     token: "demo-token",

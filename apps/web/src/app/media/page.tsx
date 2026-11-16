@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { apiClient, getApiErrorMessage } from "@/lib/api-client";
 import { formatBytes, formatDate, formatDuration } from "@/lib/format";
-import { uploadFileToSupabaseStorage } from "@/lib/storage-client";
+import { uploadFileToStorage } from "@/lib/storage-client";
 
 export default function MediaPage() {
   const { toast } = useToast();
@@ -139,7 +139,7 @@ export default function MediaPage() {
       });
 
       setProgress(42);
-      await uploadFileToSupabaseStorage(file, uploadTarget);
+      await uploadFileToStorage(file, uploadTarget);
       setProgress(82);
 
       await apiClient.createMedia({
@@ -397,7 +397,7 @@ export default function MediaPage() {
                 {isUploading ? "Enviando..." : "Criar mídia"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Os arquivos são enviados ao Supabase Storage e publicados para reprodução nas TVs Android.
+                Os arquivos são enviados ao Cloudflare R2 e publicados para reprodução nas TVs Android.
               </p>
             </form>
           </CardContent>

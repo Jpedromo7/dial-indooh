@@ -6,7 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { ActivationScreen } from "./src/screens/ActivationScreen";
 import { LoadingScreen } from "./src/screens/LoadingScreen";
 import { PlayerScreen } from "./src/screens/PlayerScreen";
-import { getDeviceSession } from "./src/storage/deviceStorage";
+import { clearDeviceSession, getDeviceSession } from "./src/storage/deviceStorage";
 import type { DeviceSession } from "./src/types/signage";
 
 export default function App() {
@@ -46,10 +46,19 @@ export default function App() {
     );
   }
 
+  const handleSessionExpired = async () => {
+    await clearDeviceSession();
+    setSession(null);
+  };
+
   return (
     <>
       <StatusBar hidden />
-      {session ? <PlayerScreen session={session} /> : <ActivationScreen onActivated={setSession} />}
+      {session ? (
+        <PlayerScreen onSessionExpired={handleSessionExpired} session={session} />
+      ) : (
+        <ActivationScreen onActivated={setSession} />
+      )}
     </>
   );
 }

@@ -13,3 +13,9 @@ android
 ios
 
 .vercel
+
+# local artifacts
+artifacts/
+desktop.ini
+*.apk
+apps/tv/dist/
