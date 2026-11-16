@@ -61,9 +61,8 @@ export default function DashboardPage() {
               <CardContent>
                 <Sparkline values={data.health.map((row) => row.onlinePct)} />
                 <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-                  {data.health.map((row) => (
-                    <span key={row.date}>{row.date.slice(8, 10)}/{row.date.slice(5, 7)}</span>
-                  ))}
+                  <span>{data.health[0]?.date.slice(8, 10)}/{data.health[0]?.date.slice(5, 7)}</span>
+                  <span>Hoje: {data.health.at(-1)?.onlinePct ?? 0}%</span>
                 </div>
               </CardContent>
             </Card>

@@ -70,7 +70,7 @@ export interface ScreenCommand {
 }
 
 export interface PlaybackStatus {
-  currentItem: TvPlaylistItem | null;
+  currentItem: { id: string; mediaId: string } | null;
   positionSeconds: number | null;
   durationSeconds: number | null;
   state: PlaybackState;
@@ -114,4 +114,27 @@ export interface HeartbeatInput {
   playbackDurationSeconds?: number | null;
   playbackState?: PlaybackState;
   sentAt: string;
+  diagnostics?: Record<string, unknown>;
+}
+
+/* ---------- Manifesto v2 ---------- */
+
+export type TvManifest = import("@dialindooh/shared").DeviceManifest;
+
+export type TvItem = import("@dialindooh/shared").ManifestItem & {
+  /** Caminho do arquivo baixado no aparelho (imagens e vídeos). */
+  localUri?: string;
+};
+
+export interface CachedManifestV2 {
+  manifest: TvManifest & { items: TvItem[] };
+  cachedAt: string;
+}
+
+export interface PlayLogEntry {
+  id: string;
+  mediaId: string;
+  playlistId: string | null;
+  startedAt: string;
+  durationSeconds: number;
 }

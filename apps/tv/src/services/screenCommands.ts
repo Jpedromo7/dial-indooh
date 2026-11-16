@@ -1,6 +1,6 @@
 import * as Updates from "expo-updates";
 import { acknowledgeScreenCommand, fetchScreenCommands } from "./apiClient";
-import { clearMediaCache } from "./mediaCache";
+import { clearAllMedia } from "./manifestSync";
 import { openOverlayPermissionSettings } from "./systemSettings";
 import type { RemoteControlKey } from "@dialindooh/shared";
 import type { DeviceSession, ScreenCommand } from "../types/signage";
@@ -30,7 +30,7 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
     }
 
     if (command.type === "clear_cache") {
-      await clearMediaCache();
+      await clearAllMedia();
       await handlers.refreshPlaylist();
     }
 

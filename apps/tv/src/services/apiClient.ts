@@ -43,6 +43,20 @@ export async function fetchDevicePlaylist(screenId: string, deviceKey: string) {
   });
 }
 
+export async function fetchDeviceManifest(screenId: string, deviceKey: string) {
+  return request<import("@dialindooh/shared").DeviceManifest>(`/screens/${screenId}/manifest`, {
+    headers: withDeviceKey(deviceKey)
+  });
+}
+
+export async function sendPlayLogs(screenId: string, deviceKey: string, plays: import("../types/signage").PlayLogEntry[]) {
+  return request<{ accepted: number }>(`/screens/${screenId}/plays`, {
+    method: "POST",
+    headers: withDeviceKey(deviceKey),
+    body: { plays }
+  });
+}
+
 export async function sendHeartbeat(screenId: string, deviceKey: string, input: HeartbeatInput) {
   return request(`/screens/${screenId}/heartbeat`, {
     method: "POST",

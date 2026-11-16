@@ -6,12 +6,13 @@ import { StatusBar } from "expo-status-bar";
 import { ActivationScreen } from "./src/screens/ActivationScreen";
 import { LoadingScreen } from "./src/screens/LoadingScreen";
 import { PlayerScreen } from "./src/screens/PlayerScreen";
-import { clearDeviceSession, getDeviceSession } from "./src/storage/deviceStorage";
+import { clearDeviceSession, getCachedBranding, getDeviceSession } from "./src/storage/deviceStorage";
 import type { DeviceSession } from "./src/types/signage";
 
 export default function App() {
   const [isBooting, setIsBooting] = useState(true);
   const [session, setSession] = useState<DeviceSession | null>(null);
+  const [splashUrl, setSplashUrl] = useState<string | null>(null);
 
   useEffect(() => {
     void activateKeepAwakeAsync();
@@ -27,8 +28,13 @@ export default function App() {
       }
     });
 
-    getDeviceSession()
-      .then(setSession)
+    getCachedBranding()
+      .then((branding) => setSplashUrl(branding?.splashUrl ?? null))
+      .catch(() => undefined);
+
+    // Mostra a abertura por pelo menos 1,5 s para a marca aparecer ao ligar a TV.
+    Promise.all([getDeviceSession(), new Promise((resolve) => setTimeout(resolve, 1500))])
+      .then(([storedSession]) => setSession(storedSession))
       .finally(() => setIsBooting(false));
 
     return () => {
@@ -41,7 +47,7 @@ export default function App() {
     return (
       <>
         <StatusBar hidden />
-        <LoadingScreen />
+        <LoadingScreen splashUrl={splashUrl} />
       </>
     );
   }

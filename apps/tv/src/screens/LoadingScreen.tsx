@@ -1,11 +1,21 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { BrandLogo } from "../components/BrandLogo";
 
 interface LoadingScreenProps {
   message?: string;
+  splashUrl?: string | null;
 }
 
-export function LoadingScreen({ message = "Preparando reprodutor" }: LoadingScreenProps) {
+export function LoadingScreen({ message = "Preparando reprodutor", splashUrl }: LoadingScreenProps) {
+  if (splashUrl) {
+    return (
+      <View style={styles.screen}>
+        <Image resizeMode="contain" source={{ uri: splashUrl }} style={styles.splash} />
+        <ActivityIndicator color="#ffffff" size="large" style={styles.splashSpinner} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.topBand} />
@@ -23,6 +33,14 @@ export function LoadingScreen({ message = "Preparando reprodutor" }: LoadingScre
 }
 
 const styles = StyleSheet.create({
+  splash: {
+    height: "60%",
+    width: "60%"
+  },
+  splashSpinner: {
+    bottom: 48,
+    position: "absolute"
+  },
   brand: {
     color: "#f8fafc",
     fontSize: 36,

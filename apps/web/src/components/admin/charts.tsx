@@ -50,9 +50,9 @@ export function BarChart({
         })}
       </svg>
       <div className="mt-1 flex">
-        {data.map((item) => (
-          <span className="flex-1 truncate text-center text-[10px] text-muted-foreground" key={item.label}>
-            {formatLabel(item.label)}
+        {data.map((item, index) => (
+          <span className="flex-1 overflow-hidden text-center text-[10px] text-muted-foreground" key={item.label}>
+            {data.length <= 8 || index % 2 === data.length % 2 ? formatLabel(item.label) : " "}
           </span>
         ))}
       </div>

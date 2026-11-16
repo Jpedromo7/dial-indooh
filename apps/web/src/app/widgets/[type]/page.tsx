@@ -120,7 +120,7 @@ function WidgetPageContent() {
       <div className="grid gap-5 xl:grid-cols-[20rem_1fr]">
         <Card className="h-fit bg-card/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Seus {meta.title.toLowerCase()}</CardTitle>
+            <CardTitle className="text-base">Criados</CardTitle>
             <Button onClick={() => setEditing("new")} size="sm" type="button">
               <Plus className="h-4 w-4" /> Novo
             </Button>

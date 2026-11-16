@@ -14,9 +14,10 @@ interface VideoPlayerProps {
   onAdvanceCue: () => void;
   onError: () => void;
   onProgress: (positionSeconds: number) => void;
+  muted?: boolean;
 }
 
-export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, onProgress }: VideoPlayerProps) {
+export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, onProgress, muted = true }: VideoPlayerProps) {
   const hasAdvancedRef = useRef(false);
   const [stageBounds, setStageBounds] = useState<{ width: number; height: number } | null>(null);
   const [autoRotationDegrees, setAutoRotationDegrees] = useState<MediaRotation>(0);
@@ -32,6 +33,7 @@ export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, on
     },
     (createdPlayer) => {
       createdPlayer.loop = true;
+      createdPlayer.muted = muted;
       createdPlayer.keepScreenOnWhilePlaying = true;
       createdPlayer.timeUpdateEventInterval = VIDEO_PROGRESS_INTERVAL_SECONDS;
       createdPlayer.play();

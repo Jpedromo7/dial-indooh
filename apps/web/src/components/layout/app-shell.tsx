@@ -4,13 +4,11 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { AppHeader } from "@/components/admin/app-header";
 import { AppSidebar } from "@/components/admin/app-sidebar";
-import { SessionProvider } from "@/components/layout/session-context";
 
 export function AppShell({ children, title, description }: { children: React.ReactNode; title: string; description?: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <SessionProvider>
       <div className="min-h-screen lg:grid lg:grid-cols-[16rem_1fr]">
         <div className="hidden lg:block">
           <div className="sticky top-0 h-screen">
@@ -37,6 +35,5 @@ export function AppShell({ children, title, description }: { children: React.Rea
           <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">{children}</div>
         </main>
       </div>
-    </SessionProvider>
   );
 }
