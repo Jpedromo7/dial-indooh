@@ -20,7 +20,9 @@
     "prisma:studio": "prisma studio --schema prisma/schema.prisma",
     "db:seed": "prisma db seed --schema prisma/schema.prisma",
     "migrate:postgres": "node scripts/migrate-postgres.mjs",
-    "migrate:storage": "node scripts/migrate-storage-to-r2.mjs"
+    "migrate:storage": "node scripts/migrate-storage-to-r2.mjs",
+    "test": "npm test -w @dialindooh/web",
+    "migrate:v2": "node scripts/migrate-v2.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

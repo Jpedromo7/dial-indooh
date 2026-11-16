@@ -38,7 +38,7 @@ function LoginForm() {
     try {
       await apiClient.login(email, password);
       const next = searchParams.get("next");
-      router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
+      router.replace(next && isSafeRedirect(next) ? next : "/dashboard");
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
@@ -101,4 +101,9 @@ function LoginForm() {
       </div>
     </main>
   );
+}
+
+/** Aceita só caminhos internos ("/screens"), nunca "//site" ou "/\site". */
+function isSafeRedirect(path: string) {
+  return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\") && !path.includes(":");
 }
