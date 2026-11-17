@@ -144,7 +144,9 @@ function WidgetPageContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const list = useApiQuery(() => apiClient.listMedia({ type }), [type]);
+  const templates = useApiQuery(() => apiClient.listMedia({ type, library: true }), [type]);
   const [editing, setEditing] = useState<MediaDto | "new" | null>(null);
+  const [template, setTemplate] = useState<MediaDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MediaDto | null>(null);
 
   useEffect(() => {
@@ -172,7 +174,14 @@ function WidgetPageContent() {
         <Card className="h-fit bg-card/70">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Criados</CardTitle>
-            <Button onClick={() => setEditing("new")} size="sm" type="button">
+            <Button
+              onClick={() => {
+                setTemplate(null);
+                setEditing("new");
+              }}
+              size="sm"
+              type="button"
+            >
               <Plus className="h-4 w-4" /> Novo
             </Button>
           </CardHeader>
@@ -199,13 +208,36 @@ function WidgetPageContent() {
                 </IconButton>
               </div>
             ))}
+            {templates.data?.length ? (
+              <div className="mt-4 border-t pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Modelos prontos</p>
+                {templates.data.map((item) => (
+                  <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40" key={item.id}>
+                    <span className="h-7 w-2 rounded" style={{ background: ((item.config as { background?: string } | null)?.background as string) ?? "#333" }} />
+                    <p className="min-w-0 flex-1 truncate text-sm">{item.title}</p>
+                    <Button
+                      onClick={() => {
+                        setTemplate(item);
+                        setEditing("new");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      Usar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
         {editing ? (
           <WidgetEditor
-            key={editing === "new" ? "new" : editing.id}
+            key={editing === "new" ? `new-${template?.id ?? ""}` : editing.id}
             media={editing === "new" ? null : editing}
+            template={editing === "new" ? template : null}
             onCancel={() => {
               setEditing(null);
               router.replace(`/widgets/${type}`);
@@ -221,7 +253,13 @@ function WidgetPageContent() {
           <Card className="bg-card/40">
             <CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center">
               <p className="text-muted-foreground">Selecione um item ao lado ou crie um novo.</p>
-              <Button onClick={() => setEditing("new")} type="button">
+              <Button
+                onClick={() => {
+                  setTemplate(null);
+                  setEditing("new");
+                }}
+                type="button"
+              >
                 <Plus className="h-4 w-4" /> Criar {meta.title.toLowerCase()}
               </Button>
             </CardContent>
@@ -240,12 +278,31 @@ function WidgetPageContent() {
   );
 }
 
-function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaType; media: MediaDto | null; onCancel: () => void; onSaved: () => Promise<void> }) {
+function WidgetEditor({
+  type,
+  media,
+  template,
+  onCancel,
+  onSaved
+}: {
+  type: WidgetMediaType;
+  media: MediaDto | null;
+  /** Modelo da biblioteca usado para preencher um item novo. */
+  template?: MediaDto | null;
+  onCancel: () => void;
+  onSaved: () => Promise<void>;
+}) {
   const meta = META[type];
   const { toast } = useToast();
   const { companies, screens, screenIds } = useMediaFormData(true, media?.id ?? null);
-  const [base, setBase] = useState<BaseMediaState>(() => baseFromMedia(media, { title: meta.defaultTitle, durationSeconds: 15 }));
-  const [config, setConfig] = useState<Record<string, unknown>>(() => ({ ...meta.defaultConfig, ...((media?.config ?? {}) as Record<string, unknown>) }));
+  const [base, setBase] = useState<BaseMediaState>(() =>
+    baseFromMedia(media, { title: template?.title ?? meta.defaultTitle, durationSeconds: template?.durationSeconds ?? 15 })
+  );
+  const [config, setConfig] = useState<Record<string, unknown>>(() => ({
+    ...meta.defaultConfig,
+    ...((template?.config ?? {}) as Record<string, unknown>),
+    ...((media?.config ?? {}) as Record<string, unknown>)
+  }));
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
   const [isSaving, setIsSaving] = useState(false);
   const [quotes, setQuotes] = useState<CurrencyQuote[]>([]);
