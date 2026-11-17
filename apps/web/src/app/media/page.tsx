@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CloudSun, Clock, DollarSign, Film, Instagram, Link2, ListVideo, Megaphone, Newspaper, Pencil, Plus, Search, Trash2, Youtube } from "lucide-react";
+import { Cake, CalendarDays, CloudSun, Clock, QrCode, Quote, Timer, DollarSign, Film, Instagram, Link2, ListVideo, Megaphone, Newspaper, Pencil, Plus, Search, Trash2, Youtube } from "lucide-react";
 import { MEDIA_TYPE_LABELS, type MediaDto, type MediaType } from "@dialindooh/shared";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -25,7 +25,12 @@ const WIDGET_ROUTES: Partial<Record<MediaType, string>> = {
   weather: "/widgets/weather",
   rss: "/widgets/rss",
   notice: "/widgets/notice",
-  instagram: "/widgets/instagram"
+  instagram: "/widgets/instagram",
+  quote: "/widgets/quote",
+  countdown: "/widgets/countdown",
+  holidays: "/widgets/holidays",
+  birthdays: "/widgets/birthdays",
+  qrcode: "/widgets/qrcode"
 };
 
 export default function MediaPage() {
@@ -208,6 +213,11 @@ export default function MediaPage() {
           <ChooserLink href="/widgets/rss" icon={Newspaper} label="Notícias RSS" />
           <ChooserLink href="/widgets/notice" icon={Megaphone} label="Aviso" />
           <ChooserLink href="/widgets/instagram" icon={Instagram} label="Instagram" />
+          <ChooserLink href="/widgets/quote" icon={Quote} label="Frase do dia" />
+          <ChooserLink href="/widgets/countdown" icon={Timer} label="Contagem regressiva" />
+          <ChooserLink href="/widgets/holidays" icon={CalendarDays} label="Feriados" />
+          <ChooserLink href="/widgets/birthdays" icon={Cake} label="Aniversariantes" />
+          <ChooserLink href="/widgets/qrcode" icon={QrCode} label="QR Code" />
         </div>
       </Modal>
 

@@ -6,6 +6,7 @@ import { recordPlay } from "../../services/playLog";
 import type { PlaybackStatus, RemoteKeyCommand, TvItem, TvPlaylistItem } from "../../types/signage";
 import { ClockWidget, CurrencyWidget, InstagramWidget, NoticeWidget, RssWidget, WeatherWidget } from "../widgets/Widgets";
 import { WebContent } from "../widgets/WebContent";
+import { BirthdaysWidget, CountdownWidget, HolidaysWidget, QrCodeWidget, QuoteWidget } from "../widgets/ExtraWidgets";
 import { ImageDisplay } from "./ImageDisplay";
 import { VideoPlayer } from "./VideoPlayer";
 
@@ -225,6 +226,21 @@ export function ManifestPlayer({
       break;
     case "instagram":
       content = <InstagramWidget item={item} key={current.cycle} portrait={portrait} />;
+      break;
+    case "quote":
+      content = <QuoteWidget item={item} key={current.cycle} />;
+      break;
+    case "countdown":
+      content = <CountdownWidget item={item} key={current.cycle} />;
+      break;
+    case "holidays":
+      content = <HolidaysWidget item={item} key={current.cycle} />;
+      break;
+    case "birthdays":
+      content = <BirthdaysWidget item={item} key={current.cycle} timezone={timezone} />;
+      break;
+    case "qrcode":
+      content = <QrCodeWidget item={item} key={current.cycle} portrait={portrait} />;
       break;
     default:
       content = null;

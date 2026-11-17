@@ -228,3 +228,159 @@ export function FooterPreview({ config, weather }: { config: FooterConfig; weath
     </div>
   );
 }
+
+/* ---------- Tipos adicionais ---------- */
+
+export function QuotePreview({ config, text, portrait }: { config: { title?: string | null; background: string; color: string }; text: string; portrait?: boolean }) {
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <p className="mb-3 text-sm font-semibold uppercase tracking-widest opacity-80">{config.title || "Frase do dia"}</p>
+      <p className="font-bold leading-snug" style={{ fontSize: portrait ? 18 : 30 }}>
+        “{text}”
+      </p>
+    </Frame>
+  );
+}
+
+function countdownParts(target: string, now: Date) {
+  const diff = Math.max(0, new Date(target).getTime() - now.getTime());
+  return {
+    done: diff === 0,
+    days: Math.floor(diff / 86_400_000),
+    hours: Math.floor((diff % 86_400_000) / 3_600_000),
+    minutes: Math.floor((diff % 3_600_000) / 60_000),
+    seconds: Math.floor((diff % 60_000) / 1000)
+  };
+}
+
+export function CountdownPreview({
+  config,
+  portrait
+}: {
+  config: { title: string; target: string; finishedText?: string | null; background: string; color: string; imageUrl?: string | null };
+  portrait?: boolean;
+}) {
+  const now = useNow();
+  const parts = countdownParts(config.target, now);
+  const boxes: Array<[number, string]> = [
+    [parts.days, "dias"],
+    [parts.hours, "horas"],
+    [parts.minutes, "min"],
+    [parts.seconds, "seg"]
+  ];
+
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      {config.imageUrl ? <img alt="" className="mb-3 max-h-[25%] object-contain" src={config.imageUrl} /> : null}
+      <p className="mb-4 font-bold" style={{ fontSize: portrait ? 18 : 28 }}>
+        {config.title || "Contagem regressiva"}
+      </p>
+      {parts.done ? (
+        <p className="font-extrabold" style={{ fontSize: portrait ? 24 : 40 }}>
+          {config.finishedText || "Chegou o grande dia!"}
+        </p>
+      ) : (
+        <div className="flex gap-2">
+          {boxes.map(([value, label]) => (
+            <div className="min-w-[3.5rem] rounded-lg bg-white/15 px-2 py-2" key={label}>
+              <p className="font-extrabold tabular-nums" style={{ fontSize: portrait ? 22 : 36 }}>
+                {String(value).padStart(2, "0")}
+              </p>
+              <p className="text-xs uppercase opacity-80">{label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Frame>
+  );
+}
+
+export function HolidaysPreview({
+  config,
+  holidays,
+  portrait
+}: {
+  config: { title?: string | null; background: string; color: string };
+  holidays: Array<{ date: string; name: string; weekday: string; daysUntil: number }>;
+  portrait?: boolean;
+}) {
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <p className="mb-3 font-bold" style={{ fontSize: portrait ? 18 : 26 }}>
+        {config.title || "Próximos feriados"}
+      </p>
+      <div className="grid w-full gap-2">
+        {holidays.map((holiday) => (
+          <div className="flex items-center justify-between rounded-lg bg-white/15 px-3 py-2 text-left" key={holiday.date}>
+            <div>
+              <p className="font-semibold">{holiday.name}</p>
+              <p className="text-xs opacity-80">
+                {holiday.date.slice(8, 10)}/{holiday.date.slice(5, 7)} · {holiday.weekday}
+              </p>
+            </div>
+            <p className="text-sm font-bold">{holiday.daysUntil === 0 ? "Hoje" : `em ${holiday.daysUntil} dias`}</p>
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+export function BirthdaysPreview({
+  config,
+  portrait
+}: {
+  config: { title?: string | null; background: string; color: string; people: Array<{ name: string; day: number; month: number; role?: string | null }> };
+  portrait?: boolean;
+}) {
+  const month = new Date().getMonth() + 1;
+  const people = config.people.filter((person) => person.month === month).sort((left, right) => left.day - right.day);
+  const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
+
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <p className="text-4xl">🎉</p>
+      <p className="mb-3 font-bold capitalize" style={{ fontSize: portrait ? 18 : 26 }}>
+        {config.title || `Aniversariantes de ${monthName}`}
+      </p>
+      {people.length === 0 ? <p className="opacity-80">Nenhum aniversariante neste mês (não aparece na TV).</p> : null}
+      <div className="grid w-full grid-cols-2 gap-2">
+        {people.slice(0, 12).map((person) => (
+          <div className="rounded-lg bg-white/15 px-3 py-1.5 text-left" key={`${person.name}-${person.day}`}>
+            <p className="truncate font-semibold">{person.name}</p>
+            <p className="text-xs opacity-80">
+              Dia {person.day}
+              {person.role ? ` · ${person.role}` : ""}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+export function QrPreview({
+  config,
+  qrImage,
+  portrait
+}: {
+  config: { title: string; subtitle?: string | null; background: string; color: string };
+  qrImage: string | null;
+  portrait?: boolean;
+}) {
+  return (
+    <Frame background={config.background} color={config.color} portrait={portrait}>
+      <div className={cn("flex items-center gap-6", portrait ? "flex-col" : "flex-row")}>
+        <div className="rounded-xl bg-white p-2">
+          {qrImage ? <img alt="QR Code" className="h-32 w-32" src={qrImage} /> : <div className="h-32 w-32 bg-slate-200" />}
+        </div>
+        <div className={portrait ? "text-center" : "text-left"}>
+          <p className="font-extrabold" style={{ fontSize: portrait ? 20 : 30 }}>
+            {config.title || "Aponte a câmera"}
+          </p>
+          {config.subtitle ? <p className="mt-2 opacity-90">{config.subtitle}</p> : null}
+        </div>
+      </div>
+    </Frame>
+  );
+}

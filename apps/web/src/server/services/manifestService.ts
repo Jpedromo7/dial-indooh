@@ -1,7 +1,14 @@
 import crypto from "node:crypto";
 import type { Media, Playlist } from "@prisma/client";
+import QRCode from "qrcode";
 import {
   DEFAULT_FOOTER,
+  getZonedNow,
+  qrText,
+  type BirthdaysConfig,
+  type HolidaysConfig,
+  type QrCodeConfig,
+  type QuoteConfig,
   type CurrencyConfig,
   type DeviceManifest,
   type FooterConfig,
@@ -13,10 +20,24 @@ import {
 } from "@dialindooh/shared";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
-import { getCurrencyQuotes, getInstagramPosts, getRssItems, getWeather } from "@/server/services/externalData";
+import { CURIOSITIES, HEALTH_TIPS, MOTIVATIONAL, pickDaily } from "@/server/content/phrases";
+import { getCurrencyQuotes, getInstagramPosts, getRssItems, getUpcomingHolidays, getWeather } from "@/server/services/externalData";
 import { getMediaDurationSeconds, publicMediaConfig } from "@/server/utils/serializers";
 
 const FILE_TYPES = new Set(["image", "video"]);
+/** Tipos que só o app 2.1.0+ sabe exibir; versões antigas não recebem (evita tela preta). */
+const TYPES_SINCE_2_1 = new Set(["quote", "countdown", "holidays", "birthdays", "qrcode"]);
+
+function isOlderThan(version: string | undefined, minimum: string) {
+  if (!version) return false;
+  const left = version.split(".").map(Number);
+  const right = minimum.split(".").map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference !== 0) return difference < 0;
+  }
+  return false;
+}
 
 /** Monta o manifesto v2: lista final da tela, já com grupos expandidos, arquivo certo por orientação e dados dos widgets. */
 export async function buildDeviceManifest(screenId: string): Promise<DeviceManifest> {
@@ -56,8 +77,11 @@ export async function buildDeviceManifest(screenId: string): Promise<DeviceManif
   }
 
   const items: ManifestItem[] = [];
+  const appVersion = ((screen.lastHeartbeat ?? {}) as { appVersion?: string }).appVersion;
+  const legacyApp = isOlderThan(appVersion, "2.1.0");
 
   for (const entry of entries) {
+    if (legacyApp && TYPES_SINCE_2_1.has(entry.media.type)) continue;
     const manifestItem = await toManifestItem(entry, screen);
 
     if (manifestItem) {
@@ -104,7 +128,7 @@ export async function buildDeviceManifest(screenId: string): Promise<DeviceManif
 
 async function toManifestItem(
   entry: { key: string; media: Media; playlist: Playlist | null; durationOverride: number | null },
-  screen: { orientation: string; city: string | null; state: string | null }
+  screen: { orientation: string; city: string | null; state: string | null; timezone: string }
 ): Promise<ManifestItem | null> {
   const { media, playlist } = entry;
 
@@ -149,10 +173,42 @@ async function toManifestItem(
       data = { posts: token ? await getInstagramPosts(media.id, token, count) : [] };
       break;
     }
+    case "quote": {
+      const quoteConfig = config as QuoteConfig | null;
+      const today = getZonedNow(screen.timezone).date;
+      const list =
+        quoteConfig?.theme === "personalizado" && quoteConfig.phrases?.length
+          ? quoteConfig.phrases
+          : quoteConfig?.theme === "curiosidades"
+            ? CURIOSITIES
+            : quoteConfig?.theme === "saude"
+              ? HEALTH_TIPS
+              : MOTIVATIONAL;
+      data = { quote: { text: pickDaily(list, today, media.id.length) } };
+      break;
+    }
+    case "holidays": {
+      const today = getZonedNow(screen.timezone).date;
+      data = { holidays: await getUpcomingHolidays(today, (config as HolidaysConfig | null)?.count ?? 4) };
+      break;
+    }
+    case "birthdays": {
+      const month = Number(getZonedNow(screen.timezone).date.slice(5, 7));
+      const people = ((config as BirthdaysConfig | null)?.people ?? []).filter((person) => person.month === month);
+      if (people.length === 0) return null;
+      break;
+    }
+    case "qrcode": {
+      const qrConfig = config as QrCodeConfig | null;
+      const text = qrConfig ? qrText(qrConfig) : null;
+      data = { qrImage: text ? await QRCode.toDataURL(text, { margin: 1, width: 640, errorCorrectionLevel: "M" }) : null };
+      break;
+    }
     default:
       break;
   }
 
+  if (media.type === "holidays" && !data?.holidays?.length) return null;
   if (media.type === "rss" && !data?.rss?.length) return null;
   if (media.type === "instagram" && !data?.posts?.length) return null;
 

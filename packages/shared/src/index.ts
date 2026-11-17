@@ -1,6 +1,17 @@
 export type FileMediaType = "image" | "video";
 
-export type WidgetMediaType = "clock" | "currency" | "weather" | "rss" | "notice" | "instagram";
+export type WidgetMediaType =
+  | "clock"
+  | "currency"
+  | "weather"
+  | "rss"
+  | "notice"
+  | "instagram"
+  | "quote"
+  | "countdown"
+  | "holidays"
+  | "birthdays"
+  | "qrcode";
 
 export type MediaType = FileMediaType | "youtube" | "url" | WidgetMediaType;
 
@@ -14,7 +25,12 @@ export const MEDIA_TYPE_LABELS: Record<MediaType, string> = {
   weather: "Clima",
   rss: "Notícias RSS",
   notice: "Aviso",
-  instagram: "Instagram"
+  instagram: "Instagram",
+  quote: "Frase do dia",
+  countdown: "Contagem regressiva",
+  holidays: "Feriados",
+  birthdays: "Aniversariantes",
+  qrcode: "QR Code"
 };
 
 export type MediaStatus = "pending" | "processing" | "ready" | "failed";
@@ -130,6 +146,59 @@ export interface InstagramConfig {
   /** Indica se há token salvo (o token nunca sai do servidor). */
   connected?: boolean;
   tokenExpiresAt?: string | null;
+}
+
+export type QuoteTheme = "motivacional" | "curiosidades" | "saude" | "personalizado";
+
+export interface QuoteConfig {
+  theme: QuoteTheme;
+  title?: string | null;
+  /** Frases próprias (tema "personalizado"); uma por exibição, trocando a cada dia. */
+  phrases?: string[];
+  background: string;
+  color: string;
+}
+
+export interface CountdownConfig {
+  title: string;
+  /** Data/hora alvo (ISO). */
+  target: string;
+  finishedText?: string | null;
+  background: string;
+  color: string;
+  imageUrl?: string | null;
+}
+
+export interface HolidaysConfig {
+  title?: string | null;
+  count: number;
+  background: string;
+  color: string;
+}
+
+export interface BirthdayPerson {
+  name: string;
+  day: number;
+  month: number;
+  role?: string | null;
+}
+
+export interface BirthdaysConfig {
+  title?: string | null;
+  people: BirthdayPerson[];
+  background: string;
+  color: string;
+}
+
+export interface QrCodeConfig {
+  kind: "url" | "whatsapp" | "instagram" | "wifi" | "text";
+  value: string;
+  title: string;
+  subtitle?: string | null;
+  /** Wi-Fi: senha e tipo de segurança. */
+  wifiPassword?: string | null;
+  background: string;
+  color: string;
 }
 
 export interface YoutubeConfig {
@@ -473,6 +542,18 @@ export interface RssItem {
   publishedAt?: string | null;
 }
 
+export interface QuoteData {
+  text: string;
+  author?: string | null;
+}
+
+export interface HolidayItem {
+  date: string;
+  name: string;
+  weekday: string;
+  daysUntil: number;
+}
+
 export interface InstagramPost {
   id: string;
   imageUrl: string;
@@ -500,6 +581,10 @@ export interface ManifestItem {
     quotes?: CurrencyQuote[];
     rss?: RssItem[];
     posts?: InstagramPost[];
+    quote?: QuoteData | null;
+    holidays?: HolidayItem[];
+    /** QR Code pronto (PNG em data URL). */
+    qrImage?: string | null;
   } | null;
 }
 
@@ -607,3 +692,4 @@ export type ApiFailure = {
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 export * from "./schedule";
+export * from "./qr";

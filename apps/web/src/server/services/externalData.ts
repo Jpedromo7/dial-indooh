@@ -267,6 +267,39 @@ function toIso(value: string) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/* ---------- Feriados nacionais (BrasilAPI) ---------- */
+
+export async function getUpcomingHolidays(today: string, count: number) {
+  const year = Number(today.slice(0, 4));
+  const lists = await Promise.all(
+    [year, year + 1].map((value) =>
+      cached<Array<{ date: string; name: string }>>(`holidays:${value}`, 7 * 24 * 60 * 60, async () => {
+        const response = await fetchWithTimeout(`https://brasilapi.com.br/api/feriados/v1/${value}`);
+        return (await response.json()) as Array<{ date: string; name: string }>;
+      })
+    )
+  );
+  const weekdays = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+  const todayTime = new Date(`${today}T12:00:00Z`).getTime();
+
+  return lists
+    .flatMap((list) => list ?? [])
+    .filter((holiday) => Boolean(holiday?.date))
+    .filter((holiday) => holiday.date >= today)
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .filter((holiday, index, all) => all.findIndex((item) => item.date === holiday.date) === index)
+    .slice(0, count)
+    .map((holiday) => {
+      const time = new Date(`${holiday.date}T12:00:00Z`).getTime();
+      return {
+        date: holiday.date,
+        name: holiday.name,
+        weekday: weekdays[new Date(time).getUTCDay()] ?? "",
+        daysUntil: Math.round((time - todayTime) / 86_400_000)
+      };
+    });
+}
+
 /* ---------- Instagram (API oficial com login do Instagram) ---------- */
 
 export async function getInstagramPosts(mediaId: string, accessToken: string, count: number): Promise<InstagramPost[]> {

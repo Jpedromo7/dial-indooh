@@ -451,6 +451,7 @@ function AddItemModal({
   const media = useApiQuery(() => (open ? apiClient.listMedia() : Promise.resolve([] as MediaDto[])), [open]);
   const groups = useApiQuery(() => (open ? apiClient.listPlaylists() : Promise.resolve([] as PlaylistDto[])), [open]);
   const library = useApiQuery(() => (open ? apiClient.listPlaylists({ library: true }) : Promise.resolve([] as PlaylistDto[])), [open]);
+  const libraryMedia = useApiQuery(() => (open ? apiClient.listMedia({ library: true }) : Promise.resolve([] as MediaDto[])), [open]);
 
   useEffect(() => {
     if (open) {
@@ -460,22 +461,23 @@ function AddItemModal({
   }, [open]);
 
   const groupList = tab === "groups" ? groups.data ?? [] : library.data ?? [];
-  const filteredMedia = (media.data ?? []).filter((item) => item.title.toLowerCase().includes(search.toLowerCase()));
+  const mediaSource = tab === "library" ? libraryMedia.data ?? [] : media.data ?? [];
+  const filteredMedia = mediaSource.filter((item) => item.title.toLowerCase().includes(search.toLowerCase()));
   const filteredGroups = groupList.filter((item) => item.name.toLowerCase().includes(search.toLowerCase()));
 
   function confirm() {
     const added: DraftItem[] = [];
 
-    if (tab === "media") {
-      for (const id of selected) {
-        const item = media.data?.find((entry) => entry.id === id);
-        if (item) {
-          added.push(
-            toDraft({ id: `new-${id}-${Date.now()}`, order: 0, durationSeconds: null, mediaId: id, playlistId: null, media: item, playlist: null })
-          );
-        }
+    for (const id of selected) {
+      const item = tab !== "groups" ? mediaSource.find((entry) => entry.id === id) : undefined;
+      if (item) {
+        added.push(
+          toDraft({ id: `new-${id}-${Date.now()}`, order: 0, durationSeconds: null, mediaId: id, playlistId: null, media: item, playlist: null })
+        );
       }
-    } else {
+    }
+
+    if (tab !== "media") {
       for (const id of selected) {
         const group = groupList.find((entry) => entry.id === id);
         if (group) {
@@ -535,7 +537,7 @@ function AddItemModal({
           <Input className="max-w-xs flex-1" onChange={(event) => setSearch(event.target.value)} placeholder="Buscar" value={search} />
         </div>
         <div className="grid max-h-[50vh] gap-1 overflow-y-auto">
-          {tab === "media"
+          {tab !== "groups"
             ? filteredMedia.map((item) => {
                 const checked = selected.includes(item.id);
                 const missingOrientation =
@@ -555,7 +557,9 @@ function AddItemModal({
                   </label>
                 );
               })
-            : filteredGroups.map((group) => {
+            : null}
+          {tab !== "media"
+            ? filteredGroups.map((group) => {
                 const checked = selected.includes(group.id);
                 return (
                   <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-muted/40" key={group.id}>
@@ -570,8 +574,9 @@ function AddItemModal({
                     <span className="text-xs text-muted-foreground">{group.items.length} mídia(s)</span>
                   </label>
                 );
-              })}
-          {(tab === "media" ? filteredMedia.length : filteredGroups.length) === 0 ? (
+              })
+            : null}
+          {(tab === "media" ? filteredMedia.length : tab === "groups" ? filteredGroups.length : filteredMedia.length + filteredGroups.length) === 0 ? (
             <p className="p-4 text-center text-sm text-muted-foreground">Nada encontrado.</p>
           ) : null}
         </div>

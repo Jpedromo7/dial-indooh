@@ -22,13 +22,19 @@ import { ErrorBanner } from "@/components/admin/error-banner";
 import { describeSchedule, hasSchedule, IconButton, ImageUploadField } from "@/components/admin/pickers";
 import { BaseMediaFields, baseFromMedia, basePayload, useMediaFormData, type BaseMediaState } from "@/components/media/media-base";
 import {
+  BirthdaysPreview,
   ClockPreview,
+  CountdownPreview,
   CurrencyPreview,
+  HolidaysPreview,
+  QrPreview,
+  QuotePreview,
   InstagramPreview,
   NoticePreview,
   RssPreview,
   WeatherPreview
 } from "@/components/widgets/widget-preview";
+import { BirthdaysEditor, CountdownEditor, HolidaysEditor, QrEditor, QuoteEditor, useQrImage } from "@/components/widgets/extra-editors";
 import { useToast } from "@/components/feedback/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +78,51 @@ const META: Record<WidgetMediaType, { title: string; description: string; defaul
     description: "Últimas postagens de uma conta comercial ou de criador (atualiza 3x ao dia).",
     defaultTitle: "Instagram",
     defaultConfig: { postsCount: 1, background: "#111827", color: "#ffffff", profileImageUrl: null }
+  },
+  quote: {
+    title: "Frase do dia",
+    description: "Frase motivacional, curiosidade ou dica de saúde — muda sozinha todo dia.",
+    defaultTitle: "Frase do dia",
+    defaultConfig: { theme: "motivacional", title: "Frase do dia", phrases: [], background: "#0f766e", color: "#ffffff" }
+  },
+  countdown: {
+    title: "Contagem regressiva",
+    description: "Dias, horas e minutos para uma data: Natal, inauguração, promoção.",
+    defaultTitle: "Contagem regressiva",
+    defaultConfig: {
+      title: "Faltam para o Natal",
+      target: new Date(new Date().getFullYear(), 11, 25).toISOString(),
+      finishedText: "Feliz Natal!",
+      background: "#be123c",
+      color: "#ffffff",
+      imageUrl: null
+    }
+  },
+  holidays: {
+    title: "Feriados",
+    description: "Próximos feriados nacionais, atualizados automaticamente.",
+    defaultTitle: "Próximos feriados",
+    defaultConfig: { title: "Próximos feriados", count: 4, background: "#15803d", color: "#ffffff" }
+  },
+  birthdays: {
+    title: "Aniversariantes",
+    description: "Aniversariantes do mês (equipe, alunos, clientes). Só aparece quando há aniversariante.",
+    defaultTitle: "Aniversariantes do mês",
+    defaultConfig: { title: "", people: [], background: "#c026d3", color: "#ffffff" }
+  },
+  qrcode: {
+    title: "QR Code",
+    description: "QR Code para WhatsApp, Instagram, site ou Wi-Fi dos clientes.",
+    defaultTitle: "QR Code",
+    defaultConfig: {
+      kind: "whatsapp",
+      value: "",
+      title: "Fale com a gente no WhatsApp",
+      subtitle: "Aponte a câmera do celular",
+      wifiPassword: "",
+      background: "#1e293b",
+      color: "#ffffff"
+    }
   }
 };
 
@@ -202,6 +253,9 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
   const [rss, setRss] = useState<RssItem[]>([]);
   const [instagramToken, setInstagramToken] = useState("");
   const [instagramUser, setInstagramUser] = useState<string | null>(((media?.config as InstagramConfig | null)?.username as string | undefined) ?? null);
+  const [quoteText, setQuoteText] = useState("");
+  const [holidays, setHolidays] = useState<Array<{ date: string; name: string; weekday: string; daysUntil: number }>>([]);
+  const qrImage = useQrImage(type === "qrcode" ? config : {});
   const [rssSources, setRssSources] = useState<Array<{ id: string; name: string; url: string }>>([]);
   const set = (key: string, value: unknown) => setConfig((current) => ({ ...current, [key]: value }));
   const portrait = orientation === "portrait";
@@ -215,8 +269,8 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
   }, [type]);
 
   const previewKey = useMemo(
-    () => JSON.stringify({ c: config.currencies, city: config.city, state: config.state, url: config.url }),
-    [config.city, config.currencies, config.state, config.url]
+    () => JSON.stringify({ c: config.currencies, city: config.city, state: config.state, url: config.url, t: config.theme, p: config.phrases, n: config.count }),
+    [config.city, config.count, config.currencies, config.phrases, config.state, config.theme, config.url]
   );
 
   useEffect(() => {
@@ -229,6 +283,15 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
           .previewWidget({ type, city: (config.city as string) || "São Paulo", state: (config.state as string) || (config.city ? null : "SP") })
           .then((data) => setWeather(data.weather ?? null))
           .catch(() => setWeather(null));
+      }
+      if (type === "quote") {
+        apiClient
+          .previewWidget({ type, theme: config.theme as string, phrases: ((config.phrases as string[]) ?? []).filter(Boolean) })
+          .then((data) => setQuoteText(data.quote?.text ?? ""))
+          .catch(() => undefined);
+      }
+      if (type === "holidays") {
+        apiClient.previewWidget({ type, count: Number(config.count) || 4 }).then((data) => setHolidays(data.holidays ?? [])).catch(() => undefined);
       }
       if (type === "rss" && config.url) {
         apiClient.previewWidget({ type, url: config.url as string }).then((data) => setRss(data.rss ?? [])).catch(() => setRss([]));
@@ -267,6 +330,10 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
       }
     }
 
+    if (type === "quote") {
+      payloadConfig.phrases = ((config.phrases as string[]) ?? []).map((phrase) => phrase.trim()).filter(Boolean);
+    }
+
     if (type === "weather") {
       payloadConfig.city = (config.city as string) || null;
       payloadConfig.state = (config.state as string) || null;
@@ -298,6 +365,16 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
         return <RssPreview config={config as unknown as RssConfig} items={rss} portrait={portrait} />;
       case "notice":
         return <NoticePreview config={config as unknown as NoticeConfig} portrait={portrait} />;
+      case "quote":
+        return <QuotePreview config={config as never} portrait={portrait} text={quoteText || "Carregando frase..."} />;
+      case "countdown":
+        return <CountdownPreview config={config as never} portrait={portrait} />;
+      case "holidays":
+        return <HolidaysPreview config={config as never} holidays={holidays} portrait={portrait} />;
+      case "birthdays":
+        return <BirthdaysPreview config={config as never} portrait={portrait} />;
+      case "qrcode":
+        return <QrPreview config={config as never} portrait={portrait} qrImage={qrImage} />;
       case "instagram":
         return (
           <InstagramPreview
@@ -440,6 +517,12 @@ function WidgetEditor({ type, media, onCancel, onSaved }: { type: WidgetMediaTyp
               <ImageUploadField label="Foto do perfil" onChange={(url) => set("profileImageUrl", url)} value={(config.profileImageUrl as string) ?? null} />
             </>
           ) : null}
+
+          {type === "quote" ? <QuoteEditor config={config} set={set} /> : null}
+          {type === "countdown" ? <CountdownEditor config={config} set={set} /> : null}
+          {type === "holidays" ? <HolidaysEditor config={config} set={set} /> : null}
+          {type === "birthdays" ? <BirthdaysEditor config={config} set={set} /> : null}
+          {type === "qrcode" ? <QrEditor config={config} set={set} /> : null}
 
           <div className="grid grid-cols-2 gap-3">
             <ColorField label="Cor de fundo" onChange={(value) => set("background", value)} value={(config.background as string) ?? "#111827"} />

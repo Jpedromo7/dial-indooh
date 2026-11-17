@@ -4,6 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Cake,
+  CalendarDays,
+  QrCode,
+  Quote,
+  Timer,
   Building2,
   Clock,
   CloudSun,
@@ -48,7 +53,12 @@ const widgetNav: NavItem[] = [
   { href: "/widgets/weather", label: "Clima", icon: CloudSun },
   { href: "/widgets/rss", label: "Notícias RSS", icon: Newspaper },
   { href: "/widgets/notice", label: "Avisos", icon: Megaphone },
-  { href: "/widgets/instagram", label: "Instagram", icon: Instagram }
+  { href: "/widgets/instagram", label: "Instagram", icon: Instagram },
+  { href: "/widgets/quote", label: "Frase do dia", icon: Quote },
+  { href: "/widgets/countdown", label: "Contagem regressiva", icon: Timer },
+  { href: "/widgets/holidays", label: "Feriados", icon: CalendarDays },
+  { href: "/widgets/birthdays", label: "Aniversariantes", icon: Cake },
+  { href: "/widgets/qrcode", label: "QR Code", icon: QrCode }
 ];
 
 const adminNav: NavItem[] = [

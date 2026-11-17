@@ -249,8 +249,24 @@ export const apiClient = {
     request<ScreenMirrorCandidateDto>(`/api/screens/${screenId}/mirror-sessions/${sessionId}/candidates`, "POST", input),
 
   /* conteúdos dinâmicos */
-  previewWidget: (input: { type: "currency" | "weather" | "rss"; currencies?: string[]; city?: string | null; state?: string | null; url?: string; maxItems?: number }) =>
-    request<{ quotes?: CurrencyQuote[]; weather?: WeatherData | null; rss?: RssItem[] }>("/api/widgets/preview", "POST", input),
+  previewWidget: (input: {
+    type: "currency" | "weather" | "rss" | "quote" | "holidays";
+    currencies?: string[];
+    city?: string | null;
+    state?: string | null;
+    url?: string;
+    maxItems?: number;
+    theme?: string;
+    phrases?: string[];
+    count?: number;
+  }) =>
+    request<{
+      quotes?: CurrencyQuote[];
+      weather?: WeatherData | null;
+      rss?: RssItem[];
+      quote?: { text: string };
+      holidays?: Array<{ date: string; name: string; weekday: string; daysUntil: number }>;
+    }>("/api/widgets/preview", "POST", input),
   verifyInstagram: (accessToken: string) => request<{ username: string; id: string }>("/api/widgets/instagram", "POST", { accessToken }),
   listRssSources: () => request<Array<{ id: string; name: string; url: string; accountId: string | null }>>("/api/rss-sources"),
   createRssSource: (input: { name: string; url: string }) => request("/api/rss-sources", "POST", input),

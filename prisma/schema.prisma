@@ -30,6 +30,11 @@ enum MediaType {
   currency
   weather
   notice
+  quote
+  countdown
+  holidays
+  birthdays
+  qrcode
 }
 
 enum ScreenStatus {

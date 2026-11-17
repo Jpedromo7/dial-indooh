@@ -51,7 +51,23 @@ const slug = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use letras minúsculas, números e hífens.");
 
-export const mediaTypeSchema = z.enum(["image", "video", "youtube", "url", "clock", "currency", "weather", "rss", "notice", "instagram"]);
+export const mediaTypeSchema = z.enum([
+  "image",
+  "video",
+  "youtube",
+  "url",
+  "clock",
+  "currency",
+  "weather",
+  "rss",
+  "notice",
+  "instagram",
+  "quote",
+  "countdown",
+  "holidays",
+  "birthdays",
+  "qrcode"
+]);
 
 export const scheduleSchema = z.object({
   startsAt: optionalDateTime,
@@ -128,6 +144,57 @@ export const instagramConfigSchema = z.object({
   profileImageUrl: z.string().url().nullable().optional(),
   username: shortText(80),
   accessToken: z.string().trim().min(20).max(1000).optional()
+});
+
+export const quoteConfigSchema = z.object({
+  theme: z.enum(["motivacional", "curiosidades", "saude", "personalizado"]).default("motivacional"),
+  title: shortText(80),
+  phrases: z.array(z.string().trim().min(1).max(280)).max(100).default([]),
+  background: color.default("#0f766e"),
+  color: color.default("#ffffff")
+});
+
+export const countdownConfigSchema = z.object({
+  title: z.string().trim().min(1, "Informe o título.").max(120),
+  target: z.string().datetime({ offset: true }),
+  finishedText: shortText(160),
+  background: color.default("#be123c"),
+  color: color.default("#ffffff"),
+  imageUrl: z.string().url().nullable().optional()
+});
+
+export const holidaysConfigSchema = z.object({
+  title: shortText(80),
+  count: z.number().int().min(1).max(6).default(4),
+  background: color.default("#15803d"),
+  color: color.default("#ffffff")
+});
+
+export const birthdaysConfigSchema = z.object({
+  title: shortText(80),
+  people: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        day: z.number().int().min(1).max(31),
+        month: z.number().int().min(1).max(12),
+        role: shortText(60)
+      })
+    )
+    .max(500)
+    .default([]),
+  background: color.default("#c026d3"),
+  color: color.default("#ffffff")
+});
+
+export const qrcodeConfigSchema = z.object({
+  kind: z.enum(["url", "whatsapp", "instagram", "wifi", "text"]).default("url"),
+  value: z.string().trim().min(1, "Informe o conteúdo do QR Code.").max(500),
+  title: z.string().trim().min(1).max(120),
+  subtitle: shortText(200),
+  wifiPassword: shortText(120),
+  background: color.default("#1e293b"),
+  color: color.default("#ffffff")
 });
 
 export const youtubeConfigSchema = z.object({

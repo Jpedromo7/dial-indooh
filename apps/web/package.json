@@ -27,6 +27,7 @@
     "fast-xml-parser": "^5.2.5",
     "lucide-react": "^0.468.0",
     "next": "latest",
+    "qrcode": "^1.5.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "tailwind-merge": "^2.5.5",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",

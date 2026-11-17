@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Library, Pencil, Play, Plus, Trash2 } from "lucide-react";
-import type { PlaylistDto, ScreenDto } from "@dialindooh/shared";
+import { MEDIA_TYPE_LABELS, type MediaDto, type PlaylistDto, type ScreenDto } from "@dialindooh/shared";
 import { AppShell } from "@/components/layout/app-shell";
 import { useSession } from "@/components/layout/session-context";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -21,6 +21,8 @@ export default function LibraryPage() {
   const { toast } = useToast();
   const { session } = useSession();
   const library = useApiQuery(() => apiClient.listPlaylists({ library: true }), []);
+  const libraryMedia = useApiQuery(() => apiClient.listMedia({ library: true }), []);
+  const [includeMedia, setIncludeMedia] = useState<MediaDto | null>(null);
   const screens = useApiQuery(() => apiClient.listScreens(), []);
   const [includeTarget, setIncludeTarget] = useState<PlaylistDto | null>(null);
   const [screenIds, setScreenIds] = useState<string[]>([]);
@@ -36,6 +38,17 @@ export default function LibraryPage() {
       await apiClient.includePlaylistInScreens(includeTarget.id, screenIds);
       toast({ title: "Conteúdo incluído", description: `Adicionado em ${screenIds.length} terminal(is).`, variant: "success" });
       setIncludeTarget(null);
+    } catch (error) {
+      toast({ title: "Não foi possível incluir", description: getApiErrorMessage(error), variant: "error" });
+    }
+  }
+
+  async function includeMediaInScreens() {
+    if (!includeMedia || screenIds.length === 0) return;
+    try {
+      await apiClient.includeMediaInScreens(includeMedia.id, screenIds);
+      toast({ title: "Conteúdo incluído", description: `Adicionado em ${screenIds.length} terminal(is).`, variant: "success" });
+      setIncludeMedia(null);
     } catch (error) {
       toast({ title: "Não foi possível incluir", description: getApiErrorMessage(error), variant: "error" });
     }
@@ -64,7 +77,40 @@ export default function LibraryPage() {
       ) : null}
       {library.error ? <ErrorBanner message={library.error} /> : null}
       {library.isLoading && !library.data ? <LoadingSkeleton className="h-64" /> : null}
-      {library.data && groups.length === 0 ? (
+      {libraryMedia.data?.length ? (
+        <section className="mb-8">
+          <h2 className="mb-1 text-lg font-semibold text-primary">Conteúdos dinâmicos prontos</h2>
+          <p className="mb-3 text-sm text-muted-foreground">Atualizam sozinhos (hora, cotação, clima, notícias, frases, feriados). Escolha e inclua nos terminais.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {libraryMedia.data.map((item) => (
+              <div className="flex items-center gap-3 rounded-lg border bg-card/70 p-3" key={item.id}>
+                <span
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
+                  style={{ background: ((item.config as { background?: string } | null)?.background as string) ?? "#334155" }}
+                >
+                  {MEDIA_TYPE_LABELS[item.type].slice(0, 6).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">{MEDIA_TYPE_LABELS[item.type]}</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setScreenIds([]);
+                    setIncludeMedia(item);
+                  }}
+                  size="sm"
+                  type="button"
+                >
+                  Incluir
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {library.data && groups.length === 0 && !libraryMedia.data?.length ? (
         <EmptyState description="Em breve novos conteúdos prontos estarão disponíveis aqui." icon={Library} title="Biblioteca vazia" />
       ) : null}
 
@@ -141,6 +187,24 @@ export default function LibraryPage() {
         onClose={() => setIncludeTarget(null)}
         open={Boolean(includeTarget)}
         title={`Incluir “${includeTarget?.name}”`}
+      >
+        <ScreenPicker onChange={setScreenIds} screens={(screens.data ?? []) as ScreenDto[]} value={screenIds} />
+      </Modal>
+
+      <Modal
+        footer={
+          <>
+            <Button onClick={() => setIncludeMedia(null)} type="button" variant="ghost">
+              Cancelar
+            </Button>
+            <Button disabled={screenIds.length === 0} onClick={() => void includeMediaInScreens()} type="button">
+              Incluir
+            </Button>
+          </>
+        }
+        onClose={() => setIncludeMedia(null)}
+        open={Boolean(includeMedia)}
+        title={`Incluir “${includeMedia?.title}”`}
       >
         <ScreenPicker onChange={setScreenIds} screens={(screens.data ?? []) as ScreenDto[]} value={screenIds} />
       </Modal>

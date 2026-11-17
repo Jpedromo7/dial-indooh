@@ -170,7 +170,12 @@ const TYPE_COLORS: Record<string, string> = {
   notice: "bg-red-600",
   instagram: "bg-pink-600",
   youtube: "bg-red-700",
-  url: "bg-slate-600"
+  url: "bg-slate-600",
+  quote: "bg-teal-700",
+  countdown: "bg-rose-700",
+  holidays: "bg-green-700",
+  birthdays: "bg-fuchsia-600",
+  qrcode: "bg-slate-800"
 };
 
 const TYPE_SHORT: Record<string, string> = {
@@ -181,7 +186,12 @@ const TYPE_SHORT: Record<string, string> = {
   notice: "AVISO",
   instagram: "INSTA",
   youtube: "YT",
-  url: "WEB"
+  url: "WEB",
+  quote: "FRASE",
+  countdown: "CONTA",
+  holidays: "FERIAD",
+  birthdays: "NIVER",
+  qrcode: "QR"
 };
 
 export function MediaThumb({ media, className }: { media: Pick<MediaDto, "type" | "thumbnailUrl" | "fileUrl" | "fileUrlVertical" | "title" | "config">; className?: string }) {

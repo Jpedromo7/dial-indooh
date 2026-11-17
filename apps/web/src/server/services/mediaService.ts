@@ -6,6 +6,11 @@ import { ApiError } from "@/server/http";
 import { assertStorageUrl } from "@/server/storage/mediaStorage";
 import { serializeMedia } from "@/server/utils/serializers";
 import {
+  birthdaysConfigSchema,
+  countdownConfigSchema,
+  holidaysConfigSchema,
+  qrcodeConfigSchema,
+  quoteConfigSchema,
   clockConfigSchema,
   currencyConfigSchema,
   instagramConfigSchema,
@@ -303,6 +308,19 @@ async function parseWidgetConfig(type: MediaType, config: Record<string, unknown
     }
     case "url":
       return urlConfigSchema.parse(config);
+    case "quote":
+      return quoteConfigSchema.parse(config);
+    case "countdown": {
+      const parsed = countdownConfigSchema.parse(config);
+      assertStorageUrl(parsed.imageUrl, "imageUrl");
+      return parsed;
+    }
+    case "holidays":
+      return holidaysConfigSchema.parse(config);
+    case "birthdays":
+      return birthdaysConfigSchema.parse(config);
+    case "qrcode":
+      return qrcodeConfigSchema.parse(config);
     default:
       throw new ApiError(422, "invalid_media_type", "Tipo de mídia inválido.");
   }
