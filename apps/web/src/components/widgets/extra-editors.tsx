@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Plus, Trash2 } from "lucide-react";
-import { qrText, type BirthdayPerson, type QrCodeConfig } from "@dialindooh/shared";
+import { qrText, WIDGET_BACKGROUNDS, type BirthdayPerson, type QrCodeConfig } from "@dialindooh/shared";
 import { IconButton, ImageUploadField } from "@/components/admin/pickers";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
+import { cn } from "@/lib/utils";
 
 type Config = Record<string, unknown>;
 type Setter = (key: string, value: unknown) => void;
@@ -22,6 +23,8 @@ export function QuoteEditor({ config, set }: { config: Config; set: Setter }) {
           <option value="motivacional">Frase motivacional</option>
           <option value="curiosidades">Você sabia? (curiosidades)</option>
           <option value="saude">Dica de saúde</option>
+          <option value="academia">Academia: guarde os pesos e boas práticas</option>
+          <option value="treino">Academia: motivação de treino</option>
           <option value="personalizado">Minhas frases</option>
         </Select>
       </Field>
@@ -214,4 +217,45 @@ function toLocalInput(iso: string) {
   if (Number.isNaN(date.getTime())) return "";
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+/** Foto de fundo: galeria pronta (academia, saúde, geral) ou imagem própria. */
+export function BackgroundImageField({ value, onChange }: { value: string | null; onChange: (url: string | null) => void }) {
+  const isGallery = WIDGET_BACKGROUNDS.some((item) => item.url === value);
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">Foto de fundo</p>
+      <p className="text-xs text-muted-foreground">Chama mais atenção na TV. A cor de fundo fica por cima da foto para o texto continuar legível.</p>
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+        <button
+          aria-pressed={!value}
+          className={cn(
+            "flex aspect-video items-center justify-center rounded-md border text-xs text-muted-foreground transition hover:border-primary",
+            !value && "border-primary ring-2 ring-primary/40"
+          )}
+          onClick={() => onChange(null)}
+          type="button"
+        >
+          Sem foto
+        </button>
+        {WIDGET_BACKGROUNDS.map((item) => (
+          <button
+            aria-label={item.label}
+            aria-pressed={value === item.url}
+            className={cn(
+              "relative aspect-video overflow-hidden rounded-md border transition hover:border-primary",
+              value === item.url && "border-primary ring-2 ring-primary/40"
+            )}
+            key={item.id}
+            onClick={() => onChange(item.url)}
+            title={`${item.label} (${item.category})`}
+            type="button"
+          >
+            <img alt="" className="h-full w-full object-cover" loading="lazy" src={item.url.replace("w=1920", "w=320")} />
+          </button>
+        ))}
+      </div>
+      <ImageUploadField aspect="wide" hint="Ou envie uma foto sua (paisagem, até 1920 px)." label="Foto própria" onChange={onChange} value={value && !isGallery ? value : null} />
+    </div>
+  );
 }

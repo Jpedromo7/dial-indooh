@@ -103,18 +103,24 @@ export interface ScheduleDto {
 
 export interface ClockConfig {
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   logoUrl?: string | null;
 }
 
 export interface CurrencyConfig {
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   currencies: string[];
 }
 
 export interface WeatherConfig {
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   /** Cidade fixa; vazio usa a cidade cadastrada no terminal. */
   city?: string | null;
@@ -125,6 +131,8 @@ export interface RssConfig {
   url: string;
   source?: string | null;
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   logoUrl?: string | null;
   maxItems: number;
@@ -134,6 +142,8 @@ export interface NoticeConfig {
   text: string;
   subtitle?: string | null;
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   imageUrl?: string | null;
 }
@@ -149,7 +159,7 @@ export interface InstagramConfig {
   tokenExpiresAt?: string | null;
 }
 
-export type QuoteTheme = "motivacional" | "curiosidades" | "saude" | "personalizado";
+export type QuoteTheme = "motivacional" | "curiosidades" | "saude" | "academia" | "treino" | "personalizado";
 
 export interface QuoteConfig {
   theme: QuoteTheme;
@@ -157,6 +167,8 @@ export interface QuoteConfig {
   /** Frases próprias (tema "personalizado"); uma por exibição, trocando a cada dia. */
   phrases?: string[];
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
 }
 
@@ -166,6 +178,8 @@ export interface CountdownConfig {
   target: string;
   finishedText?: string | null;
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
   imageUrl?: string | null;
 }
@@ -174,6 +188,8 @@ export interface HolidaysConfig {
   title?: string | null;
   count: number;
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
 }
 
@@ -188,6 +204,8 @@ export interface BirthdaysConfig {
   title?: string | null;
   people: BirthdayPerson[];
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
 }
 
@@ -199,7 +217,46 @@ export interface QrCodeConfig {
   /** Wi-Fi: senha e tipo de segurança. */
   wifiPassword?: string | null;
   background: string;
+  /** Foto de fundo (opcional), escurecida para o texto continuar legível. */
+  backgroundImageUrl?: string | null;
   color: string;
+}
+
+/* ---------- Galeria de fotos de fundo dos conteúdos dinâmicos ---------- */
+
+export interface WidgetBackground {
+  id: string;
+  label: string;
+  category: "Academia" | "Saúde" | "Geral";
+  url: string;
+}
+
+/** Fotos livres (licença Unsplash: uso comercial gratuito, sem atribuição obrigatória). */
+const unsplash = (photo: string) => `https://images.unsplash.com/photo-${photo}?w=1920&q=70&fm=jpg&fit=crop`;
+
+export const WIDGET_BACKGROUNDS: WidgetBackground[] = [
+  { id: "halteres", label: "Halteres no suporte", category: "Academia", url: unsplash("1576678927484-cc907957088c") },
+  { id: "academia-escura", label: "Academia à noite", category: "Academia", url: unsplash("1778828494354-9b717d36dc99") },
+  { id: "barra", label: "Barra e anilhas", category: "Academia", url: unsplash("1521805103424-d8f8430e8933") },
+  { id: "equipamentos", label: "Equipamentos organizados", category: "Academia", url: unsplash("1771270786606-f5a0e57db762") },
+  { id: "treino-feminino", label: "Treino de força", category: "Academia", url: unsplash("1541534741688-6078c6bfb5c5") },
+  { id: "treino-masculino", label: "Levantamento", category: "Academia", url: unsplash("1605296867304-46d5465a13f1") },
+  { id: "esteiras", label: "Esteiras", category: "Academia", url: unsplash("1757924284732-4189190321cf") },
+  { id: "corrida", label: "Corrida", category: "Academia", url: unsplash("1480179087180-d9f0ec044897") },
+  { id: "agua", label: "Garrafa de água", category: "Saúde", url: unsplash("1523362628745-0c100150b504") },
+  { id: "hidratacao", label: "Hidratação", category: "Saúde", url: unsplash("1600679472233-eabc13b79f07") },
+  { id: "alimentacao", label: "Alimentação saudável", category: "Saúde", url: unsplash("1512621776951-a57141f2eefd") },
+  { id: "alongamento", label: "Alongamento", category: "Saúde", url: unsplash("1552196563-55cd4e45efb3") },
+  { id: "ceu", label: "Céu azul", category: "Geral", url: unsplash("1513002749550-c59d786b8e6c") },
+  { id: "cidade", label: "Cidade à noite", category: "Geral", url: unsplash("1605702012553-e954fbde66eb") },
+  { id: "moedas", label: "Moedas", category: "Geral", url: unsplash("1534951009808-766178b47a4f") },
+  { id: "calendario", label: "Calendário", category: "Geral", url: unsplash("1535981767287-35259dbf7d0e") },
+  { id: "festa", label: "Confete", category: "Geral", url: unsplash("1513151233558-d860c5398176") },
+  { id: "jornal", label: "Jornal", category: "Geral", url: unsplash("1504711434969-e33886168f5c") }
+];
+
+export function widgetBackground(id: string) {
+  return WIDGET_BACKGROUNDS.find((item) => item.id === id)?.url ?? null;
 }
 
 export interface YoutubeConfig {

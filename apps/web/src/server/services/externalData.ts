@@ -265,10 +265,12 @@ export function parseRss(xml: string): RssItem[] {
     .map((item: Record<string, any>) => {
       const rawDescription = textOf(item.description ?? item.summary ?? item.content ?? item["content:encoded"]);
       const title = cleanText(textOf(item.title));
+      const description = cleanText(rawDescription);
 
       return {
         title,
-        description: cleanText(rawDescription).slice(0, 280) || null,
+        // Alguns feeds (ex.: Google Notícias) repetem o título na descrição; aí não mostra duas vezes.
+        description: (description.startsWith(title.slice(0, 60)) ? "" : description).slice(0, 280) || null,
         imageUrl: findImage(item, rawDescription),
         publishedAt: toIso(textOf(item.pubDate ?? item.published ?? item.updated ?? item["dc:date"]))
       };

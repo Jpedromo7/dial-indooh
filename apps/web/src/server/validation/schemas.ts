@@ -104,18 +104,21 @@ export const passwordSchema = z
 
 export const clockConfigSchema = z.object({
   background: color.default("#1d4ed8"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   logoUrl: z.string().url().nullable().optional()
 });
 
 export const currencyConfigSchema = z.object({
   background: color.default("#6d28d9"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   currencies: z.array(z.enum(["USD", "EUR", "GBP", "ARS", "BTC"])).min(1).max(3).default(["USD"])
 });
 
 export const weatherConfigSchema = z.object({
   background: color.default("#0369a1"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   city: shortText(120),
   state: shortText(2)
@@ -125,6 +128,7 @@ export const rssConfigSchema = z.object({
   url: z.string().trim().url("Informe a URL do feed RSS."),
   source: shortText(80),
   background: color.default("#111827"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   logoUrl: z.string().url().nullable().optional(),
   maxItems: z.number().int().min(1).max(10).default(5)
@@ -134,6 +138,7 @@ export const noticeConfigSchema = z.object({
   text: z.string().trim().min(1, "Escreva o aviso.").max(280),
   subtitle: shortText(200),
   background: color.default("#b91c1c"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   imageUrl: z.string().url().nullable().optional()
 });
@@ -148,10 +153,11 @@ export const instagramConfigSchema = z.object({
 });
 
 export const quoteConfigSchema = z.object({
-  theme: z.enum(["motivacional", "curiosidades", "saude", "personalizado"]).default("motivacional"),
+  theme: z.enum(["motivacional", "curiosidades", "saude", "academia", "treino", "personalizado"]).default("motivacional"),
   title: shortText(80),
   phrases: z.array(z.string().trim().min(1).max(280)).max(100).default([]),
   background: color.default("#0f766e"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff")
 });
 
@@ -160,6 +166,7 @@ export const countdownConfigSchema = z.object({
   target: z.string().datetime({ offset: true }),
   finishedText: shortText(160),
   background: color.default("#be123c"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff"),
   imageUrl: z.string().url().nullable().optional()
 });
@@ -168,6 +175,7 @@ export const holidaysConfigSchema = z.object({
   title: shortText(80),
   count: z.number().int().min(1).max(6).default(4),
   background: color.default("#15803d"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff")
 });
 
@@ -185,6 +193,7 @@ export const birthdaysConfigSchema = z.object({
     .max(500)
     .default([]),
   background: color.default("#c026d3"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff")
 });
 
@@ -195,6 +204,7 @@ export const qrcodeConfigSchema = z.object({
   subtitle: shortText(200),
   wifiPassword: shortText(120),
   background: color.default("#1e293b"),
+  backgroundImageUrl: z.string().url().max(1000).nullable().optional(),
   color: color.default("#ffffff")
 });
 

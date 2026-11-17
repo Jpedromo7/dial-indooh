@@ -20,7 +20,7 @@ import {
 } from "@dialindooh/shared";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
-import { CURIOSITIES, HEALTH_TIPS, MOTIVATIONAL, pickDaily } from "@/server/content/phrases";
+import { pickQuote } from "@/server/content/phrases";
 import { getCurrencyQuotes, getInstagramPosts, getRssItems, getUpcomingHolidays, getWeather } from "@/server/services/externalData";
 import { getMediaDurationSeconds, publicMediaConfig } from "@/server/utils/serializers";
 
@@ -180,15 +180,7 @@ async function toManifestItem(
     case "quote": {
       const quoteConfig = config as QuoteConfig | null;
       const today = getZonedNow(screen.timezone).date;
-      const list =
-        quoteConfig?.theme === "personalizado" && quoteConfig.phrases?.length
-          ? quoteConfig.phrases
-          : quoteConfig?.theme === "curiosidades"
-            ? CURIOSITIES
-            : quoteConfig?.theme === "saude"
-              ? HEALTH_TIPS
-              : MOTIVATIONAL;
-      data = { quote: { text: pickDaily(list, today, media.id.length) } };
+      data = { quote: { text: pickQuote(quoteConfig?.theme, quoteConfig?.phrases, today, media.id.length) } };
       break;
     }
     case "holidays": {

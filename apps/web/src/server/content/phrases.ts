@@ -99,7 +99,86 @@ export const HEALTH_TIPS = [
   "Sol da manhã, com moderação, ajuda na produção de vitamina D."
 ];
 
+/** Avisos da casa para academias: guardar os pesos, etiqueta e cuidados. */
+export const GYM_RULES = [
+  "Usou? Guardou! Devolva halteres e anilhas ao suporte.",
+  "Anilhas no lugar certo: o próximo aluno agradece.",
+  "Terminou o exercício? Tire as anilhas da barra.",
+  "Halteres no suporte, na ordem do peso.",
+  "Academia organizada é treino mais rápido para todos.",
+  "Levou a toalha? Use no banco e nos aparelhos.",
+  "Limpe o aparelho depois de usar.",
+  "Reveze o aparelho: entre as séries, deixe o colega treinar junto.",
+  "Descanso entre séries não é hora de rede social no aparelho.",
+  "Não solte os pesos no chão: cuide do equipamento e de quem está perto.",
+  "Respeite o espaço de quem está treinando ao seu lado.",
+  "Dúvida no exercício? Chame um professor.",
+  "Use a carga certa: técnica antes de peso.",
+  "Hidrate-se: beba água antes, durante e depois do treino.",
+  "Aqueça antes de começar e alongue no final.",
+  "Sentiu dor ou tontura? Pare e avise um professor.",
+  "Fone de ouvido no volume certo: a música é só sua.",
+  "Guarde colchonetes, cordas e elásticos depois de usar.",
+  "Mochilas no guarda-volumes, não no chão da academia.",
+  "Gentileza também faz parte do treino.",
+  "Barra solta é risco: sempre use as presilhas.",
+  "Equipamento estragado? Avise a recepção.",
+  "Treine com roupa e calçado adequados.",
+  "Deixe o aparelho como você gostaria de encontrar.",
+  "Academia limpa e organizada: missão de todos."
+];
+
+/** Motivação de treino. */
+export const GYM_MOTIVATION = [
+  "O treino mais difícil é aquele que você não fez.",
+  "Disciplina vence a motivação.",
+  "Hoje é dia de superar o seu treino de ontem.",
+  "Constância é o segredo do resultado.",
+  "Seu corpo alcança o que sua mente acredita.",
+  "Suor é só a gordura chorando.",
+  "Uma série de cada vez.",
+  "Resultado vem para quem não desiste no meio.",
+  "Foco, força e fé no processo.",
+  "Treino pago é treino feito.",
+  "Não pare quando cansar: pare quando terminar.",
+  "Cada repetição conta.",
+  "A dor de hoje é a força de amanhã.",
+  "Você não precisa ser extremo, só consistente.",
+  "Pequenos progressos ainda são progressos.",
+  "Você já veio até aqui: agora termine o treino.",
+  "Corpo forte, mente forte.",
+  "Seu único concorrente é você de ontem.",
+  "Sem atalho: é treino, descanso e alimentação.",
+  "Motivação te faz começar. Hábito te faz continuar.",
+  "Mais uma repetição. Você consegue.",
+  "Treine pela saúde, o resto é consequência.",
+  "O shape vem com o tempo; a disciplina vem hoje.",
+  "Quem treina com propósito não falta.",
+  "Orgulho de quem apareceu hoje."
+];
+
 export function pickDaily(list: string[], date: string, salt = 0) {
   const day = Math.floor(new Date(`${date}T12:00:00Z`).getTime() / 86_400_000);
   return list[(day + salt) % list.length] ?? list[0] ?? "";
+}
+
+/**
+ * Frase para o tema escolhido. Temas de academia trocam a cada hora (o público
+ * volta várias vezes na semana); os demais trocam uma vez por dia.
+ */
+export function pickQuote(theme: string | null | undefined, custom: string[] | null | undefined, date: string, salt = 0) {
+  if (theme === "academia" || theme === "treino") {
+    const list = theme === "academia" ? GYM_RULES : GYM_MOTIVATION;
+    const hour = Math.floor(Date.now() / 3_600_000);
+    return list[(hour + salt) % list.length] ?? list[0] ?? "";
+  }
+  const list =
+    theme === "personalizado" && custom?.length
+      ? custom
+      : theme === "curiosidades"
+        ? CURIOSITIES
+        : theme === "saude"
+          ? HEALTH_TIPS
+          : MOTIVATIONAL;
+  return pickDaily(list, date, salt);
 }

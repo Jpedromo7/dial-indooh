@@ -34,7 +34,7 @@ import {
   RssPreview,
   WeatherPreview
 } from "@/components/widgets/widget-preview";
-import { BirthdaysEditor, CountdownEditor, HolidaysEditor, QrEditor, QuoteEditor, useQrImage } from "@/components/widgets/extra-editors";
+import { BackgroundImageField, BirthdaysEditor, CountdownEditor, HolidaysEditor, QrEditor, QuoteEditor, useQrImage } from "@/components/widgets/extra-editors";
 import { useToast } from "@/components/feedback/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -580,6 +580,10 @@ function WidgetEditor({
           {type === "holidays" ? <HolidaysEditor config={config} set={set} /> : null}
           {type === "birthdays" ? <BirthdaysEditor config={config} set={set} /> : null}
           {type === "qrcode" ? <QrEditor config={config} set={set} /> : null}
+
+          {type !== "instagram" ? (
+            <BackgroundImageField onChange={(url) => set("backgroundImageUrl", url)} value={(config.backgroundImageUrl as string | null) ?? null} />
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3">
             <ColorField label="Cor de fundo" onChange={(value) => set("background", value)} value={(config.background as string) ?? "#111827"} />

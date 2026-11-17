@@ -31,7 +31,7 @@ module.exports = {
     ],
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 23,
+      versionCode: 24,
       adaptiveIcon: {
         foregroundImage: "./assets/d-player-adaptive-foreground.png",
         monochromeImage: "./assets/d-player-monochrome.png",

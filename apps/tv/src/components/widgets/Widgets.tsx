@@ -10,6 +10,7 @@ import type {
 } from "@dialindooh/shared";
 import { getZonedNow } from "@dialindooh/shared";
 import type { TvItem } from "../../types/signage";
+import { PhotoBackground } from "./PhotoBackground";
 
 const WEEKDAYS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
@@ -49,10 +50,10 @@ export function useClock(timezone: string, intervalMs = 1000) {
   };
 }
 
-function Frame({ background, children }: { background: string; children: React.ReactNode }) {
+function Frame({ background, image, children }: { background: string; image?: string | null; children: React.ReactNode }) {
   return (
     <View style={[styles.frame, { backgroundColor: background }]}>
-      <View style={styles.glow} />
+      {image ? <PhotoBackground background={background} uri={image} /> : <View style={styles.glow} />}
       {children}
     </View>
   );
@@ -65,7 +66,7 @@ export function ClockWidget({ item, timezone }: { item: TvItem; timezone: string
   const color = config.color ?? "#ffffff";
 
   return (
-    <Frame background={config.background ?? "#1d4ed8"}>
+    <Frame background={config.background ?? "#1d4ed8"} image={config.backgroundImageUrl}>
       <Text style={[styles.text, { color, fontSize: 52 * scale, fontWeight: "600" }]}>
         {clock.weekday}, {clock.date}
       </Text>
@@ -90,7 +91,7 @@ export function CurrencyWidget({ item, timezone }: { item: TvItem; timezone: str
   const color = config.color ?? "#ffffff";
 
   return (
-    <Frame background={config.background ?? "#6d28d9"}>
+    <Frame background={config.background ?? "#6d28d9"} image={config.backgroundImageUrl}>
       <Text style={[styles.text, { color, fontSize: 64 * scale, fontWeight: "800", marginBottom: 40 * scale }]}>Cotação em {clock.date}</Text>
       <View style={[styles.row, { gap: 32 * scale }]}>
         {quotes.map((quote) => (
@@ -119,14 +120,14 @@ export function WeatherWidget({ item }: { item: TvItem }) {
 
   if (!weather) {
     return (
-      <Frame background={config.background ?? "#0369a1"}>
+      <Frame background={config.background ?? "#0369a1"} image={config.backgroundImageUrl}>
         <Text style={[styles.text, { color, fontSize: 48 * scale }]}>Previsão indisponível</Text>
       </Frame>
     );
   }
 
   return (
-    <Frame background={config.background ?? "#0369a1"}>
+    <Frame background={config.background ?? "#0369a1"} image={config.backgroundImageUrl}>
       <Text style={[styles.text, { color, fontSize: 70 * scale, fontWeight: "800" }]}>{weather.city}</Text>
       <View style={[styles.row, { gap: 30 * scale }]}>
         <Text style={{ fontSize: 200 * scale }}>{WEATHER_EMOJI[weather.icon] ?? "⛅"}</Text>
@@ -173,12 +174,14 @@ export function RssWidget({ item, portrait }: { item: TvItem; portrait: boolean 
   const news = items[index];
 
   if (!news) {
-    return <Frame background={config.background ?? "#111827"}>{null}</Frame>;
+    return <Frame background={config.background ?? "#111827"} image={config.backgroundImageUrl}>{null}</Frame>;
   }
 
   return (
     <View style={[styles.rss, { backgroundColor: config.background ?? "#111827", flexDirection: portrait ? "column" : "row" }]}>
-      {news.imageUrl ? <Image resizeMode="cover" source={{ uri: news.imageUrl }} style={portrait ? styles.rssImagePortrait : styles.rssImage} /> : null}
+      {news.imageUrl ?? config.backgroundImageUrl ? (
+        <Image resizeMode="cover" source={{ uri: (news.imageUrl ?? config.backgroundImageUrl) as string }} style={portrait ? styles.rssImagePortrait : styles.rssImage} />
+      ) : null}
       <View style={[styles.rssText, { padding: 60 * scale, gap: 24 * scale }]}>
         <View style={[styles.row, { gap: 18 * scale, justifyContent: "flex-start" }]}>
           {config.logoUrl ? <Image resizeMode="contain" source={{ uri: config.logoUrl }} style={{ height: 60 * scale, width: 160 * scale }} /> : null}
@@ -215,7 +218,7 @@ export function NoticeWidget({ item }: { item: TvItem }) {
   const color = config.color ?? "#ffffff";
 
   return (
-    <Frame background={config.background ?? "#b91c1c"}>
+    <Frame background={config.background ?? "#b91c1c"} image={config.backgroundImageUrl}>
       {config.imageUrl ? <Image resizeMode="contain" source={{ uri: config.imageUrl }} style={{ height: 300 * scale, marginBottom: 40 * scale, width: 600 * scale }} /> : null}
       <Text style={[styles.text, { color, fontSize: 110 * scale, fontWeight: "900", lineHeight: 124 * scale, paddingHorizontal: 80 * scale }]}>
         {config.text}

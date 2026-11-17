@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { getZonedNow, type BirthdaysConfig, type CountdownConfig, type HolidaysConfig, type QrCodeConfig, type QuoteConfig } from "@dialindooh/shared";
 import type { TvItem } from "../../types/signage";
+import { PhotoBackground } from "./PhotoBackground";
 
 const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
@@ -10,10 +11,10 @@ function useScale() {
   return Math.min(width, height) / 1080;
 }
 
-function Frame({ background, children }: { background: string; children: React.ReactNode }) {
+function Frame({ background, image, children }: { background: string; image?: string | null; children: React.ReactNode }) {
   return (
     <View style={[styles.frame, { backgroundColor: background }]}>
-      <View style={styles.glow} />
+      {image ? <PhotoBackground background={background} uri={image} /> : <View style={styles.glow} />}
       {children}
     </View>
   );
@@ -26,7 +27,7 @@ export function QuoteWidget({ item }: { item: TvItem }) {
   const text = item.data?.quote?.text ?? "";
 
   return (
-    <Frame background={config.background ?? "#0f766e"}>
+    <Frame background={config.background ?? "#0f766e"} image={config.backgroundImageUrl}>
       <Text style={[styles.text, { color, fontSize: 44 * scale, fontWeight: "800", letterSpacing: 6 * scale, opacity: 0.85, textTransform: "uppercase" }]}>
         {config.title || "Frase do dia"}
       </Text>
@@ -58,7 +59,7 @@ export function CountdownWidget({ item }: { item: TvItem }) {
   ];
 
   return (
-    <Frame background={config.background ?? "#be123c"}>
+    <Frame background={config.background ?? "#be123c"} image={config.backgroundImageUrl}>
       {config.imageUrl ? <Image resizeMode="contain" source={{ uri: config.imageUrl }} style={{ height: 220 * scale, marginBottom: 30 * scale, width: 500 * scale }} /> : null}
       <Text style={[styles.text, { color, fontSize: 80 * scale, fontWeight: "900", marginBottom: 50 * scale }]}>{config.title}</Text>
       {diff === 0 ? (
@@ -86,7 +87,7 @@ export function HolidaysWidget({ item }: { item: TvItem }) {
   const holidays = item.data?.holidays ?? [];
 
   return (
-    <Frame background={config.background ?? "#15803d"}>
+    <Frame background={config.background ?? "#15803d"} image={config.backgroundImageUrl}>
       <Text style={[styles.text, { color, fontSize: 80 * scale, fontWeight: "900", marginBottom: 40 * scale }]}>{config.title || "Próximos feriados"}</Text>
       <View style={{ gap: 22 * scale, width: "80%" }}>
         {holidays.map((holiday) => (
@@ -118,7 +119,7 @@ export function BirthdaysWidget({ item, timezone }: { item: TvItem; timezone: st
   const columns = people.length > 6 ? 3 : people.length > 3 ? 2 : 1;
 
   return (
-    <Frame background={config.background ?? "#c026d3"}>
+    <Frame background={config.background ?? "#c026d3"} image={config.backgroundImageUrl}>
       <Text style={{ fontSize: 110 * scale }}>🎉</Text>
       <Text style={[styles.text, { color, fontSize: 76 * scale, fontWeight: "900", marginBottom: 40 * scale }]}>
         {config.title || `Aniversariantes de ${MONTHS[month - 1]}`}
@@ -164,7 +165,7 @@ export function QrCodeWidget({ item, portrait }: { item: TvItem; portrait: boole
   const image = item.data?.qrImage;
 
   return (
-    <Frame background={config.background ?? "#1e293b"}>
+    <Frame background={config.background ?? "#1e293b"} image={config.backgroundImageUrl}>
       <View style={[portrait ? styles.column : styles.row, { gap: 80 * scale, paddingHorizontal: 100 * scale }]}>
         <View style={{ backgroundColor: "#ffffff", borderRadius: 36 * scale, padding: 30 * scale }}>
           {image ? <Image source={{ uri: image }} style={{ height: 560 * scale, width: 560 * scale }} /> : null}

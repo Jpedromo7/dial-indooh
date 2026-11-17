@@ -34,22 +34,48 @@ export function WeatherIcon({ icon, className }: { icon: string; className?: str
   return <Icon className={className} />;
 }
 
-function Frame({ background, color, children, portrait }: { background: string; color: string; children: React.ReactNode; portrait?: boolean }) {
+function Frame({
+  background,
+  color,
+  children,
+  portrait,
+  image
+}: {
+  background: string;
+  color: string;
+  children: React.ReactNode;
+  portrait?: boolean;
+  image?: string | null;
+}) {
   return (
     <div
       className={cn("relative mx-auto overflow-hidden rounded-lg shadow-xl", portrait ? "aspect-[9/16] w-56" : "aspect-video w-full")}
       style={{ background: `radial-gradient(circle at 20% 10%, rgba(255,255,255,0.18), transparent 45%), ${background}`, color }}
     >
+      {image ? <PhotoBackground background={background} image={image} /> : null}
       <div className="absolute inset-0 flex flex-col items-center justify-center p-[5%] text-center">{children}</div>
     </div>
   );
 }
 
+/** Foto de fundo com a cor do conteúdo por cima (mesma receita da TV), para o texto continuar legível. */
+function PhotoBackground({ image, background }: { image: string; background: string }) {
+  return (
+    <>
+      <img alt="" className="absolute inset-0 h-full w-full object-cover" src={image} />
+      <div className="absolute inset-0" style={{ background, opacity: PHOTO_TINT }} />
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.25)" }} />
+    </>
+  );
+}
+
+const PHOTO_TINT = 0.6;
+
 export function ClockPreview({ config, portrait }: { config: ClockConfig; portrait?: boolean }) {
   const now = useNow();
   const date = `${WEEKDAYS[now.getDay()]}, ${now.toLocaleDateString("pt-BR")}`;
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <p className="font-medium opacity-90" style={{ fontSize: portrait ? 14 : 22 }}>
         {date}
       </p>
@@ -64,7 +90,7 @@ export function ClockPreview({ config, portrait }: { config: ClockConfig; portra
 export function CurrencyPreview({ config, quotes, portrait }: { config: CurrencyConfig; quotes: CurrencyQuote[]; portrait?: boolean }) {
   const today = new Date().toLocaleDateString("pt-BR");
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <p className="mb-3 font-bold" style={{ fontSize: portrait ? 16 : 22 }}>
         Cotação em {today}
       </p>
@@ -89,7 +115,7 @@ export function CurrencyPreview({ config, quotes, portrait }: { config: Currency
 
 export function WeatherPreview({ config, weather, portrait }: { config: WeatherConfig; weather: WeatherData | null; portrait?: boolean }) {
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       {weather ? (
         <>
           <p className="font-semibold" style={{ fontSize: portrait ? 18 : 24 }}>
@@ -132,7 +158,9 @@ export function RssPreview({ config, items, portrait }: { config: RssConfig; ite
     <Frame background={config.background} color={config.color} portrait={portrait}>
       {item ? (
         <div className={cn("flex h-full w-full gap-4 text-left", portrait ? "flex-col" : "flex-row items-center")}>
-          {item.imageUrl ? <img alt="" className={cn("rounded-lg object-cover", portrait ? "h-1/2 w-full" : "h-full w-1/2")} src={item.imageUrl} /> : null}
+          {item.imageUrl ?? config.backgroundImageUrl ? (
+            <img alt="" className={cn("rounded-lg object-cover", portrait ? "h-1/2 w-full" : "h-full w-1/2")} src={(item.imageUrl ?? config.backgroundImageUrl) as string} />
+          ) : null}
           <div className="flex flex-1 flex-col justify-center gap-2">
             <div className="flex items-center gap-2">
               {config.logoUrl ? <img alt="" className="h-6 object-contain" src={config.logoUrl} /> : null}
@@ -153,7 +181,7 @@ export function RssPreview({ config, items, portrait }: { config: RssConfig; ite
 
 export function NoticePreview({ config, portrait }: { config: NoticeConfig; portrait?: boolean }) {
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       {config.imageUrl ? <img alt="" className="mb-4 max-h-[35%] max-w-[60%] object-contain" src={config.imageUrl} /> : null}
       <p className="font-extrabold leading-tight" style={{ fontSize: portrait ? 24 : 40 }}>
         {config.text || "Seu aviso aqui"}
@@ -231,9 +259,9 @@ export function FooterPreview({ config, weather }: { config: FooterConfig; weath
 
 /* ---------- Tipos adicionais ---------- */
 
-export function QuotePreview({ config, text, portrait }: { config: { title?: string | null; background: string; color: string }; text: string; portrait?: boolean }) {
+export function QuotePreview({ config, text, portrait }: { config: { title?: string | null; background: string; color: string; backgroundImageUrl?: string | null }; text: string; portrait?: boolean }) {
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <p className="mb-3 text-sm font-semibold uppercase tracking-widest opacity-80">{config.title || "Frase do dia"}</p>
       <p className="font-bold leading-snug" style={{ fontSize: portrait ? 18 : 30 }}>
         “{text}”
@@ -257,7 +285,7 @@ export function CountdownPreview({
   config,
   portrait
 }: {
-  config: { title: string; target: string; finishedText?: string | null; background: string; color: string; imageUrl?: string | null };
+  config: { title: string; target: string; finishedText?: string | null; background: string; color: string; imageUrl?: string | null; backgroundImageUrl?: string | null };
   portrait?: boolean;
 }) {
   const now = useNow();
@@ -270,7 +298,7 @@ export function CountdownPreview({
   ];
 
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       {config.imageUrl ? <img alt="" className="mb-3 max-h-[25%] object-contain" src={config.imageUrl} /> : null}
       <p className="mb-4 font-bold" style={{ fontSize: portrait ? 18 : 28 }}>
         {config.title || "Contagem regressiva"}
@@ -300,12 +328,12 @@ export function HolidaysPreview({
   holidays,
   portrait
 }: {
-  config: { title?: string | null; background: string; color: string };
+  config: { title?: string | null; background: string; color: string; backgroundImageUrl?: string | null };
   holidays: Array<{ date: string; name: string; weekday: string; daysUntil: number }>;
   portrait?: boolean;
 }) {
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <p className="mb-3 font-bold" style={{ fontSize: portrait ? 18 : 26 }}>
         {config.title || "Próximos feriados"}
       </p>
@@ -330,7 +358,7 @@ export function BirthdaysPreview({
   config,
   portrait
 }: {
-  config: { title?: string | null; background: string; color: string; people: Array<{ name: string; day: number; month: number; role?: string | null }> };
+  config: { title?: string | null; background: string; color: string; backgroundImageUrl?: string | null; people: Array<{ name: string; day: number; month: number; role?: string | null }> };
   portrait?: boolean;
 }) {
   const month = new Date().getMonth() + 1;
@@ -338,7 +366,7 @@ export function BirthdaysPreview({
   const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
 
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <p className="text-4xl">🎉</p>
       <p className="mb-3 font-bold capitalize" style={{ fontSize: portrait ? 18 : 26 }}>
         {config.title || `Aniversariantes de ${monthName}`}
@@ -364,12 +392,12 @@ export function QrPreview({
   qrImage,
   portrait
 }: {
-  config: { title: string; subtitle?: string | null; background: string; color: string };
+  config: { title: string; subtitle?: string | null; background: string; color: string; backgroundImageUrl?: string | null };
   qrImage: string | null;
   portrait?: boolean;
 }) {
   return (
-    <Frame background={config.background} color={config.color} portrait={portrait}>
+    <Frame background={config.background} color={config.color} image={config.backgroundImageUrl} portrait={portrait}>
       <div className={cn("flex items-center gap-6", portrait ? "flex-col" : "flex-row")}>
         <div className="rounded-xl bg-white p-2">
           {qrImage ? <img alt="QR Code" className="h-32 w-32" src={qrImage} /> : <div className="h-32 w-32 bg-slate-200" />}
