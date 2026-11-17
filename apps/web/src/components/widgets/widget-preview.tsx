@@ -53,7 +53,7 @@ export function ClockPreview({ config, portrait }: { config: ClockConfig; portra
       <p className="font-medium opacity-90" style={{ fontSize: portrait ? 14 : 22 }}>
         {date}
       </p>
-      <p className="font-bold tabular-nums leading-none" style={{ fontSize: portrait ? 44 : "clamp(28px, 9vw, 88px)" }}>
+      <p className="font-bold tabular-nums leading-none" style={{ fontSize: portrait ? 44 : 96 }}>
         {now.toLocaleTimeString("pt-BR")}
       </p>
       {config.logoUrl ? <img alt="" className="mt-4 max-h-[22%] max-w-[40%] rounded bg-white/90 object-contain p-2" src={config.logoUrl} /> : null}

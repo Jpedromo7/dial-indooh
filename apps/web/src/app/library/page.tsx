@@ -11,6 +11,7 @@ import { ErrorBanner } from "@/components/admin/error-banner";
 import { LoadingSkeleton } from "@/components/admin/loading-skeleton";
 import { IconButton, MediaThumb, ScreenPicker } from "@/components/admin/pickers";
 import { GroupFormModal } from "@/components/playlists/group-form";
+import { DynamicMediaPreview } from "@/components/widgets/media-preview";
 import { useToast } from "@/components/feedback/toast";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, PageActions } from "@/components/ui/form";
@@ -81,29 +82,30 @@ export default function LibraryPage() {
         <section className="mb-8">
           <h2 className="mb-1 text-lg font-semibold text-primary">Conteúdos dinâmicos prontos</h2>
           <p className="mb-3 text-sm text-muted-foreground">Atualizam sozinhos (hora, cotação, clima, notícias, frases, feriados). Escolha e inclua nos terminais.</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {libraryMedia.data.map((item) => (
-              <div className="flex items-center gap-3 rounded-lg border bg-card/70 p-3" key={item.id}>
-                <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-[10px] font-bold text-white"
-                  style={{ background: ((item.config as { background?: string } | null)?.background as string) ?? "#334155" }}
-                >
-                  {MEDIA_TYPE_LABELS[item.type].slice(0, 6).toUpperCase()}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">{MEDIA_TYPE_LABELS[item.type]}</p>
+              <div className="overflow-hidden rounded-lg border bg-card/70" key={item.id}>
+                <DynamicMediaPreview media={item} />
+                <div className="flex items-center gap-2 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold" title={item.title}>
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {MEDIA_TYPE_LABELS[item.type]} · {item.durationSeconds ?? 15}s
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setScreenIds([]);
+                      setIncludeMedia(item);
+                    }}
+                    size="sm"
+                    type="button"
+                  >
+                    Incluir
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => {
-                    setScreenIds([]);
-                    setIncludeMedia(item);
-                  }}
-                  size="sm"
-                  type="button"
-                >
-                  Incluir
-                </Button>
               </div>
             ))}
           </div>
