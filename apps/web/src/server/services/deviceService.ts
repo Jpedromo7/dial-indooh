@@ -57,7 +57,7 @@ export const deviceService = {
     return toLegacyPlaylist(await buildDeviceManifest(screenId));
   },
 
-  async recordHeartbeat(screenId: string, deviceKey: string | null, input: unknown) {
+  async recordHeartbeat(screenId: string, deviceKey: string | null, input: unknown, publicIp?: string | null) {
     const data = screenHeartbeatSchema.parse(input);
     const screen = await assertDeviceAccess(screenId, deviceKey);
     const receivedAt = new Date();
@@ -76,7 +76,7 @@ export const deviceService = {
       data: {
         status: data.status,
         lastSeenAt: receivedAt,
-        lastHeartbeat: { ...live, sentAt: receivedAt.toISOString() } as Prisma.InputJsonValue,
+        lastHeartbeat: { ...live, publicIp: publicIp ?? null, sentAt: receivedAt.toISOString() } as Prisma.InputJsonValue,
         diagnostics: mergedDiagnostics as Prisma.InputJsonValue,
         lastHeartbeatStoredAt: shouldStoreHistory ? receivedAt : undefined
       }

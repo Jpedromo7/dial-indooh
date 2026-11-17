@@ -80,9 +80,11 @@ export async function buildDeviceManifest(screenId: string): Promise<DeviceManif
   const appVersion = ((screen.lastHeartbeat ?? {}) as { appVersion?: string }).appVersion;
   const legacyApp = isOlderThan(appVersion, "2.1.0");
 
+  const publicIp = ((screen.lastHeartbeat ?? {}) as { publicIp?: string }).publicIp ?? null;
+
   for (const entry of entries) {
     if (legacyApp && TYPES_SINCE_2_1.has(entry.media.type)) continue;
-    const manifestItem = await toManifestItem(entry, screen);
+    const manifestItem = await toManifestItem(entry, { ...screen, publicIp });
 
     if (manifestItem) {
       items.push(manifestItem);
@@ -96,7 +98,7 @@ export async function buildDeviceManifest(screenId: string): Promise<DeviceManif
   if (screen.footerEnabled) {
     const config = { ...DEFAULT_FOOTER, ...(footerSource ?? {}) };
     const [weather, headlines] = await Promise.all([
-      config.showWeather ? getWeather(screen.city, screen.state) : Promise.resolve(null),
+      config.showWeather ? getWeather(screen.city, screen.state, publicIp) : Promise.resolve(null),
       config.rssUrl ? getRssItems(config.rssUrl, 10) : Promise.resolve([])
     ]);
     footer = { ...config, weather, headlines: headlines.map((headline) => headline.title) };
@@ -128,7 +130,7 @@ export async function buildDeviceManifest(screenId: string): Promise<DeviceManif
 
 async function toManifestItem(
   entry: { key: string; media: Media; playlist: Playlist | null; durationOverride: number | null },
-  screen: { orientation: string; city: string | null; state: string | null; timezone: string }
+  screen: { orientation: string; city: string | null; state: string | null; timezone: string; publicIp: string | null }
 ): Promise<ManifestItem | null> {
   const { media, playlist } = entry;
 
@@ -159,7 +161,9 @@ async function toManifestItem(
       break;
     case "weather": {
       const weatherConfig = config as WeatherConfig | null;
-      data = { weather: await getWeather(weatherConfig?.city || screen.city, weatherConfig?.city ? weatherConfig?.state : screen.state) };
+      data = {
+        weather: await getWeather(weatherConfig?.city || screen.city, weatherConfig?.city ? weatherConfig?.state : screen.state, screen.publicIp)
+      };
       break;
     }
     case "rss": {
@@ -209,6 +213,8 @@ async function toManifestItem(
   }
 
   if (media.type === "holidays" && !data?.holidays?.length) return null;
+  if (media.type === "weather" && !data?.weather) return null;
+  if (media.type === "currency" && !data?.quotes?.length) return null;
   if (media.type === "rss" && !data?.rss?.length) return null;
   if (media.type === "instagram" && !data?.posts?.length) return null;
 

@@ -27,6 +27,7 @@ async function cached<T>(key: string, ttlSeconds: number, loader: () => Promise<
     return data;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[externalData] ${key}: ${message}`);
     await prisma.externalCache
       .update({ where: { key }, data: { error: message.slice(0, 500) } })
       .catch(() => undefined);
@@ -73,25 +74,60 @@ export async function getCurrencyQuotes(codes: string[]): Promise<CurrencyQuote[
     return [];
   }
 
-  const all = await cached<Record<string, CurrencyQuote>>("currency:all", 30 * 60, async () => {
+  const all = await cached<Record<string, CurrencyQuote>>("currency:all", 30 * 60, loadAllQuotes);
+
+  return unique.map((code) => all?.[code]).filter((quote): quote is CurrencyQuote => Boolean(quote));
+}
+
+/** Busca cotações com fontes reservas: AwesomeAPI → Frankfurter (BCE) + CoinGecko. */
+export async function loadAllQuotes() {
+  const result: Record<string, CurrencyQuote> = {};
+
+  try {
     const pairs = Object.keys(CURRENCY_NAMES).map((code) => `${code}-BRL`).join(",");
     const response = await fetchWithTimeout(`https://economia.awesomeapi.com.br/json/last/${pairs}`);
     const json = (await response.json()) as Record<string, { code: string; bid: string; pctChange: string }>;
-    const result: Record<string, CurrencyQuote> = {};
 
     for (const value of Object.values(json)) {
-      result[value.code] = {
-        code: value.code,
-        name: CURRENCY_NAMES[value.code] ?? value.code,
-        bid: Number(value.bid),
-        pctChange: Number(value.pctChange)
-      };
+      if (value?.code && Number(value.bid) > 0) {
+        result[value.code] = { code: value.code, name: CURRENCY_NAMES[value.code] ?? value.code, bid: Number(value.bid), pctChange: Number(value.pctChange) || 0 };
+      }
     }
+  } catch (error) {
+    console.warn("[externalData] AwesomeAPI indisponível, usando fontes reservas:", error instanceof Error ? error.message : error);
+  }
 
-    return result;
-  });
+  if (!result.USD || !result.EUR || !result.GBP) {
+    try {
+      const response = await fetchWithTimeout("https://api.frankfurter.dev/v1/latest?base=BRL&symbols=USD,EUR,GBP");
+      const json = (await response.json()) as { rates?: Record<string, number> };
+      for (const [code, rate] of Object.entries(json.rates ?? {})) {
+        if (!result[code] && rate > 0) {
+          result[code] = { code, name: CURRENCY_NAMES[code] ?? code, bid: Number((1 / rate).toFixed(4)), pctChange: 0 };
+        }
+      }
+    } catch (error) {
+      console.warn("[externalData] Frankfurter indisponível:", error instanceof Error ? error.message : error);
+    }
+  }
 
-  return unique.map((code) => all?.[code]).filter((quote): quote is CurrencyQuote => Boolean(quote));
+  if (!result.BTC) {
+    try {
+      const response = await fetchWithTimeout("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl&include_24hr_change=true");
+      const json = (await response.json()) as { bitcoin?: { brl?: number; brl_24h_change?: number } };
+      if (json.bitcoin?.brl) {
+        result.BTC = { code: "BTC", name: CURRENCY_NAMES.BTC ?? "Bitcoin", bid: json.bitcoin.brl, pctChange: json.bitcoin.brl_24h_change ?? 0 };
+      }
+    } catch {
+      // Bitcoin é opcional.
+    }
+  }
+
+  if (Object.keys(result).length === 0) {
+    throw new Error("Nenhuma fonte de cotação respondeu.");
+  }
+
+  return result;
 }
 
 /* ---------- Clima (Open-Meteo, sem chave) ---------- */
@@ -134,12 +170,28 @@ async function geocodeCity(city: string, state?: string | null) {
   });
 }
 
-export async function getWeather(city: string | null | undefined, state?: string | null): Promise<WeatherData | null> {
-  if (!city) {
+/** Localização aproximada pelo IP público da internet do local (usada quando o terminal não tem cidade). */
+async function geolocateIp(ip: string) {
+  if (!ip || !isPublicIp(ip)) {
     return null;
   }
 
-  const location = await geocodeCity(city, state);
+  return cached<{ latitude: number; longitude: number; name: string } | null>(`geoip:${ip}`, 60 * 60 * 24 * 30, async () => {
+    const response = await fetchWithTimeout(`https://ipwho.is/${encodeURIComponent(ip)}?fields=success,city,latitude,longitude`);
+    const json = (await response.json()) as { success?: boolean; city?: string; latitude?: number; longitude?: number };
+    if (!json.success || json.latitude == null || json.longitude == null) {
+      throw new Error(`IP sem localização: ${ip}`);
+    }
+    return { latitude: json.latitude, longitude: json.longitude, name: json.city ?? "Sua cidade" };
+  });
+}
+
+function isPublicIp(ip: string) {
+  return /^\d+\.\d+\.\d+\.\d+$/.test(ip) && isPublicHttpUrl(`http://${ip}/`);
+}
+
+export async function getWeather(city: string | null | undefined, state?: string | null, fallbackIp?: string | null): Promise<WeatherData | null> {
+  const location = city ? await geocodeCity(city, state) : fallbackIp ? await geolocateIp(fallbackIp) : null;
 
   if (!location) {
     return null;

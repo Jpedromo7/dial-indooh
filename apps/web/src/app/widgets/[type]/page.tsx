@@ -57,7 +57,7 @@ const META: Record<WidgetMediaType, { title: string; description: string; defaul
   },
   weather: {
     title: "Clima",
-    description: "Temperatura e previsão. Sem cidade fixa, usa a cidade de cada terminal.",
+    description: "Temperatura e previsão. Sem cidade fixa, usa a cidade do terminal ou, se não tiver, a localização da internet do local.",
     defaultTitle: "Clima",
     defaultConfig: { background: "#0369a1", color: "#ffffff", city: "", state: "" }
   },

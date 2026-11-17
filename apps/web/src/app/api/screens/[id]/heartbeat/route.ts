@@ -7,8 +7,11 @@ export const runtime = "nodejs";
 
 export const POST = apiRoute<{ id: string }>(async (request, { id }) => {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  return deviceService.recordHeartbeat(id, getDeviceKeyFromRequest(request), {
-    ...body,
-    ipAddress: body.ipAddress ?? getRequestIp(request)
-  });
+  const publicIp = getRequestIp(request) ?? null;
+  return deviceService.recordHeartbeat(
+    id,
+    getDeviceKeyFromRequest(request),
+    { ...body, ipAddress: body.ipAddress ?? publicIp ?? undefined },
+    publicIp
+  );
 });
