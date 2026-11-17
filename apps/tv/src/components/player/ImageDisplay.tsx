@@ -43,6 +43,8 @@ export function ImageDisplay({ item, screenOrientation, onError }: ImageDisplayP
       >
         <Image
           onError={onError}
+          // Decodifica no tamanho da tela, não no tamanho original (fotos grandes travavam boxes com pouca RAM).
+          resizeMethod="resize"
           resizeMode="contain"
           source={{ uri: sourceUri }}
           style={[styles.image, getPresentedMediaStyle(stageBounds, rotationDegrees)]}

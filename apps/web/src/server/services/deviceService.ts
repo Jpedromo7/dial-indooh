@@ -5,6 +5,7 @@ import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
 import { buildDeviceManifest, toLegacyPlaylist } from "@/server/services/manifestService";
 import { getMirrorSession, toJson, updateMirrorSession } from "@/server/services/screenService";
+import { getPublishedTvRelease } from "@/server/services/tvRelease";
 import {
   serializeScreenCommand,
   serializeScreenEvent,
@@ -103,7 +104,12 @@ export const deviceService = {
       });
     }
 
-    return { receivedAt: receivedAt.toISOString() };
+    // Avisa a TV quando existe um APK mais novo publicado no painel (ela instala na madrugada).
+    const release = await getPublishedTvRelease();
+    const runningCode = data.diagnostics?.appVersionCode ?? null;
+    const appUpdate = release && (runningCode === null || release.versionCode > runningCode) ? release : null;
+
+    return { receivedAt: receivedAt.toISOString(), appUpdate };
   },
 
   async recordEvent(screenId: string, deviceKey: string | null, input: unknown) {

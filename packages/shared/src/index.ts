@@ -59,6 +59,7 @@ export type ScreenCommandType =
   | "restart_player"
   | "reload_app"
   | "open_overlay_settings"
+  | "update_app"
   | "remote_key"
   | "start_screen_mirror"
   | "stop_screen_mirror";
@@ -286,6 +287,9 @@ export interface ScreenDiagnosticsDto {
   deviceModel?: string | null;
   osVersion?: string | null;
   overlayPermission?: boolean | null;
+  appVersionCode?: number | null;
+  /** Como a TV instala APKs novos: device_owner, root, session (silenciosa no Android 12+), prompt (pede confirmação). */
+  updateMethod?: string | null;
 }
 
 export interface ScreenDto {
@@ -438,6 +442,7 @@ export interface AccountDto {
   maxScreens: number | null;
   maxInstagram: number;
   apkUrl: string | null;
+  apkVersionCode: number | null;
   screenCount?: number;
   userCount?: number;
   createdAt: string;

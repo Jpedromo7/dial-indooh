@@ -5,13 +5,13 @@ import { BrandLogo } from "../components/BrandLogo";
 import { FooterBar } from "../components/FooterBar";
 import { ManifestPlayer } from "../components/player/ManifestPlayer";
 import { ApiError } from "../services/apiClient";
+import { reportPreviousUpdate } from "../services/appUpdater";
 import { postHeartbeat } from "../services/heartbeat";
 import { loadOfflineManifest, syncManifest } from "../services/manifestSync";
 import { maybeDailyRestart, resumeWatchdog } from "../services/maintenance";
 import { flushPlays } from "../services/playLog";
 import { pollAndRunScreenCommands } from "../services/screenCommands";
 import { reportScreenEvent } from "../services/screenEvents";
-import { startScreenMirror, stopScreenMirror } from "../services/screenMirror";
 import type { DeviceSession, PlaybackStatus, RemoteKeyCommand, TvItem, TvManifest } from "../types/signage";
 import { getErrorMessage } from "../utils/errors";
 
@@ -98,9 +98,13 @@ export function PlayerScreen({ onSessionExpired, session }: PlayerScreenProps) {
   const timezone = manifest?.screen.timezone ?? "America/Sao_Paulo";
   useEffect(() => {
     void resumeWatchdog();
-    const interval = setInterval(() => void maybeDailyRestart(timezone), 60 * 1000);
+    const interval = setInterval(() => void maybeDailyRestart(timezone, session), 60 * 1000);
     return () => clearInterval(interval);
-  }, [timezone]);
+  }, [session, timezone]);
+
+  useEffect(() => {
+    void reportPreviousUpdate(session);
+  }, [session]);
 
   useEffect(() => {
     void flushPlays(session);
@@ -118,10 +122,13 @@ export function PlayerScreen({ onSessionExpired, session }: PlayerScreenProps) {
         },
         remoteKey: (key, commandId) => setRemoteKeyCommand({ id: commandId, key }),
         startScreenMirror: async (sessionId) => {
+          // WebRTC é pesado: só carrega quando alguém abre o espelhamento.
+          const { startScreenMirror } = await import("../services/screenMirror");
           await startScreenMirror(session, sessionId);
           await reportScreenEvent(session, { level: "info", type: "screen_mirror_started", message: "Espelhamento de tela iniciado." });
         },
         stopScreenMirror: async () => {
+          const { stopScreenMirror } = await import("../services/screenMirror");
           await stopScreenMirror();
           await reportScreenEvent(session, { level: "info", type: "screen_mirror_stopped", message: "Espelhamento de tela encerrado." });
         }

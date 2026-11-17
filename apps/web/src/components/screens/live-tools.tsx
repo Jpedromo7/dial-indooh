@@ -18,6 +18,7 @@ import {
   ArrowUp,
   CircleDot,
   CornerDownLeft,
+  Download,
   MonitorPlay,
   MonitorUp,
   RotateCcw,
@@ -37,6 +38,7 @@ export const commandLabels: Record<ScreenCommandType, string> = {
   restart_player: "Reiniciar reprodutor",
   reload_app: "Recarregar aplicativo",
   open_overlay_settings: "Modo manutenção (abre ajustes, pausa vigia 15 min)",
+  update_app: "Atualizar app (APK)",
   remote_key: "Controle remoto",
   start_screen_mirror: "Iniciar espelhamento",
   stop_screen_mirror: "Encerrar espelhamento"
@@ -506,6 +508,10 @@ export function RemoteCommands({ onCommand }: { onCommand: (type: ScreenCommandT
         <Button onClick={() => onCommand("open_overlay_settings")} type="button" variant="secondary">
           <Settings className="h-4 w-4" aria-hidden="true" />
           Permitir sobrepor
+        </Button>
+        <Button onClick={() => onCommand("update_app")} title="Baixa e instala o APK publicado em Configurações > Aplicativo da TV" type="button" variant="secondary">
+          <Download className="h-4 w-4" aria-hidden="true" />
+          Atualizar app (APK)
         </Button>
       </div>
     </div>

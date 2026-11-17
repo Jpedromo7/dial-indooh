@@ -94,6 +94,9 @@ export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, on
   }, [advanceAtSeconds, item.media.orientation, onAdvanceCue, onError, onProgress, player]);
 
   const rotationDegrees = item.media.rotationDegrees !== 0 ? item.media.rotationDegrees : autoRotationDegrees;
+  // SurfaceView vai direto para o hardware de vídeo (bem mais leve nas TV boxes), mas não acompanha
+  // rotação/transformações. Só usa TextureView quando o vídeo ou a tela estão girados.
+  const surfaceType = screenOrientation === "landscape" && rotationDegrees === 0 ? "surfaceView" : "textureView";
 
   return (
     <View style={styles.container}>
@@ -112,7 +115,7 @@ export function VideoPlayer({ item, screenOrientation, onAdvanceCue, onError, on
           nativeControls={false}
           player={player}
           style={[styles.video, getPresentedMediaStyle(stageBounds, rotationDegrees)]}
-          surfaceType="textureView"
+          surfaceType={surfaceType}
         />
       </View>
     </View>

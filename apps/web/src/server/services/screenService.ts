@@ -4,6 +4,7 @@ import { assertScreenAllowed, screenScope, type AuthContext } from "@/server/aut
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
 import { mediaVisibility } from "@/server/services/mediaService";
+import { requirePublishedTvRelease } from "@/server/services/tvRelease";
 import { assertStorageUrl } from "@/server/storage/mediaStorage";
 import {
   serializeScreen,
@@ -336,13 +337,15 @@ export const screenService = {
   async createCommand(ctx: AuthContext, screenId: string, input: unknown) {
     const data = screenCommandCreateSchema.parse(input);
     await getScopedScreen(ctx, screenId);
+    // Atualização do app: o link/versão vêm sempre do APK publicado pelo superadmin, nunca do pedido.
+    const payload = data.type === "update_app" ? { ...(await requirePublishedTvRelease()) } : data.payload;
 
     const command = await prisma.screenCommand.create({
       data: {
         screenId,
         requestedById: ctx.user.id,
         type: data.type,
-        payload: toJson(data.payload)
+        payload: toJson(payload)
       }
     });
 

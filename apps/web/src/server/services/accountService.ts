@@ -3,6 +3,7 @@ import { DEFAULT_FOOTER, type FooterConfig } from "@dialindooh/shared";
 import { hashPassword, verifyPassword, type AuthContext } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { ApiError } from "@/server/http";
+import { clearTvReleaseCache } from "@/server/services/tvRelease";
 import { assertStorageUrl } from "@/server/storage/mediaStorage";
 import { serializeAccount, serializeCompany, serializeUser } from "@/server/utils/serializers";
 import {
@@ -54,6 +55,11 @@ export const accountService = {
     }
     assertStorageUrl(data.footer?.logoUrl, "footer.logoUrl");
 
+    // O APK publicado é instalado automaticamente nas TVs: só o superadmin pode trocá-lo.
+    if ((data.apkUrl !== undefined || data.apkVersionCode !== undefined) && !ctx.isSuperadmin) {
+      throw new ApiError(403, "forbidden", "Somente o superadmin pode alterar o aplicativo da TV.");
+    }
+
     const account = await prisma.account.update({
       where: { id: ctx.accountId },
       data: {
@@ -61,6 +67,10 @@ export const accountService = {
         footer: data.footer ? (data.footer as Prisma.InputJsonValue) : undefined
       }
     });
+
+    if (data.apkUrl !== undefined || data.apkVersionCode !== undefined) {
+      clearTvReleaseCache();
+    }
 
     return serializeAccount(account);
   },

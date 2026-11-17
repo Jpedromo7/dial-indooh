@@ -40,6 +40,7 @@ const screenCommandType = z.enum([
   "restart_player",
   "reload_app",
   "open_overlay_settings",
+  "update_app",
   "remote_key",
   "start_screen_mirror",
   "stop_screen_mirror"
@@ -379,7 +380,9 @@ export const screenHeartbeatSchema = z.object({
       totalItems: z.number().int().nonnegative().nullable().optional(),
       deviceModel: z.string().max(120).nullable().optional(),
       osVersion: z.string().max(40).nullable().optional(),
-      overlayPermission: z.boolean().nullable().optional()
+      overlayPermission: z.boolean().nullable().optional(),
+      appVersionCode: z.number().int().nonnegative().nullable().optional(),
+      updateMethod: z.string().max(40).nullable().optional()
     })
     .optional()
 });
@@ -485,6 +488,7 @@ export const accountUpdateSchema = z
     splashEnabled: z.boolean(),
     primaryColor: color.nullable(),
     apkUrl: z.string().url().nullable(),
+    apkVersionCode: z.number().int().min(1).max(2_000_000_000).nullable(),
     footer: footerConfigSchema
   })
   .partial();

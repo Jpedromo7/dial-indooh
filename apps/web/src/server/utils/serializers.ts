@@ -260,6 +260,7 @@ export function serializeAccount(account: Account & { _count?: { screens?: numbe
     maxScreens: account.maxScreens,
     maxInstagram: account.maxInstagram,
     apkUrl: account.apkUrl,
+    apkVersionCode: account.apkVersionCode,
     screenCount: account._count?.screens,
     userCount: account._count?.users,
     createdAt: account.createdAt

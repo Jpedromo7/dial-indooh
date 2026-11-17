@@ -2,6 +2,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Network from "expo-network";
 import { Platform } from "react-native";
 import { APP_VERSION } from "../config/appConfig";
+import { getUpdaterInfo, setLatestRelease } from "./appUpdater";
 import { sendHeartbeat } from "./apiClient";
 import { getCacheStats } from "./manifestSync";
 import type { DeviceSession, PlaybackStatus } from "../types/signage";
@@ -27,7 +28,10 @@ export async function postHeartbeat(session: DeviceSession, playbackStatus: Play
     ]);
     const constants = (Platform.constants ?? {}) as { Model?: string; Brand?: string; Release?: string };
     const stats = getCacheStats();
+    const updater = await getUpdaterInfo();
     diagnostics = {
+      appVersionCode: updater?.versionCode ?? null,
+      updateMethod: updater?.method ?? null,
       freeDiskBytes: free,
       totalDiskBytes: total,
       cachedItems: stats.cachedItems,
@@ -37,7 +41,7 @@ export async function postHeartbeat(session: DeviceSession, playbackStatus: Play
     };
   }
 
-  await sendHeartbeat(session.screenId, session.deviceKey, {
+  const response = await sendHeartbeat(session.screenId, session.deviceKey, {
     status: "online",
     appVersion: APP_VERSION,
     ipAddress,
@@ -49,6 +53,8 @@ export async function postHeartbeat(session: DeviceSession, playbackStatus: Play
     sentAt: new Date().toISOString(),
     ...(diagnostics ? { diagnostics } : {})
   });
+
+  setLatestRelease(response?.appUpdate);
 
   if (includeDiagnostics) {
     lastDiagnosticsAt = Date.now();

@@ -1,6 +1,7 @@
 import * as Updates from "expo-updates";
 import { acknowledgeScreenCommand, fetchScreenCommands } from "./apiClient";
 import { clearAllMedia } from "./manifestSync";
+import { installAppUpdate } from "./appUpdater";
 import { pauseWatchdog } from "./maintenance";
 import { openOverlayPermissionSettings } from "./systemSettings";
 import type { RemoteControlKey } from "@dialindooh/shared";
@@ -50,6 +51,13 @@ async function runCommand(session: DeviceSession, command: ScreenCommand, handle
       await openOverlayPermissionSettings();
     }
 
+    if (command.type === "update_app") {
+      const result = await installAppUpdate(session, getRelease(command.payload), true);
+      if (result === "up_to_date") {
+        throw new Error("O app já está na versão publicada (ou mais nova).");
+      }
+    }
+
     if (command.type === "remote_key") {
       const key = getRemoteControlKey(command.payload);
       handlers.remoteKey(key, command.id);
@@ -88,6 +96,17 @@ function getMirrorSessionId(payload: Record<string, unknown> | null) {
   }
 
   throw new Error("Sessão de espelhamento inválida.");
+}
+
+function getRelease(payload: Record<string, unknown> | null) {
+  const versionCode = payload?.versionCode;
+  const url = payload?.url;
+
+  if (typeof versionCode === "number" && typeof url === "string" && url.startsWith("https://")) {
+    return { versionCode, url };
+  }
+
+  throw new Error("Versão do APK inválida no comando.");
 }
 
 function getRemoteControlKey(payload: Record<string, unknown> | null): RemoteControlKey {

@@ -224,7 +224,17 @@ export default function ScreenDetailPage() {
                       {data.soundEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
                       {data.soundEnabled ? "Som ligado" : "Sem som"}
                     </Badge>
-                    {data.diagnostics?.appVersion ? <Badge>App {data.diagnostics.appVersion}</Badge> : null}
+                    {data.diagnostics?.appVersion ? (
+                      <Badge>
+                        App {data.diagnostics.appVersion}
+                        {data.diagnostics.appVersionCode ? ` (${data.diagnostics.appVersionCode})` : ""}
+                      </Badge>
+                    ) : null}
+                    {data.diagnostics?.updateMethod ? (
+                      <Badge tone={data.diagnostics.updateMethod === "prompt" ? "warn" : "success"}>
+                        {data.diagnostics.updateMethod === "prompt" ? "Atualização pede confirmação na TV" : "Atualização remota automática"}
+                      </Badge>
+                    ) : null}
                   </div>
                   {!data.deviceKeyRegistered && data.activationCode ? (
                     <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm">

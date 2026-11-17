@@ -217,9 +217,22 @@ function SettingsContent() {
                 <Field hint="Link direto do arquivo .apk (ex.: link do build no Expo). O endereço /apk redireciona para cá." label="Link do APK">
                   <Input onChange={(event) => setAccount({ ...account, apkUrl: event.target.value || null })} value={account.apkUrl ?? ""} />
                 </Field>
+                <Field
+                  hint="Número da versão (versionCode) desse APK, ex.: 22. TVs com versão menor baixam e instalam sozinhas às 04:00, ou na hora pelo botão Atualizar app (APK) do terminal."
+                  label="Versão do APK (versionCode)"
+                >
+                  <Input
+                    inputMode="numeric"
+                    onChange={(event) => {
+                      const value = Number.parseInt(event.target.value, 10);
+                      setAccount({ ...account, apkVersionCode: Number.isFinite(value) && value > 0 ? value : null });
+                    }}
+                    value={account.apkVersionCode ?? ""}
+                  />
+                </Field>
                 <div className="flex gap-2">
-                  <Button onClick={() => void saveAccount({ apkUrl: account.apkUrl })} type="button">
-                    Salvar link
+                  <Button onClick={() => void saveAccount({ apkUrl: account.apkUrl, apkVersionCode: account.apkVersionCode })} type="button">
+                    Publicar versão
                   </Button>
                   <a className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm hover:bg-muted" href="/apk">
                     <Download className="h-4 w-4" /> Testar download

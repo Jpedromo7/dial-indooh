@@ -58,7 +58,7 @@ export async function sendPlayLogs(screenId: string, deviceKey: string, plays: i
 }
 
 export async function sendHeartbeat(screenId: string, deviceKey: string, input: HeartbeatInput) {
-  return request(`/screens/${screenId}/heartbeat`, {
+  return request<{ receivedAt: string; appUpdate?: { versionCode: number; url: string } | null }>(`/screens/${screenId}/heartbeat`, {
     method: "POST",
     headers: withDeviceKey(deviceKey),
     body: input

@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: "Dial indoor TV",
     slug: "dial-indooh-tv",
-    version: "2.1.0",
+    version: "2.2.0",
     icon: "./assets/dial-indooh-logo.png",
     orientation: "landscape",
     userInterfaceStyle: "dark",
@@ -19,10 +19,10 @@ module.exports = {
       resizeMode: "contain",
       backgroundColor: "#000000"
     },
-    plugins: ["./plugins/withAndroidKioskMode", "@config-plugins/react-native-webrtc"],
+    plugins: ["./plugins/withAndroidKioskMode", "./plugins/withTvBoxBuild", "@config-plugins/react-native-webrtc"],
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 21,
+      versionCode: 22,
       adaptiveIcon: {
         foregroundImage: "./assets/dial-indooh-logo.png",
         backgroundColor: "#000000"

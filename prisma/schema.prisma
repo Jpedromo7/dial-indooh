@@ -73,6 +73,7 @@ enum ScreenCommandType {
   restart_player
   reload_app
   open_overlay_settings
+  update_app
   remote_key
   start_screen_mirror
   stop_screen_mirror
@@ -115,6 +116,8 @@ model Account {
   maxInstagram  Int         @default(5)
   footer        Json?
   apkUrl        String?
+  /// versionCode do APK publicado em apkUrl; TVs com versão menor se atualizam sozinhas.
+  apkVersionCode Int?
   users         User[]
   companies     Company[]
   screens       Screen[]
