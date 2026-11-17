@@ -98,7 +98,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="h-full bg-sidebar lg:min-h-screen lg:border-r">
-      <div className="flex h-full flex-col overflow-y-auto pb-6">
+      <div className="scrollbar-hidden flex h-full flex-col overflow-y-auto pb-6">
         <div className="flex items-center gap-3 px-5 py-5">
           {session?.account.logoUrl ? (
             <img alt={session.account.name} className="h-10 max-w-[10rem] object-contain" src={session.account.logoUrl} />
