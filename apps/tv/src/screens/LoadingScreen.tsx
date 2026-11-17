@@ -1,5 +1,6 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import { BrandLogo } from "../components/BrandLogo";
+import { BRAND_NAME, brandColors } from "../theme/brand";
 
 interface LoadingScreenProps {
   message?: string;
@@ -22,10 +23,10 @@ export function LoadingScreen({ message = "Preparando reprodutor", splashUrl }: 
       <View style={styles.panel}>
         <BrandLogo size={112} />
         <View style={styles.copyBlock}>
-          <Text style={styles.brand}>Dial indoor TV</Text>
+          <Text style={styles.brand}>{BRAND_NAME}</Text>
           <Text style={styles.caption}>{message}</Text>
         </View>
-        <ActivityIndicator color="#22c7aa" size="large" />
+        <ActivityIndicator color={brandColors.cyan} size="large" />
       </View>
       <Text style={styles.footer}>Reprodução automática</Text>
     </View>
@@ -42,20 +43,20 @@ const styles = StyleSheet.create({
     position: "absolute"
   },
   brand: {
-    color: "#f8fafc",
+    color: brandColors.text,
     fontSize: 36,
-    fontWeight: "900",
+    fontWeight: "800",
     letterSpacing: 0
   },
   screen: {
     alignItems: "center",
-    backgroundColor: "#060910",
+    backgroundColor: brandColors.background,
     flex: 1,
     justifyContent: "center",
     overflow: "hidden"
   },
   caption: {
-    color: "#a8b3c7",
+    color: brandColors.textMuted,
     fontSize: 20,
     lineHeight: 28,
     textAlign: "center"
@@ -75,9 +76,9 @@ const styles = StyleSheet.create({
   },
   panel: {
     alignItems: "center",
-    backgroundColor: "#0c1320",
-    borderColor: "#22314a",
-    borderRadius: 8,
+    backgroundColor: brandColors.surface,
+    borderColor: brandColors.border,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 24,
     minWidth: 560,
@@ -85,10 +86,10 @@ const styles = StyleSheet.create({
     paddingVertical: 48
   },
   topBand: {
-    backgroundColor: "#22c7aa",
-    height: 5,
+    backgroundColor: brandColors.blue,
+    height: 4,
     left: 0,
-    opacity: 0.9,
+    opacity: 0.8,
     position: "absolute",
     right: 0,
     top: 0

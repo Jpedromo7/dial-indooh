@@ -1,4 +1,4 @@
-# Dial indoor Platform
+# D Player Platform
 
 Plataforma de mídia indoor (digital signage) para TVs e Android TV boxes: painel web para gerenciar terminais, conteúdos, agendamentos e relatórios, e um app Android TV que toca a programação mesmo sem internet.
 

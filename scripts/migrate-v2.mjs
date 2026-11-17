@@ -10,7 +10,7 @@ async function main() {
   let root = await prisma.account.findFirst({ where: { kind: "reseller", parentId: null }, orderBy: { createdAt: "asc" } });
 
   if (!root) {
-    root = await prisma.account.create({ data: { name: process.env.ROOT_ACCOUNT_NAME ?? "Dial indooh", kind: "reseller" } });
+    root = await prisma.account.create({ data: { name: process.env.ROOT_ACCOUNT_NAME ?? "D Player", kind: "reseller" } });
     console.log(`Conta raiz criada: ${root.id}`);
   }
 

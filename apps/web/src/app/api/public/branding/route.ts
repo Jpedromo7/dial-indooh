@@ -11,5 +11,5 @@ export const GET = apiRoute(async () => {
     select: { name: true, logoUrl: true, loginImageUrl: true, primaryColor: true }
   });
 
-  return account ?? { name: "Dial indooh", logoUrl: null, loginImageUrl: null, primaryColor: null };
+  return account ?? { name: "D Player", logoUrl: null, loginImageUrl: null, primaryColor: null };
 });

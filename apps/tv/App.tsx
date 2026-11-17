@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { AppState, BackHandler, Platform } from "react-native";
 import { activateKeepAwakeAsync } from "expo-keep-awake";
 import * as NavigationBar from "expo-navigation-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { ActivationScreen } from "./src/screens/ActivationScreen";
 import { LoadingScreen } from "./src/screens/LoadingScreen";
 import { PlayerScreen } from "./src/screens/PlayerScreen";
 import { clearDeviceSession, getCachedBranding, getDeviceSession } from "./src/storage/deviceStorage";
 import type { DeviceSession } from "./src/types/signage";
+
+// Splash D Player sai com fade suave quando a primeira tela aparece.
+SplashScreen.setOptions({ duration: 400, fade: true });
 
 export default function App() {
   const [isBooting, setIsBooting] = useState(true);

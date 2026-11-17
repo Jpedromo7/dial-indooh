@@ -11,6 +11,7 @@ import { StrengthBar } from "@/components/admin/password-strength";
 import { TIMEZONES } from "@/components/screens/screen-form";
 import { FooterPreview } from "@/components/widgets/widget-preview";
 import { useToast } from "@/components/feedback/toast";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ColorField, Field, Input, Select, Switch, Tabs } from "@/components/ui/form";
@@ -250,6 +251,11 @@ function SettingsContent() {
             <CardTitle className="text-base">Meu perfil</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
+            <div className="grid gap-1.5 text-sm">
+              <span className="font-medium">Aparência do painel</span>
+              <ThemeToggle className="w-fit" />
+              <span className="text-xs text-muted-foreground">Automático segue o tema do seu computador ou celular. Não muda nada nas TVs.</span>
+            </div>
             <ImageUploadField label="Foto" onChange={(url) => setProfile({ ...profile, avatarUrl: url })} value={profile.avatarUrl} />
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Nome">

@@ -1,28 +1,18 @@
-import { Image, StyleSheet, View } from "react-native";
+import { Image, StyleSheet } from "react-native";
 
-const logoSource = require("../../assets/dial-indooh-logo.png");
+// Símbolo D Player (fundo transparente), gerado por scripts/brand/generate-brand-assets.mjs.
+const logoSource = require("../../assets/d-player-symbol.png");
 
 interface BrandLogoProps {
   size?: number;
 }
 
 export function BrandLogo({ size = 88 }: BrandLogoProps) {
-  return (
-    <View style={[styles.logoShell, { borderRadius: Math.max(8, size * 0.16), height: size, width: size }]}>
-      <Image resizeMode="contain" source={logoSource} style={styles.logoImage} />
-    </View>
-  );
+  return <Image accessibilityLabel="D Player" resizeMode="contain" source={logoSource} style={[styles.logo, { height: size, width: size }]} />;
 }
 
 const styles = StyleSheet.create({
-  logoImage: {
-    height: "100%",
-    width: "100%"
-  },
-  logoShell: {
-    backgroundColor: "#071312",
-    borderColor: "#153b37",
-    borderWidth: 1,
-    overflow: "hidden"
+  logo: {
+    backgroundColor: "transparent"
   }
 });

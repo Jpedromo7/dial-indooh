@@ -20,6 +20,7 @@
     "expo-keep-awake": "latest",
     "expo-navigation-bar": "latest",
     "expo-network": "latest",
+    "expo-splash-screen": "~55.0.25",
     "expo-status-bar": "latest",
     "expo-updates": "^55.0.20",
     "expo-video": "^55.0.15",

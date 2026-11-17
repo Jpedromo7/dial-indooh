@@ -1,9 +1,9 @@
 module.exports = {
   expo: {
-    name: "Dial indoor TV",
+    name: "D Player",
     slug: "dial-indooh-tv",
-    version: "2.2.0",
-    icon: "./assets/dial-indooh-logo.png",
+    version: "2.3.0",
+    icon: "./assets/d-player-icon.png",
     orientation: "landscape",
     userInterfaceStyle: "dark",
     runtimeVersion: {
@@ -14,18 +14,28 @@ module.exports = {
       checkAutomatically: "ON_LOAD",
       fallbackToCacheTimeout: 0
     },
-    splash: {
-      image: "./assets/dial-indooh-logo.png",
-      resizeMode: "contain",
-      backgroundColor: "#000000"
-    },
-    plugins: ["./plugins/withAndroidKioskMode", "./plugins/withTvBoxBuild", "@config-plugins/react-native-webrtc"],
+    plugins: [
+      [
+        // Splash D Player (API nativa do Android 12+, com fallback nos antigos): símbolo centralizado no azul-marinho.
+        "expo-splash-screen",
+        {
+          image: "./assets/d-player-splash.png",
+          imageWidth: 220,
+          resizeMode: "contain",
+          backgroundColor: "#050B1C"
+        }
+      ],
+      "./plugins/withAndroidKioskMode",
+      "./plugins/withTvBoxBuild",
+      "@config-plugins/react-native-webrtc"
+    ],
     android: {
       package: "com.dialindooh.tv",
-      versionCode: 22,
+      versionCode: 23,
       adaptiveIcon: {
-        foregroundImage: "./assets/dial-indooh-logo.png",
-        backgroundColor: "#000000"
+        foregroundImage: "./assets/d-player-adaptive-foreground.png",
+        monochromeImage: "./assets/d-player-monochrome.png",
+        backgroundColor: "#050B1C"
       },
       softwareKeyboardLayoutMode: "pan",
       permissions: [

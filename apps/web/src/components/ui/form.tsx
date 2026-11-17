@@ -175,12 +175,12 @@ export function Badge({
   className?: string;
 }) {
   const tones = {
-    default: "border-white/10 bg-muted text-muted-foreground",
-    success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-    danger: "border-red-500/30 bg-red-500/10 text-red-300",
-    warn: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-    info: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-    accent: "border-violet-500/30 bg-violet-500/10 text-violet-300"
+    default: "border-border bg-muted text-muted-foreground",
+    success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    danger: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
+    warn: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    info: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    accent: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300"
   };
 
   return (
@@ -235,5 +235,5 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
 }
 
 export function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
-  return <td className={cn("border-b border-white/5 px-3 py-2 align-middle", className)}>{children}</td>;
+  return <td className={cn("border-b px-3 py-2 align-middle", className)}>{children}</td>;
 }

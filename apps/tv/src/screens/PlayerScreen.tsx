@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { COMMAND_POLL_MS, HEARTBEAT_MS, LIVE_PREVIEW_HEARTBEAT_MS } from "../config/appConfig";
 import { BrandLogo } from "../components/BrandLogo";
+import { brandColors } from "../theme/brand";
 import { FooterBar } from "../components/FooterBar";
 import { ManifestPlayer } from "../components/player/ManifestPlayer";
 import { ApiError } from "../services/apiClient";
@@ -205,7 +206,7 @@ const emptyStatus: PlaybackStatus = { currentItem: null, durationSeconds: null, 
 const styles = StyleSheet.create({
   idle: {
     alignItems: "center",
-    backgroundColor: "#060910",
+    backgroundColor: brandColors.background,
     flex: 1,
     gap: 24,
     justifyContent: "center",

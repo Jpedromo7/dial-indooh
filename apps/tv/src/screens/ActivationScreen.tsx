@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import * as Network from "expo-network";
 import { BrandLogo } from "../components/BrandLogo";
+import { brandColors } from "../theme/brand";
 import { API_BASE_URL, APP_VERSION } from "../config/appConfig";
 import { activateScreen } from "../services/apiClient";
 import { pauseWatchdog } from "../services/maintenance";
@@ -123,7 +124,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
             onFocus={() => setFocused("input")}
             onSubmitEditing={handleActivation}
             placeholder="Ex.: K7M2PQ9X"
-            placeholderTextColor="#3b4a5e"
+            placeholderTextColor={brandColors.textSubtle}
             ref={inputRef}
             returnKeyType="done"
             style={[
@@ -176,20 +177,23 @@ function Step({ n, text, s }: { n: number; text: string; s: (value: number) => n
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
-    backgroundColor: "#22c7aa",
+    backgroundColor: brandColors.blue,
+    borderColor: "transparent",
+    borderWidth: 3,
     justifyContent: "center"
   },
   buttonFocused: {
-    backgroundColor: "#5eead4",
+    backgroundColor: brandColors.blueFocused,
+    borderColor: brandColors.cyan,
     transform: [{ scale: 1.03 }]
   },
   buttonText: {
-    color: "#04201b",
-    fontWeight: "900"
+    color: brandColors.white,
+    fontWeight: "800"
   },
   card: {
-    backgroundColor: "rgba(15, 23, 38, 0.92)",
-    borderColor: "rgba(148, 163, 184, 0.18)",
+    backgroundColor: "rgba(13, 20, 36, 0.94)",
+    borderColor: brandColors.border,
     borderWidth: 1,
     flex: 1,
     maxWidth: 760
@@ -208,24 +212,24 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   focusedBorder: {
-    borderColor: "#5eead4",
+    borderColor: brandColors.cyan,
     borderWidth: 3
   },
   glowA: {
-    backgroundColor: "rgba(34, 199, 170, 0.14)",
+    backgroundColor: "rgba(137, 24, 232, 0.12)",
     left: "-8%",
     position: "absolute",
     top: "-20%"
   },
   glowB: {
-    backgroundColor: "rgba(247, 183, 51, 0.08)",
+    backgroundColor: "rgba(0, 217, 236, 0.07)",
     bottom: "-25%",
     position: "absolute",
     right: "-5%"
   },
   input: {
-    backgroundColor: "#060b14",
-    borderColor: "#24324a",
+    backgroundColor: brandColors.navy,
+    borderColor: brandColors.border,
     borderWidth: 2,
     color: "#f8fafc",
     fontWeight: "900",
@@ -241,8 +245,8 @@ const styles = StyleSheet.create({
     maxWidth: 820
   },
   pill: {
-    backgroundColor: "rgba(34, 199, 170, 0.12)",
-    color: "#5eead4",
+    backgroundColor: "rgba(0, 217, 236, 0.12)",
+    color: brandColors.cyan,
     fontWeight: "700",
     overflow: "hidden"
   },
@@ -251,13 +255,13 @@ const styles = StyleSheet.create({
     color: "#fca5a5"
   },
   screen: {
-    backgroundColor: "#060910",
+    backgroundColor: brandColors.background,
     flex: 1,
     overflow: "hidden"
   },
   secondary: {
     alignItems: "center",
-    borderColor: "#334155",
+    borderColor: brandColors.border,
     borderWidth: 2,
     justifyContent: "center",
     paddingVertical: 10
@@ -282,12 +286,12 @@ const styles = StyleSheet.create({
   },
   stepBadge: {
     alignItems: "center",
-    backgroundColor: "#22c7aa",
+    backgroundColor: brandColors.blue,
     justifyContent: "center"
   },
   stepNumber: {
-    color: "#04201b",
-    fontWeight: "900"
+    color: brandColors.white,
+    fontWeight: "800"
   },
   stepText: {
     color: "#cbd5e1",

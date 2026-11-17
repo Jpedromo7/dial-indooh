@@ -25,7 +25,7 @@ When the build finishes, EAS prints a download URL for the `.apk`.
 ## Install and activate
 
 1. Install the downloaded APK on the Android TV box.
-2. Open `Dial indoor TV`.
+2. Open `D Player`.
 3. Enter the activation code shown in the admin panel.
 
 The seed screen uses:

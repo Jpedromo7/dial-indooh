@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
@@ -11,9 +12,9 @@ interface BrandLogoProps {
 }
 
 const imageSizes = {
-  sm: "h-9 w-9",
-  md: "h-10 w-10",
-  lg: "h-14 w-14"
+  sm: "h-8 w-8",
+  md: "h-9 w-9",
+  lg: "h-12 w-12"
 };
 
 export function BrandLogo({
@@ -27,17 +28,17 @@ export function BrandLogo({
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <Image
-        alt="Dial indoor"
-        className={cn("shrink-0 rounded-md bg-black object-contain", imageSizes[variant], imageClassName)}
+        alt={BRAND.name}
+        className={cn("shrink-0 object-contain", imageSizes[variant], imageClassName)}
         height={96}
         priority
-        src="/brand/dial-indooh-logo.png"
+        src={BRAND.assets.symbol}
         width={96}
       />
       {showText ? (
         <div className="min-w-0">
-          <p className={cn("truncate text-sm font-semibold leading-none", textClassName)}>Dial indoor</p>
-          <p className={cn("mt-1 truncate text-xs text-muted-foreground", subtitleClassName)}>Controle de telas</p>
+          <p className={cn("truncate text-base font-semibold leading-none tracking-tight", textClassName)}>{BRAND.name}</p>
+          <p className={cn("mt-1 truncate text-xs text-muted-foreground", subtitleClassName)}>{BRAND.tagline}</p>
         </div>
       ) : null}
     </div>

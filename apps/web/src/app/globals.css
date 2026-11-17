@@ -2,25 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * D Player — tokens de cor (HSL). Fonte das cores: brand/ e src/lib/brand.ts.
+ * Tema claro em :root; tema escuro em .dark (classe aplicada no <html> antes da pintura).
+ */
 :root {
-  --background: 222 47% 6%;
-  --foreground: 210 40% 96%;
-  --card: 222 35% 10%;
-  --card-foreground: 210 40% 96%;
-  --primary: 172 74% 42%;
+  --background: 220 50% 98%; /* #F6F8FC */
+  --foreground: 221 39% 11%; /* #111827 */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 221 39% 11%;
+  --sidebar: 0 0% 100%; /* #FFFFFF */
+  --primary: 218 92% 52%; /* azul elétrico #1468F5 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 38 92% 55%;
-  --secondary-foreground: 222 31% 14%;
-  --muted: 222 28% 16%;
-  --muted-foreground: 215 18% 68%;
-  --accent: 262 83% 66%;
+  --secondary: 220 30% 93%;
+  --secondary-foreground: 221 39% 11%;
+  --muted: 220 30% 95%;
+  --muted-foreground: 215 16% 40%;
+  --accent: 273 82% 50%; /* roxo #8918E8 */
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 76% 52%;
+  --brand-cyan: 185 100% 46%; /* ciano #00D9EC */
+  --destructive: 0 72% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 222 23% 20%;
-  --input: 222 23% 20%;
-  --ring: 172 74% 42%;
-  --radius: 0.5rem;
+  --border: 214 32% 91%; /* #E2E8F0 */
+  --input: 214 32% 88%;
+  --ring: 218 92% 52%;
+  --radius: 0.625rem;
+  color-scheme: light;
+}
+
+.dark {
+  --background: 221 50% 6%; /* #080D18 */
+  --foreground: 210 40% 98%; /* #F8FAFC */
+  --card: 220 39% 14%; /* #151E30 */
+  --card-foreground: 210 40% 98%;
+  --sidebar: 222 47% 10%; /* #0D1424 */
+  --primary: 218 92% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 33% 19%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 220 33% 17%;
+  --muted-foreground: 215 20% 68%;
+  --accent: 273 82% 62%;
+  --accent-foreground: 0 0% 100%;
+  --brand-cyan: 185 100% 46%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 219 31% 22%; /* #263248 */
+  --input: 219 31% 24%;
+  --ring: 185 100% 46%;
+  color-scheme: dark;
 }
 
 * {
@@ -29,17 +59,21 @@
 
 body {
   min-height: 100vh;
+  /* Iluminação discreta da marca (azul + roxo), sem neon. */
   background:
-    radial-gradient(circle at top left, rgba(35, 199, 170, 0.16), transparent 34rem),
-    radial-gradient(circle at top right, rgba(247, 183, 51, 0.1), transparent 30rem),
+    radial-gradient(circle at top left, hsl(var(--primary) / 0.07), transparent 36rem),
+    radial-gradient(circle at top right, hsl(var(--accent) / 0.05), transparent 32rem),
     hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
-input,
-select,
-textarea {
-  color-scheme: dark;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @keyframes ticker {

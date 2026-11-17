@@ -11,13 +11,13 @@ The TV app is prepared for a lightweight kiosk setup:
 
 ## Recommended TV Box Setup
 
-1. Install the latest Dial indoor TV APK.
+1. Install the latest D Player APK.
 2. Open it once and activate the screen.
 3. On the activation screen, choose **Allow overlay permission** if the TV box requires "draw over other apps".
-4. In Android settings, enable the permission for **Dial indoor TV**.
+4. In Android settings, enable the permission for **D Player**.
 5. Press the remote Home button.
-6. When Android asks which Home app to use, choose **Dial indoor TV** and select **Always**.
-7. If the device has a vendor setting like **Auto start**, **Boot app**, **Background start**, or **Battery optimization**, allow Dial indoor TV.
+6. When Android asks which Home app to use, choose **D Player** and select **Always**.
+7. If the device has a vendor setting like **Auto start**, **Boot app**, **Background start**, or **Battery optimization**, allow D Player.
 8. Reboot the TV box and confirm the player opens by itself.
 
 The admin panel also has a remote command named **Permitir sobrepor**. It opens the same Android setting on an already activated screen.
@@ -32,4 +32,4 @@ For a fully locked device where users cannot leave the player, use one of these 
 - an MDM platform
 - a TV box firmware setting that forces a default launcher or boot app
 
-The current implementation is the most practical path for low-cost Android TV boxes: set Dial indoor TV as the default Home app and let the boot receiver reopen the player after restarts.
+The current implementation is the most practical path for low-cost Android TV boxes: set D Player as the default Home app and let the boot receiver reopen the player after restarts.

@@ -244,7 +244,7 @@ export default function ScreenDetailPage() {
                 </div>
                 <div className="flex gap-1">
                   <IconButton label={data.isFavorite ? "Remover dos favoritos" : "Favoritar"} onClick={() => void patchScreen({ isFavorite: !data.isFavorite })}>
-                    <Star className={cn("h-4 w-4", data.isFavorite && "fill-secondary text-secondary")} />
+                    <Star className={cn("h-4 w-4", data.isFavorite && "fill-amber-400 text-amber-500")} />
                   </IconButton>
                   {session?.isAdmin ? (
                     <>
@@ -360,7 +360,7 @@ export default function ScreenDetailPage() {
                   </p>
                 ) : null}
                 {items.map((item, index) => (
-                  <div className="flex items-center gap-2 border-b border-white/5 py-2" key={item.key}>
+                  <div className="flex items-center gap-2 border-b py-2" key={item.key}>
                     {item.media ? (
                       <MediaThumb media={item.media} />
                     ) : item.playlistImage ? (
@@ -406,7 +406,7 @@ export default function ScreenDetailPage() {
                 label="Reprodução aleatória contínua"
                 onChange={(value) => void patchScreen({ shuffle: value })}
               />
-              {dirty ? <p className="text-xs text-amber-300">Alterações não salvas.</p> : null}
+              {dirty ? <p className="text-xs text-amber-700 dark:text-amber-300">Alterações não salvas.</p> : null}
             </CardContent>
           </Card>
         </div>

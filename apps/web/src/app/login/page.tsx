@@ -4,6 +4,8 @@ import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { apiClient, getApiErrorMessage } from "@/lib/api-client";
@@ -48,23 +50,30 @@ function LoginForm() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-black lg:block">
+      {/* Painel da marca: sempre escuro, nos dois temas. */}
+      <div className="relative hidden overflow-hidden bg-[#050B1C] text-white lg:block">
         {branding?.loginImageUrl ? (
           <img alt="" className="absolute inset-0 h-full w-full object-cover" src={branding.loginImageUrl} />
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(35,199,170,0.35),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(247,183,51,0.25),transparent_40%)]" />
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(137,24,232,0.22),transparent_45%),radial-gradient(circle_at_75%_70%,rgba(0,217,236,0.14),transparent_45%)]" />
+            <div className="absolute inset-0 flex items-center justify-center pb-24">
+              <img alt="" aria-hidden="true" className="h-56 w-56 object-contain opacity-95" src={BRAND.assets.symbol} />
+            </div>
+          </>
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-10">
-          <p className="text-3xl font-semibold">Sua mídia indoor, em todas as telas.</p>
-          <p className="mt-2 max-w-md text-muted-foreground">Gerencie terminais, conteúdos, agendamentos e relatórios de exibição em um só lugar.</p>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#050B1C] via-[#050B1C]/80 to-transparent p-10">
+          <p className="text-3xl font-semibold tracking-tight">Sua mídia indoor, em todas as telas.</p>
+          <p className="mt-2 max-w-md text-slate-300">Gerencie terminais, conteúdos, agendamentos e relatórios de exibição em um só lugar.</p>
         </div>
       </div>
-      <div className="flex items-center justify-center px-6 py-10">
+      <div className="relative flex items-center justify-center px-6 py-10">
+        <ThemeToggle className="absolute right-4 top-4" compact />
         <div className="w-full max-w-sm">
           {branding?.logoUrl ? (
             <img alt={branding.name} className="mb-8 h-14 object-contain" src={branding.logoUrl} />
           ) : (
-            <BrandLogo className="mb-8" imageClassName="shadow-lg shadow-primary/20" variant="lg" />
+            <BrandLogo className="mb-8" variant="lg" />
           )}
           <h1 className="text-2xl font-semibold">Entrar no painel</h1>
           <p className="mt-1 text-sm text-muted-foreground">Use o e-mail e a senha cadastrados.</p>

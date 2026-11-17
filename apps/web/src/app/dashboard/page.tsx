@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <Card className="bg-card/70">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Star className="h-4 w-4 text-secondary" /> Terminais favoritos
+                  <Star className="h-4 w-4 text-amber-500" /> Terminais favoritos
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-2">
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               <CardContent className="grid gap-2">
                 {data.notifications.slice(0, 8).map((notification) => (
                   <Link className="rounded-md border px-3 py-2 hover:bg-muted/40" href={notification.href ?? "#"} key={notification.id}>
-                    <p className={notification.level === "error" ? "text-sm font-medium text-red-300" : "text-sm font-medium text-amber-300"}>
+                    <p className={notification.level === "error" ? "text-sm font-medium text-red-700 dark:text-red-300" : "text-sm font-medium text-amber-700 dark:text-amber-300"}>
                       {notification.title}
                     </p>
                     <p className="text-xs text-muted-foreground">{notification.message}</p>

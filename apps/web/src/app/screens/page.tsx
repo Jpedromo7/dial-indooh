@@ -99,9 +99,9 @@ export default function ScreensPage() {
                 "rounded-md border px-3 py-1.5 text-sm font-medium",
                 filter === value
                   ? value === "online"
-                    ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
+                    ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                     : value === "offline"
-                      ? "border-red-500/50 bg-red-500/15 text-red-300"
+                      ? "border-red-500/50 bg-red-500/15 text-red-700 dark:text-red-300"
                       : "border-primary/50 bg-primary/15 text-primary"
                   : "text-muted-foreground"
               )}
@@ -133,7 +133,7 @@ export default function ScreensPage() {
       {screens.error ? <ErrorBanner message={screens.error} /> : null}
       {screens.isLoading && !screens.data ? <LoadingSkeleton className="h-64" /> : null}
       {list.length > 0 && online === 0 ? (
-        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">Nenhum dos seus terminais está online.</div>
+        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-700 dark:text-red-300">Nenhum dos seus terminais está online.</div>
       ) : null}
 
       {screens.data && list.length === 0 ? (
@@ -202,7 +202,7 @@ export default function ScreensPage() {
                 <Td className="text-right">
                   <div className="flex justify-end" onClick={(event) => event.stopPropagation()}>
                     <IconButton label={screen.isFavorite ? "Remover dos favoritos" : "Favoritar"} onClick={() => void toggleFavorite(screen)}>
-                      <Star className={cn("h-4 w-4", screen.isFavorite && "fill-secondary text-secondary")} />
+                      <Star className={cn("h-4 w-4", screen.isFavorite && "fill-amber-400 text-amber-500")} />
                     </IconButton>
                     {session?.isAdmin ? (
                       <>

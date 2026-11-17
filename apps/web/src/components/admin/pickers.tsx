@@ -56,7 +56,7 @@ export function ScreenPicker({
               />
               {screen.orientation === "portrait" ? <Smartphone className="h-4 w-4 text-muted-foreground" /> : <Monitor className="h-4 w-4 text-muted-foreground" />}
               <span className="flex-1 truncate">{screen.name}</span>
-              {mismatch ? <span className="text-xs text-amber-300">orientação diferente</span> : null}
+              {mismatch ? <span className="text-xs text-amber-700 dark:text-amber-300">orientação diferente</span> : null}
             </label>
           );
         })}

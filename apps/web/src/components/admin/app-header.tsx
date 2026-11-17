@@ -7,6 +7,7 @@ import { Bell, ChevronDown, LogOut, Menu, UserCircle } from "lucide-react";
 import type { NotificationDto } from "@dialindooh/shared";
 import { useSession } from "@/components/layout/session-context";
 import { useToast } from "@/components/feedback/toast";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/form";
 import { apiClient, getApiErrorMessage } from "@/lib/api-client";
@@ -57,7 +58,7 @@ export function AppHeader({ title, description, onOpenMenu }: { title: string; d
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8">
+    <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-xl lg:px-8">
       <div className="flex items-center justify-between gap-3" ref={panelRef}>
         <div className="flex min-w-0 items-center gap-3">
           <Button aria-label="Abrir menu" className="lg:hidden" onClick={onOpenMenu} size="icon" type="button" variant="ghost">
@@ -69,6 +70,7 @@ export function AppHeader({ title, description, onOpenMenu }: { title: string; d
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle className="hidden sm:inline-flex" compact />
           {session && session.accounts.length > 1 ? (
             <Select
               aria-label="Conta ativa"
@@ -106,7 +108,7 @@ export function AppHeader({ title, description, onOpenMenu }: { title: string; d
                       key={notification.id}
                       onClick={() => setShowNotifications(false)}
                     >
-                      <p className={cn("text-sm font-medium", notification.level === "error" ? "text-red-300" : notification.level === "warn" ? "text-amber-300" : "")}>
+                      <p className={cn("text-sm font-medium", notification.level === "error" ? "text-red-700 dark:text-red-300" : notification.level === "warn" ? "text-amber-700 dark:text-amber-300" : "")}>
                         {notification.title}
                       </p>
                       <p className="text-xs text-muted-foreground">{notification.message}</p>
@@ -151,6 +153,10 @@ export function AppHeader({ title, description, onOpenMenu }: { title: string; d
                     ))}
                   </Select>
                 ) : null}
+                <div className="flex items-center justify-between gap-2 px-2 py-1.5 sm:hidden">
+                  <span className="text-xs text-muted-foreground">Aparência</span>
+                  <ThemeToggle compact />
+                </div>
                 <Link className="block rounded-md px-2 py-2 text-sm hover:bg-muted" href="/settings?tab=profile" onClick={() => setShowUserMenu(false)}>
                   Meu perfil
                 </Link>

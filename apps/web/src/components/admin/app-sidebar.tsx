@@ -83,7 +83,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
       <Link
         className={cn(
           "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition",
-          "hover:bg-white/5 hover:text-foreground",
+          "hover:bg-muted hover:text-foreground",
           active && "bg-primary/10 text-primary ring-1 ring-primary/20"
         )}
         href={item.href}
@@ -97,13 +97,13 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <aside className="h-full border-white/10 bg-black/30 backdrop-blur-xl lg:min-h-screen lg:border-r">
+    <aside className="h-full bg-sidebar lg:min-h-screen lg:border-r">
       <div className="flex h-full flex-col overflow-y-auto pb-6">
         <div className="flex items-center gap-3 px-5 py-5">
           {session?.account.logoUrl ? (
             <img alt={session.account.name} className="h-10 max-w-[10rem] object-contain" src={session.account.logoUrl} />
           ) : (
-            <BrandLogo imageClassName="shadow-lg shadow-primary/20" />
+            <BrandLogo />
           )}
         </div>
         <nav className="grid gap-1 px-3">{mainNav.map(renderItem)}</nav>
